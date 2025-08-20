@@ -1,0 +1,7 @@
+# Cursor Editing Guidelines
+
+- Keep changes within `src/crewai_hatchery` unless modifying tooling/tests/README
+- If adding CLI options, update `README.md` and add tests
+- Prefer minimal dependencies; if adding, declare in `pyproject.toml` and ensure `make install` still works
+- After structural edits (flows/agents/tasks), ensure `make test` passes
+- Avoid calls to external APIs in tests; use mocks

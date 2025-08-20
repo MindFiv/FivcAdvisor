@@ -1,0 +1,25 @@
+# Project Overview
+
+CrewAI Hatchery: pattern-driven flows and tools atop CrewAI for building intelligent, multi-agent task flows. Primary entrypoint: Typer CLI `hatchery`. Code under `src/crewai_hatchery` (src layout).
+
+## Tech Stack
+- Python 3.10+
+- Packaging: setuptools via `pyproject.toml`
+- CLI: Typer + Rich
+- Orchestration: CrewAI `Flow`, `Agent`, `Task`, `Crew`
+- LLM config via env (see `src/crewai_hatchery/llms.py`)
+- Dev tooling: uv, Ruff, Pytest, Makefile
+
+## Repo Layout
+- `src/crewai_hatchery/` core library
+  - `flows/` orchestrators (see `default.py`)
+  - `agents.py`, `tasks.py`, `llms.py`, `tools/`, `utils/`
+- `tests/` pytest
+- `configs/` examples
+- `examples/` runnable demos
+- `Makefile` common dev commands
+
+## How to run
+- Install: `make install` (dev + extras) or `make install-min`
+- CLI: `hatchery --help`
+- Sample dry-run: `make sample`

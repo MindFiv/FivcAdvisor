@@ -1,0 +1,22 @@
+# Folders
+.git/
+.github/
+.vscode/
+.idea/
+.venv/
+.direnv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+
+# Artifacts
+uv.lock
+.cursorrules

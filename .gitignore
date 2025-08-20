@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.build/
+.dist/
+
+# Virtual environments
+.venv/
+venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Env
+.env
+
+# Lock files
+crewai-rag-tool.lock
+
+# Temporary files and generated content
+tmp/
+temp/
+.tmp/
+.crewai_hatchery/
