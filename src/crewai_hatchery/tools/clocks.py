@@ -7,7 +7,7 @@ from urllib import request as _urlreq
 from crewai.tools import tool  # type: ignore
 
 
-@tool("Local Clock")
+@tool("Clock")
 def local_clock(detail: object = "human") -> str:
     """
     Get the current local date & time.

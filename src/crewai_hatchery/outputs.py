@@ -17,7 +17,13 @@ class AssessmentOutput(BaseModel):
     reasoning: str = Field(description="Explanation of the assessment")
 
 
-class PlanningOutput(BaseModel):
+class ToolOutput(BaseModel):
+    """Description for a tool result for a task."""
+
+    tools: List[str] = Field(description="List of tools needed for the task")
+
+
+class PlanOutput(BaseModel):
     """Description for a plan for a task."""
 
     class Agent(BaseModel):
@@ -33,7 +39,10 @@ class PlanningOutput(BaseModel):
 
         description: str = Field(description="Description of the task")
         expected_output: str = Field(description="Expected output of the task")
-        tools: List[str] = Field(description="List of tools needed for the task")
+        # tools: List[str] = Field(
+        #     description="List of tools needed for the task, "
+        #     "excluding Tools Retriever"
+        # )
         # agent_role: str = Field(description="Role of the agent for this task")
 
     agents: List[Agent] = Field(description="List of agents needed for the task")

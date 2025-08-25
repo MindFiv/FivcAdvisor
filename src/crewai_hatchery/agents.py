@@ -13,7 +13,7 @@ def create_default_agent(*args, **kwargs):
         "goal",
         """
         Execute assigned tasks efficiently 
-        using available tools and predefined workflows
+        using available tools and predefined workflows.
         """,
     )
     kwargs.setdefault(
@@ -28,6 +28,24 @@ def create_default_agent(*args, **kwargs):
         """,
     )
     return Agent(*args, **kwargs)
+
+
+def create_tooling_agent(*args, **kwargs):
+    """Create an agent that can retrieve tools."""
+    kwargs["role"] = "Tools Retriever"
+    kwargs.setdefault(
+        "goal",
+        "Retrieve the best tools for a given task",
+    )
+    kwargs.setdefault(
+        "backstory",
+        "A tool retrieval specialist with deep expertise "
+        "in identifying the most appropriate tools for a given task. "
+        "Skilled at quickly assessing task requirements, "
+        "analyzing available toolsets, and "
+        "selecting the best tools for the job.",
+    )
+    return create_default_agent(*args, **kwargs)
 
 
 def create_consulting_agent(*args, **kwargs):

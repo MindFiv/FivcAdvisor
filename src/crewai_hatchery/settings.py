@@ -43,7 +43,7 @@ reasoning_llm_config = create_lazy_value(
         "model": environ.get("REASONING_LLM_MODEL"),
         "base_url": environ.get("REASONING_LLM_BASE_URL"),
         "api_key": environ.get("REASONING_LLM_API_KEY"),
-        "temperature": 0.2,
+        "temperature": 0.1,
     }
 )
 

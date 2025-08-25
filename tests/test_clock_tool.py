@@ -93,7 +93,7 @@ def test_local_clock_custom_format():
 
 def test_retriever_includes_clock():
     retriever = create_tools_retriever()
-    tool = retriever.get("Local Clock")
+    tool = retriever.get("Clock")
     assert tool is not None
     out = _run_clock(tool, "human")
     assert isinstance(out, str) and len(out) > 0

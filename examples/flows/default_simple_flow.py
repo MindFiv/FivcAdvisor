@@ -17,16 +17,16 @@ sys.path.insert(
     0,
     os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from crewai_hatchery.flows import create_default_flow
+from crewai_hatchery.flows import create_default_simple_flow
 from crewai_hatchery.utils import create_output_dir
 from crewai_hatchery.tools.retrievers import ToolsRetriever
 
 
 async def run_flow(
-        user_query: Optional[str],
+        user_query: str,
         tools_retriever: Optional[ToolsRetriever] = None,
 ):
-    flow = create_default_flow(
+    flow = create_default_simple_flow(
         tools_retriever=tools_retriever, verbose=True)
 
     with create_output_dir().subdir('flows'):
@@ -48,19 +48,29 @@ async def main():
     """
     Run the default flow example
     """
-    print("CrewAI Hatchery - Default Flow Example")
+    print("CrewAI Hatchery - Default Simple Flow Example")
     print("=" * 50)
 
     print("This example demonstrates intelligent task assessment:")
     print("1. Consultant agent assesses task complexity")
     print("2. Simple tasks → Single work agent")
-    print("3. Complex tasks → Director + specialized team")
+    print("3. Complex tasks → Incapable of handling")
 
     retriever = create_tools_retriever()
     # Demonstrate both modes
     print("\n" + "=" * 50)
-    user_query = "What are the key concepts in machine learning?"
-    await run_flow(user_query, tools_retriever=retriever)
+    result = await run_flow(
+        'What is machine learning',
+        tools_retriever=retriever
+    )
+    print(result)
+
+    print("\n" + "=" * 50)
+    result = await run_flow(
+        'What are the key concepts in machine learning?',
+        tools_retriever=retriever
+    )
+    print(result)
 
 
 if __name__ == "__main__":
