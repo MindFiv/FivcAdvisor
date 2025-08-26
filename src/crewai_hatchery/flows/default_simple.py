@@ -56,7 +56,7 @@ class DefaultSimpleFlow(Flow[DefaultSimpleFlowState]):
             raise ValueError("assessment cannot be empty")
 
         if self.state.assessment.require_director:
-            self.state.final_result = "user query is too complex to handle"
+            raise ValueError("complex task, need a director")
 
         else:
             crew = create_simple_crew(
@@ -65,6 +65,6 @@ class DefaultSimpleFlow(Flow[DefaultSimpleFlowState]):
                 verbose=self.verbose,
             )
             result = crew.kickoff(inputs={"user_query": self.state.user_query})
-            self.state.final_result = result.raw
+            self.state.final_result = result
 
         return self.state.final_result

@@ -73,6 +73,6 @@ class DefaultComplexFlow(Flow[DefaultComplexFlowState]):
             verbose=self.verbose,
         )
         result = crew.kickoff(inputs={"user_query": self.state.user_query})
-        self.state.final_result = result.raw
+        self.state.final_result = result
 
         return self.state.final_result
