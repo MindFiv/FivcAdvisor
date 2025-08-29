@@ -43,9 +43,9 @@ class DefaultFlow(Flow[DefaultFlowState]):
         self.verbose = verbose
         if tools_retriever is None:
             # Create a default retriever if not injected
-            from ..tools import create_tools_retriever
+            from ..tools import create_retriever
 
-            self.tools_retriever = create_tools_retriever()
+            self.tools_retriever = create_retriever()
         else:
             if not isinstance(tools_retriever, ToolsRetriever):
                 raise TypeError("tools_retriever must be an instance of ToolsRetriever")

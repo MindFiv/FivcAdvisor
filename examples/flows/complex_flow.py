@@ -10,14 +10,17 @@ import sys
 import os
 from typing import Optional
 
-from crewai_hatchery.tools import create_tools_retriever
-
 # Add the src directory to the path so we can import crewai_hatchery
 sys.path.insert(
     0,
     os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from crewai_hatchery.flows import create_default_complex_flow
+from crewai_hatchery.tools import (
+    create_retriever,
+    create_default_tools,
+    create_mcp_tools,
+)
+from crewai_hatchery.flows import create_complex_flow
 from crewai_hatchery.utils import create_output_dir
 from crewai_hatchery.tools.retrievers import ToolsRetriever
 
@@ -26,7 +29,7 @@ async def run_flow(
         user_query: str,
         tools_retriever: Optional[ToolsRetriever] = None,
 ):
-    flow = create_default_complex_flow(
+    flow = create_complex_flow(
         tools_retriever=tools_retriever, verbose=True)
 
     with create_output_dir().subdir('flows'):
@@ -56,7 +59,9 @@ async def main():
     print("2. Planning crew outputs a plan")
     print("3. Plan is executed by a crew")
 
-    retriever = create_tools_retriever()
+    retriever = create_retriever()
+    create_default_tools(tools_retriever=retriever)
+    create_mcp_tools(tools_retriever=retriever)
     # Demonstrate both modes
     print("\n" + "=" * 50)
     result = await run_flow(

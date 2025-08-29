@@ -10,13 +10,16 @@ import sys
 import os
 from typing import Optional
 
-from crewai_hatchery.tools import create_tools_retriever
-
 # Add the src directory to the path so we can import crewai_hatchery
 sys.path.insert(
     0,
     os.path.join(os.path.dirname(__file__), '..', 'src'))
 
+from crewai_hatchery.tools import (
+    create_retriever,
+    create_default_tools,
+    create_mcp_tools,
+)
 from crewai_hatchery.flows import create_default_flow
 from crewai_hatchery.utils import create_output_dir
 from crewai_hatchery.tools.retrievers import ToolsRetriever
@@ -56,7 +59,9 @@ async def main():
     print("2. Simple tasks → Single work agent")
     print("3. Complex tasks → Director + specialized team")
 
-    retriever = create_tools_retriever()
+    retriever = create_retriever()
+    create_default_tools(tools_retriever=retriever)
+    create_mcp_tools(tools_retriever=retriever)
     # Demonstrate both modes
     print("\n" + "=" * 50)
     user_query = "What are the key concepts in machine learning?"

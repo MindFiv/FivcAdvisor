@@ -9,7 +9,11 @@ sys.path.insert(
 
 from crewai_hatchery.utils import create_output_dir
 from crewai_hatchery.embeddings import create_default_db
-from crewai_hatchery.tools import create_tools_retriever
+from crewai_hatchery.tools import (
+    create_retriever,
+    create_default_tools,
+    create_mcp_tools,
+)
 
 
 async def main():
@@ -24,7 +28,9 @@ async def main():
     output_dir = create_output_dir()
     output_dir = output_dir.subdir("db")
     db = create_default_db(dir=str(output_dir))
-    retriever = create_tools_retriever(db=db)
+    retriever = create_retriever(db=db)
+    create_default_tools(tools_retriever=retriever)
+    create_mcp_tools(tools_retriever=retriever)
 
     print("Waiting for retriever to complete...")
     print("\n" + "=" * 50)

@@ -17,13 +17,13 @@ from ..tools.retrievers import ToolsRetriever
 from ..outputs import PlanOutput
 
 
-class DefaultComplexFlowState(BaseModel):
+class ComplexFlowState(BaseModel):
     user_query: str = ""
     plan: Optional[PlanOutput] = None
     final_result: Any = None
 
 
-class DefaultComplexFlow(Flow[DefaultComplexFlowState]):
+class ComplexFlow(Flow[ComplexFlowState]):
     def __init__(
         self,
         tools_retriever: Optional[ToolsRetriever] = None,

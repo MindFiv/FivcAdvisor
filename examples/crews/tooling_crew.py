@@ -7,20 +7,20 @@ sys.path.insert(
     0,
     os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from crewai_hatchery.utils import create_output_dir
-from crewai_hatchery.crews import create_assessing_crew
+from crewai_hatchery.crews import create_tooling_crew
 from crewai_hatchery.tools import (
     create_retriever,
     create_default_tools,
     create_mcp_tools,
 )
+from crewai_hatchery.utils import create_output_dir
 
 
 async def main():
     """
     Run the assessment crew example
     """
-    print("CrewAI Hatchery - Assessing Crew Example")
+    print("CrewAI Hatchery - Tooling Crew Example")
     print("\n" + "=" * 50)
 
     tools_retriever = create_retriever()
@@ -28,15 +28,18 @@ async def main():
     create_mcp_tools(tools_retriever=tools_retriever)
 
     with create_output_dir():
-        crew = create_assessing_crew(
-            tools_retriever=tools_retriever, verbose=True)
+        crew = create_tooling_crew(
+            tools_retriever=tools_retriever,
+            verbose=True,
+            output_log_file='tooling_crew.json',
+        )
 
-    print("Waiting for crew to complete...")
-    print("\n" + "=" * 50)
-    result = crew.kickoff(inputs={
-        'user_query': "What is machine learning?"
-    })
-    print(result)
+        print("Waiting for crew to complete...")
+        print("\n" + "=" * 50)
+        result = await crew.kickoff_async(inputs={
+            'user_query': "What date will be next Friday?",
+        })
+        print(result)
 
 
 if __name__ == '__main__':

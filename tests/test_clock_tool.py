@@ -1,7 +1,7 @@
 import json
 from contextlib import contextmanager
 
-from crewai_hatchery.tools import create_tools_retriever
+from crewai_hatchery.tools import create_retriever, create_default_tools
 from crewai_hatchery.tools.clocks import local_clock, online_clock
 
 
@@ -92,7 +92,8 @@ def test_local_clock_custom_format():
 
 
 def test_retriever_includes_clock():
-    retriever = create_tools_retriever()
+    retriever = create_retriever()
+    create_default_tools(tools_retriever=retriever)
     tool = retriever.get("Clock")
     assert tool is not None
     out = _run_clock(tool, "human")

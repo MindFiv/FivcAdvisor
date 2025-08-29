@@ -19,7 +19,7 @@ def create_default_kwargs(kwargs: dict, defaults: dict):
 
 def create_lazy_value(getter: Callable):
     """Create a LazyValue proxy from a factory callable."""
-    from .lazy import LazyValue
+    from .variables import LazyValue
 
     return LazyValue(getter)
 

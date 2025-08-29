@@ -1,4 +1,4 @@
-def create_tools_patch():
+def create_tools_patch(*args, **kwargs):
     """
     Create a patch for tools that need extra configuration.
     """

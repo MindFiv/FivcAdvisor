@@ -1,7 +1,7 @@
 from typing import Callable, Any
 
 
-class LazyValue:
+class LazyValue(object):
     """A lazily-evaluated transparent proxy.
 
     - Accepts a zero-arg getter. The value is computed on first access and cached.

@@ -8,13 +8,18 @@ import asyncio
 import sys
 import os
 
-from crewai_hatchery.tools import create_tools_retriever
+from crewai_hatchery.utils import create_output_dir
 
 # Add the src directory to the path so we can import crewai_hatchery
 sys.path.insert(
     0,
     os.path.join(os.path.dirname(__file__), '..', 'src'))
 
+from crewai_hatchery.tools import (
+    create_retriever,
+    create_default_tools,
+    create_mcp_tools,
+)
 from crewai_hatchery.crews import create_executing_crew
 from crewai_hatchery.outputs import PlanOutput
 
@@ -27,7 +32,6 @@ def main():
     print("\n" + "=" * 50)
 
     # Create a sample planning result structure
-    tools_retriever = create_tools_retriever()
     sample_plan = PlanOutput(
         agents=[
             PlanOutput.Agent(
@@ -47,10 +51,12 @@ def main():
             PlanOutput.Task(
                 description="Research the key concepts in machine learning and their applications",
                 expected_output="A comprehensive list of machine learning concepts with detailed explanations",
+                tools=[],
             ),
             PlanOutput.Task(
                 description="Write a clear and engaging summary of machine learning concepts for beginners",
                 expected_output="A well-structured article explaining machine learning concepts in accessible language",
+                tools=[],
             )
         ]
     )
@@ -64,7 +70,11 @@ def main():
     for task in sample_plan.tasks:
         print(f"  * {task.description[:50]}...")
 
-    try:
+    tools_retriever = create_retriever()
+    create_default_tools(tools_retriever=tools_retriever)
+    create_mcp_tools(tools_retriever=tools_retriever)
+
+    with create_output_dir():
         crew = create_executing_crew(
             tools_retriever=tools_retriever,
             plan=sample_plan,
@@ -75,14 +85,7 @@ def main():
                 'Write an educative article on machine learning, '
                 'aimed at beginners. And even primary students can understand.'
         })
-
         print("\nCrew completed successfully!")
-
-    except Exception as e:
-        print(f"\n❌ Error creating crew: {e}")
-        print("This might be due to missing dependencies or tool configuration issues.")
-        import traceback
-        traceback.print_exc()
 
 
 if __name__ == '__main__':

@@ -8,7 +8,12 @@ sys.path.insert(
     os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from crewai_hatchery.crews import create_planning_crew
-from crewai_hatchery.tools import create_tools_retriever
+from crewai_hatchery.tools import (
+    create_retriever,
+    create_default_tools,
+    create_mcp_tools,
+)
+from crewai_hatchery.utils import create_output_dir
 
 
 async def main():
@@ -18,15 +23,26 @@ async def main():
     print("CrewAI Hatchery - Planning Crew Example")
     print("\n" + "=" * 50)
 
-    crew = create_planning_crew(
-        tools_retriever=create_tools_retriever(), verbose=True)
+    tools_retriever = create_retriever()
+    create_default_tools(tools_retriever=tools_retriever)
+    create_mcp_tools(tools_retriever=tools_retriever)
 
-    print("Waiting for crew to complete...")
-    print("\n" + "=" * 50)
-    result = crew.kickoff(inputs={
-        'user_query': "Plan for a trip to Tokyo in the next five days",
-    })
-    print(result)
+    with create_output_dir():
+        crew = create_planning_crew(
+            tools_retriever=tools_retriever,
+            verbose=True,
+            output_log_file='planning_crew.json',
+        )
+
+        print("Waiting for crew to complete...")
+        print("\n" + "=" * 50)
+        result = await crew.kickoff_async(inputs={
+            'user_query':
+                "通过网上搜索，长期获取实时互联网上的内容，"
+                "并从中提取一些有商业价值的信息，最终通过分析这些高商业价值的信息，"
+                "形成一份商业报告。在其中可以告诉我们有哪些可以抓住的商机。",
+        })
+        print(result)
 
 
 if __name__ == '__main__':

@@ -16,13 +16,13 @@ from ..tools.retrievers import ToolsRetriever
 from ..outputs import AssessmentOutput
 
 
-class DefaultSimpleFlowState(BaseModel):
+class SimpleFlowState(BaseModel):
     user_query: str = ""
     assessment: Optional[AssessmentOutput] = None
     final_result: Any = None
 
 
-class DefaultSimpleFlow(Flow[DefaultSimpleFlowState]):
+class SimpleFlow(Flow[SimpleFlowState]):
     def __init__(
         self,
         tools_retriever: Optional[ToolsRetriever] = None,

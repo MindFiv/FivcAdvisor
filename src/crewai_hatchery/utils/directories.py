@@ -10,9 +10,11 @@ from typing import Optional
 
 class OutputDir(object):
     def __init__(self, base: Optional[str] = None):
-        self.base = (
-            base and Path(base) or Path(os.path.join(os.getcwd(), ".crewai_hatchery"))
+        """Create an output directory for CrewAI Hatchery."""
+        base = base or os.environ.get(
+            "WORKSPACE", os.path.join(os.getcwd(), ".crewai_hatchery")
         )
+        self.base = Path(base)
         self.base = self.base.resolve()
         self.base.mkdir(parents=True, exist_ok=True)
 

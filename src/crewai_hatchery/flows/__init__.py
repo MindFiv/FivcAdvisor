@@ -13,7 +13,7 @@ def create_default_flow(*args, **kwargs):
     return DefaultFlow(*args, **kwargs)
 
 
-def create_default_simple_flow(*args, **kwargs):
+def create_simple_flow(*args, **kwargs):
     """Create a DefaultSimpleFlow instance.
 
     Args:
@@ -23,12 +23,12 @@ def create_default_simple_flow(*args, **kwargs):
     Returns:
         DefaultSimpleFlow: A configured DefaultSimpleFlow instance
     """
-    from .default_simple import DefaultSimpleFlow
+    from .simple import SimpleFlow
 
-    return DefaultSimpleFlow(*args, **kwargs)
+    return SimpleFlow(*args, **kwargs)
 
 
-def create_default_complex_flow(*args, **kwargs):
+def create_complex_flow(*args, **kwargs):
     """Create a DefaultComplexFlow instance.
 
     Args:
@@ -38,9 +38,9 @@ def create_default_complex_flow(*args, **kwargs):
     Returns:
         DefaultComplexFlow: A configured DefaultComplexFlow instance
     """
-    from .default_complex import DefaultComplexFlow
+    from .complex import ComplexFlow
 
-    return DefaultComplexFlow(*args, **kwargs)
+    return ComplexFlow(*args, **kwargs)
 
 
 def create_evaluating_flow(*args, **kwargs):

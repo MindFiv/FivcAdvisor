@@ -9,33 +9,11 @@ class ToolsRetriever(object):
         self.max_num = 5  # top k
         self.min_score = 1.5  # min score
         self.tools: dict[str, BaseTool] = {}
-        self.app = self._init_app(**kwargs)
+
+        from crewai_hatchery import embeddings
+
+        self.app = embeddings.create_default_app(*args, **kwargs)
         self.app.reset()
-
-    @staticmethod
-    def _init_app(
-        db=None,
-        embedder=None,
-        reset=True,
-        **kwargs,
-    ):
-        # create embedchain app
-        if not db:
-            from crewai_hatchery.utils import create_output_dir
-            from crewai_hatchery.embeddings import create_default_db
-
-            output_dir = create_output_dir()
-            output_dir = output_dir.subdir("db")
-            db = create_default_db(dir=str(output_dir))  # reset db each time
-
-        if not embedder:
-            from crewai_hatchery.embeddings import create_default_embedder
-
-            embedder = create_default_embedder()
-
-        from embedchain import App
-
-        return App(db=db, embedding_model=embedder)
 
     def cleanup(self):
         self.max_num = 5  # top k
@@ -47,14 +25,18 @@ class ToolsRetriever(object):
         if tool.name in self.tools:
             raise ValueError(f"Duplicate tool name: {tool.name}")
 
-        from embedchain.models.data_type import DataType
+        # from embedchain.models.data_type import DataType
 
         self.app.add(
             tool.description,
-            data_type=DataType.TEXT.value,
+            # data_type=DataType.TEXT.value,
             metadata={"__tool__": tool.name},
         )
         self.tools[tool.name] = tool
+
+    def add_batch(self, tools: List[BaseTool]):
+        for tool in tools:
+            self.add(tool)
 
     def get(self, name: str) -> Optional[BaseTool]:
         return self.tools.get(name)

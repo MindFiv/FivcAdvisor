@@ -1,4 +1,4 @@
-from crewai_hatchery.tools import create_tools_retriever
+from crewai_hatchery.tools import create_retriever, create_default_tools
 from crewai_hatchery.tools.calculators import basic_calculator
 
 
@@ -23,7 +23,8 @@ def test_basic_calculator_errors():
 
 
 def test_retriever_includes_calculator():
-    retriever = create_tools_retriever()
+    retriever = create_retriever()
+    create_default_tools(tools_retriever=retriever)
     tool = retriever.get("Basic Calculator")
     assert tool is not None
     # ensure it executes
