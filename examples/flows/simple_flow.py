@@ -63,16 +63,16 @@ async def main():
     create_default_tools(tools_retriever=retriever)
     create_mcp_tools(tools_retriever=retriever)
     # Demonstrate both modes
-    print("\n" + "=" * 50)
-    result = await run_flow(
-        'What is machine learning',
-        tools_retriever=retriever
-    )
-    print(result)
+    # print("\n" + "=" * 50)
+    # result = await run_flow(
+    #     'What time is it now',
+    #     tools_retriever=retriever
+    # )
+    # print(result)
 
     print("\n" + "=" * 50)
     result = await run_flow(
-        'What are the key concepts in machine learning?',
+        'What is the result of 3 power 10 and divide by 2?',
         tools_retriever=retriever
     )
     print(result)

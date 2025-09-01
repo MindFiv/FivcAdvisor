@@ -11,12 +11,13 @@ def create_default_tools(*args, tools_retriever=None, **kwargs):
     assert isinstance(tools_retriever, ToolsRetriever)
 
     from .calculators import basic_calculator
-    from .clocks import local_clock
+    from .time import local_time
     from .webs import web_searcher, web_scraper
 
     tools = [
         basic_calculator,
-        local_clock,
+        # date_calculator,
+        local_time,
         web_searcher,
         web_scraper,
     ]
@@ -41,7 +42,9 @@ def create_mcp_tools(*args, tools_retriever=None, config_file="mcp.json", **kwar
         try:
             with open(filename, "r") as f:
                 c = json.load(f)
-                assert isinstance(c, list)
+                assert isinstance(c, dict)
+                c = c.get("mcpServers", {})
+                assert isinstance(c, dict)
                 return c
         except (
             FileNotFoundError,
@@ -51,7 +54,7 @@ def create_mcp_tools(*args, tools_retriever=None, config_file="mcp.json", **kwar
         ):
             return None
 
-    def _get_params(config_list):
+    def _get_params(config_dict):
         def _convert(c):
             assert isinstance(c, dict)
             if "command" not in c:
@@ -69,7 +72,7 @@ def create_mcp_tools(*args, tools_retriever=None, config_file="mcp.json", **kwar
             return StdioServerParameters(command=c_cmd, args=c_args, env=c_env)
 
         try:
-            return [_convert(i) for i in config_list]
+            return [_convert(v) for _, v in config_dict.items()]
         except (ValueError, TypeError, AssertionError):
             return None
 
@@ -79,7 +82,7 @@ def create_mcp_tools(*args, tools_retriever=None, config_file="mcp.json", **kwar
         return None
 
     mcp = MCPServerAdapter(config_params)
-    for t in mcp.tools:
-        tools_retriever.add(t)
+    tools = list(t for t in mcp.tools)
+    tools_retriever.add_batch(tools)
 
     return mcp

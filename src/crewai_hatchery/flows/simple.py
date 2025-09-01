@@ -11,6 +11,7 @@ from crewai.flow.flow import (
 from ..crews import (
     create_assessing_crew,
     create_simple_crew,
+    # create_tooling_crew,
 )
 from ..tools.retrievers import ToolsRetriever
 from ..outputs import AssessmentOutput
@@ -58,13 +59,20 @@ class SimpleFlow(Flow[SimpleFlowState]):
         if self.state.assessment.require_director:
             raise ValueError("complex task, need a director")
 
-        else:
-            crew = create_simple_crew(
-                tools_retriever=self.tools_retriever,
-                tools_names=self.state.assessment.required_tools,
-                verbose=self.verbose,
-            )
-            result = crew.kickoff(inputs={"user_query": self.state.user_query})
-            self.state.final_result = result
+        tools = self.state.assessment.required_tools
+        # crew = create_tooling_crew(
+        #     tools_retriever=self.tools_retriever,
+        #     verbose=self.verbose,
+        # )
+        # result = crew.kickoff(inputs={"user_query": self.state.user_query})
+        # tools = result.pydantic.tools
+
+        crew = create_simple_crew(
+            tools_retriever=self.tools_retriever,
+            tools_names=tools,
+            verbose=self.verbose,
+        )
+        result = crew.kickoff(inputs={"user_query": self.state.user_query})
+        self.state.final_result = result
 
         return self.state.final_result

@@ -8,7 +8,6 @@ sys.path.insert(
     os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from crewai_hatchery.utils import create_output_dir
-from crewai_hatchery.embeddings import create_default_db
 from crewai_hatchery.tools import (
     create_retriever,
     create_default_tools,
@@ -24,21 +23,21 @@ async def main():
     print("CrewAI Hatchery - Tool Retriever Example")
     print("\n" + "=" * 50)
 
+    retriever = create_retriever()
+
     # Create the retriever
-    output_dir = create_output_dir()
-    output_dir = output_dir.subdir("db")
-    db = create_default_db(dir=str(output_dir))
-    retriever = create_retriever(db=db)
-    create_default_tools(tools_retriever=retriever)
-    create_mcp_tools(tools_retriever=retriever)
+    with create_output_dir():
+        create_default_tools(tools_retriever=retriever)
+        create_mcp_tools(tools_retriever=retriever)
 
-    print("Waiting for retriever to complete...")
-    print("\n" + "=" * 50)
+        print("Waiting for retriever to complete...")
+        print("\n" + "=" * 50)
 
-    result = retriever.retrieve("What time is it now?")
-    print('\nResult:')
-    for r in result:
-        print(r)
+        result = retriever.retrieve("How to become a millionaire? think step by step")
+        print('\nResult:')
+        for r in result:
+            print('-------------------------')
+            print(r)
 
 
 if __name__ == '__main__':

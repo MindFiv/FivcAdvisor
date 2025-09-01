@@ -55,5 +55,6 @@ def create_default_app(
     kwargs = {
         "db": db or create_default_db(output_dir=output_dir),
         "embedding_model": embedder or create_default_embedder(),
+        "chunker": {"chunk_size": 2048, "chunk_overlap": 128},
     }
     return App(**kwargs)

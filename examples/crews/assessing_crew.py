@@ -21,13 +21,13 @@ async def main():
     Run the assessment crew example
     """
     print("CrewAI Hatchery - Assessing Crew Example")
-    print("\n" + "=" * 50)
+    print("=" * 50)
 
     tools_retriever = create_retriever()
-    create_default_tools(tools_retriever=tools_retriever)
-    create_mcp_tools(tools_retriever=tools_retriever)
 
     with create_output_dir():
+        create_default_tools(tools_retriever=tools_retriever)
+        create_mcp_tools(tools_retriever=tools_retriever)
         crew = create_assessing_crew(
             tools_retriever=tools_retriever, verbose=True)
 

@@ -25,7 +25,7 @@ def test_basic_calculator_errors():
 def test_retriever_includes_calculator():
     retriever = create_retriever()
     create_default_tools(tools_retriever=retriever)
-    tool = retriever.get("Basic Calculator")
+    tool = retriever.get("Calculator")
     assert tool is not None
     # ensure it executes
     result = _run_calc(tool, "10 // 3")

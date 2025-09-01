@@ -24,10 +24,10 @@ async def main():
     print("\n" + "=" * 50)
 
     tools_retriever = create_retriever()
-    create_default_tools(tools_retriever=tools_retriever)
-    create_mcp_tools(tools_retriever=tools_retriever)
 
     with create_output_dir():
+        create_default_tools(tools_retriever=tools_retriever)
+        create_mcp_tools(tools_retriever=tools_retriever)
         crew = create_tooling_crew(
             tools_retriever=tools_retriever,
             verbose=True,
@@ -35,9 +35,9 @@ async def main():
         )
 
         print("Waiting for crew to complete...")
-        print("\n" + "=" * 50)
+        print("=" * 50)
         result = await crew.kickoff_async(inputs={
-            'user_query': "What date will be next Friday?",
+            'user_query': "What time is it now?",
         })
         print(result)
 

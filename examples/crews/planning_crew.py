@@ -24,10 +24,10 @@ async def main():
     print("\n" + "=" * 50)
 
     tools_retriever = create_retriever()
-    create_default_tools(tools_retriever=tools_retriever)
-    create_mcp_tools(tools_retriever=tools_retriever)
 
     with create_output_dir():
+        create_default_tools(tools_retriever=tools_retriever)
+        create_mcp_tools(tools_retriever=tools_retriever)
         crew = create_planning_crew(
             tools_retriever=tools_retriever,
             verbose=True,

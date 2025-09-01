@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 
 class ToolsRetriever(object):
     def __init__(self, *args, **kwargs):
-        self.max_num = 5  # top k
-        self.min_score = 1.5  # min score
+        self.max_num = 10  # top k
+        self.min_score = 0.0  # min score
         self.tools: dict[str, BaseTool] = {}
 
         from crewai_hatchery import embeddings
@@ -16,8 +16,8 @@ class ToolsRetriever(object):
         self.app.reset()
 
     def cleanup(self):
-        self.max_num = 5  # top k
-        self.min_score = 1.5  # min score
+        self.max_num = 10  # top k
+        self.min_score = 0.0  # min score
         self.tools.clear()
         self.app.reset()
 
@@ -25,11 +25,11 @@ class ToolsRetriever(object):
         if tool.name in self.tools:
             raise ValueError(f"Duplicate tool name: {tool.name}")
 
-        # from embedchain.models.data_type import DataType
+        from embedchain.models.data_type import DataType
 
         self.app.add(
             tool.description,
-            # data_type=DataType.TEXT.value,
+            data_type=DataType.TEXT.value,
             metadata={"__tool__": tool.name},
         )
         self.tools[tool.name] = tool

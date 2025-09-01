@@ -110,8 +110,13 @@ def create_planning_crew(*args, tools_retriever=None, **kwargs):
     if not isinstance(tools_retriever, ToolsRetriever):
         raise ValueError("tool_retriever must be an instance of ToolsRetriever")
 
+    tools = [
+        tools_retriever.get("sequentialthinking"),
+        tools_retriever.to_tool(),
+    ]
+    tools = [t for t in tools if t is not None]
     agent = create_directing_agent(llm=create_reasoning_llm())
-    task = create_planning_task(agent=agent, tools=[tools_retriever.to_tool()])
+    task = create_planning_task(agent=agent, tools=tools)
     return Crew(
         agents=[agent],
         tasks=[task],
