@@ -181,6 +181,7 @@ def create_executing_crew(*args, tools_retriever=None, plan=None, **kwargs):
             create_default_task(
                 description=task_plan.description,
                 expected_output=task_plan.expected_output,
+                human_input=task_plan.requires_human,
             )
         )
 

@@ -43,6 +43,9 @@ class PlanOutput(BaseModel):
             description="List of tools needed for the task, "
             "if different from the agent's default tools"
         )
+        requires_human: bool = Field(
+            description="Whether human input is required for this agent"
+        )
         # agent_role: str = Field(description="Role of the agent for this task")
 
     agents: List[Agent] = Field(description="List of agents needed for the task")

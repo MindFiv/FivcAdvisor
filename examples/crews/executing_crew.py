@@ -52,11 +52,13 @@ def main():
                 description="Research the key concepts in machine learning and their applications",
                 expected_output="A comprehensive list of machine learning concepts with detailed explanations",
                 tools=[],
+                requires_human=False,
             ),
             PlanOutput.Task(
                 description="Write a clear and engaging summary of machine learning concepts for beginners",
                 expected_output="A well-structured article explaining machine learning concepts in accessible language",
                 tools=[],
+                requires_human=True,
             )
         ]
     )
