@@ -1,4 +1,4 @@
-# CrewAI Hatchery
+# FivcAdvisor
 
 Pattern-driven flows and tools on top of CrewAI. Use small, reusable patterns to compose effective agent task flows without heavy upfront planning.
 
@@ -33,7 +33,7 @@ make dev
 
 ## Layout
 
-- `src/crewai_hatchery/` core library
+- `src/fivcadvisor/` core library
   - `patterns/` reusable task-patterns
   - `flows/` flow orchestrators
   - `agents/` agent construction helpers
@@ -44,8 +44,8 @@ make dev
 ## CLI
 
 ```bash
-hatchery --help
-hatchery run-sample --help
+fivcadvisor --help
+fivcadvisor run-sample --help
 ```
 
 ## License

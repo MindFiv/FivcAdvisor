@@ -63,19 +63,19 @@ graph TD
 
 ```bash
 # Run the default flow
-hatchery run-flow default
+fivcadvisor run-flow default
 
 # Generate flow visualization
-hatchery plot default
+fivcadvisor plot default
 
 # Show help information
-hatchery info
+fivcadvisor info
 ```
 
 ### Python API
 
 ```python
-from crewai_hatchery.flows import create_default_flow
+from fivcadvisor.flows import create_default_flow
 
 # Create and run a flow instance
 flow = create_default_flow()

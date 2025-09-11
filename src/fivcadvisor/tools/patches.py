@@ -5,8 +5,8 @@ def create_tools_patch(*args, **kwargs):
     # import embedchain
     import embedchain.app
 
-    from crewai_hatchery.utils import create_output_dir
-    from crewai_hatchery.embeddings import (
+    from fivcadvisor.utils import create_output_dir
+    from fivcadvisor.embeddings import (
         create_default_db,
         create_default_embedder,
     )

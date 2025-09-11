@@ -2,7 +2,7 @@
 """
 Example script demonstrating the Default Flow
 
-This example shows how the CrewAI Hatchery intelligently routes tasks
+This example shows how the FivcAdvisor intelligently routes tasks
 based on complexity assessment by a consultant agent.
 """
 import asyncio
@@ -10,19 +10,19 @@ import sys
 import os
 from typing import Optional
 
-# Add the src directory to the path so we can import crewai_hatchery
+# Add the src directory to the path so we can import fivcadvisor
 sys.path.insert(
     0,
     os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from crewai_hatchery.tools import (
+from fivcadvisor.tools import (
     create_retriever,
     create_default_tools,
     create_mcp_tools,
 )
-from crewai_hatchery.flows import create_simple_flow
-from crewai_hatchery.utils import create_output_dir
-from crewai_hatchery.tools.retrievers import ToolsRetriever
+from fivcadvisor.flows import create_simple_flow
+from fivcadvisor.utils import create_output_dir
+from fivcadvisor.tools.retrievers import ToolsRetriever
 
 
 async def run_flow(

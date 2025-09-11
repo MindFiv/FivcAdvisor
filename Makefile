@@ -22,4 +22,4 @@ test: dev
 	uv run python -m pytest -q
 
 sample:
-	uv run hatchery --config configs/sample.yaml --dry-run
+	uv run fivcadvisor --config configs/sample.yaml --dry-run

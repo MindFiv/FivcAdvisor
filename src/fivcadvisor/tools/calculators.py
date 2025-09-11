@@ -5,7 +5,7 @@ from typing import Union
 
 from pydantic import BaseModel, Field
 
-from crewai_hatchery.tools import decorators
+from fivcadvisor.tools import decorators
 
 
 # Type alias for numeric values

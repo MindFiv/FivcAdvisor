@@ -26,7 +26,7 @@ def create_lazy_value(getter: Callable):
 
 def create_output_dir(base: Optional[str] = None):
     """
-    Create an output directory for CrewAI Hatchery.
+    Create an output directory for FivcAdvisor.
     """
     from .directories import OutputDir
 

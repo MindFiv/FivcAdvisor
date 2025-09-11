@@ -10,7 +10,7 @@ class ToolsRetriever(object):
         self.min_score = 0.0  # min score
         self.tools: dict[str, BaseTool] = {}
 
-        from crewai_hatchery import embeddings
+        from fivcadvisor import embeddings
 
         self.app = embeddings.create_default_app(*args, **kwargs)
         self.app.reset()

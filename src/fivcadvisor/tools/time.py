@@ -5,7 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from crewai_hatchery.tools import decorators
+from fivcadvisor.tools import decorators
 
 
 class TimeInput(BaseModel):

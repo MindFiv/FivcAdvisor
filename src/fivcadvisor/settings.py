@@ -1,6 +1,6 @@
 from os import environ
 
-from crewai_hatchery.utils import create_lazy_value
+from fivcadvisor.utils import create_lazy_value
 
 
 default_embedder_config = create_lazy_value(

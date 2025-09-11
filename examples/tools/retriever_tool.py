@@ -2,13 +2,13 @@ import asyncio
 import sys
 import os
 
-# Add the src directory to the path so we can import crewai_hatchery
+# Add the src directory to the path so we can import fivcadvisor
 sys.path.insert(
     0,
     os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from crewai_hatchery.utils import create_output_dir
-from crewai_hatchery.tools import (
+from fivcadvisor.utils import create_output_dir
+from fivcadvisor.tools import (
     create_retriever,
     create_default_tools,
     create_mcp_tools,

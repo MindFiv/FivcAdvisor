@@ -1,5 +1,5 @@
-from crewai_hatchery.tools import create_retriever, create_default_tools
-from crewai_hatchery.tools.calculators import basic_calculator
+from fivcadvisor.tools import create_retriever, create_default_tools
+from fivcadvisor.tools.calculators import basic_calculator
 
 
 def _run_calc(tool, expr: str) -> str:

@@ -11,10 +11,10 @@
 - Tools re-exported from `crewai_tools` via `tools/__init__.py`
 
 ## File Placement Rules
-- New flows: `src/crewai_hatchery/flows/<name>.py` and export in `flows/__init__.py`
-- Agent factories: `src/crewai_hatchery/agents.py`
-- Task factories: `src/crewai_hatchery/tasks.py`
-- LLM config/variants: `src/crewai_hatchery/llms.py`
-- Utilities and shared models: `src/crewai_hatchery/utils/`
-- CLI commands: `src/crewai_hatchery/cli.py`
+- New flows: `src/fivcadvisor/flows/<name>.py` and export in `flows/__init__.py`
+- Agent factories: `src/fivcadvisor/agents.py`
+- Task factories: `src/fivcadvisor/tasks.py`
+- LLM config/variants: `src/fivcadvisor/llms.py`
+- Utilities and shared models: `src/fivcadvisor/utils/`
+- CLI commands: `src/fivcadvisor/cli.py`
 - Tests mirror source; mock external calls

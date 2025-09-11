@@ -3,7 +3,7 @@ def create_default_db(*args, output_dir=None, **kwargs):
     from embedchain.config.vector_db.chroma import ChromaDbConfig
     from embedchain.vectordb.chroma import ChromaDB
 
-    from crewai_hatchery.utils import create_output_dir
+    from fivcadvisor.utils import create_output_dir
 
     output_dir = output_dir or create_output_dir().subdir("db")
 

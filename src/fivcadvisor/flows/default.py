@@ -26,7 +26,7 @@ class DefaultFlowState(BaseModel):
 
 class DefaultFlow(Flow[DefaultFlowState]):
     """
-    CrewAI Flow implementation that:
+    FivcAdvisor Flow implementation that:
     1) Accepts a user query
     2) Assesses the complexity
     3) Routes to either a simple default crew or a planning flow

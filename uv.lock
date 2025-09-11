@@ -637,47 +637,6 @@ wheels = [
 ]
 
 [[package]]
-name = "crewai-hatchery"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "crewai" },
-    { name = "crewai-tools", extra = ["mcp"] },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
-    { name = "rich" },
-    { name = "typer" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "crewai", specifier = ">=0.5.0" },
-    { name = "crewai-tools", extras = ["mcp"], specifier = ">=0.1.0" },
-    { name = "pydantic", specifier = ">=2.7.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.2.0" },
-    { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "pyyaml", specifier = ">=6.0.1" },
-    { name = "rich", specifier = ">=13.7.1" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4.0,<0.6" },
-    { name = "typer", specifier = ">=0.12.3" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.4.1" }]
-
-[[package]]
 name = "crewai-tools"
 version = "0.62.0"
 source = { registry = "https://pypi.org/simple" }
@@ -957,6 +916,47 @@ sdist = { url = "https://files.pythonhosted.org/packages/0a/10/c23352565a6544bdc
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/36/2a115987e2d8c300a974597416d9de88f2444426de9571f4b59b2cca3acc/filelock-3.18.0-py3-none-any.whl", hash = "sha256:c401f4f8377c4464e6db25fff06205fd89bdd83b65eb0488ed1b160f780e21de", size = 16215 },
 ]
+
+[[package]]
+name = "fivcadvisor"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "crewai" },
+    { name = "crewai-tools", extra = ["mcp"] },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "pyyaml" },
+    { name = "rich" },
+    { name = "typer" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "crewai", specifier = ">=0.5.0" },
+    { name = "crewai-tools", extras = ["mcp"], specifier = ">=0.1.0" },
+    { name = "pydantic", specifier = ">=2.7.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.2.0" },
+    { name = "python-dotenv", specifier = ">=1.0.1" },
+    { name = "pyyaml", specifier = ">=6.0.1" },
+    { name = "rich", specifier = ">=13.7.1" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4.0,<0.6" },
+    { name = "typer", specifier = ">=0.12.3" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8.4.1" }]
 
 [[package]]
 name = "flatbuffers"

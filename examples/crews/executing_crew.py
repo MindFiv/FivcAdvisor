@@ -8,27 +8,27 @@ import asyncio
 import sys
 import os
 
-from crewai_hatchery.utils import create_output_dir
+from fivcadvisor.utils import create_output_dir
 
-# Add the src directory to the path so we can import crewai_hatchery
+# Add the src directory to the path so we can import fivcadvisor
 sys.path.insert(
     0,
     os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from crewai_hatchery.tools import (
+from fivcadvisor.tools import (
     create_retriever,
     create_default_tools,
     create_mcp_tools,
 )
-from crewai_hatchery.crews import create_executing_crew
-from crewai_hatchery.outputs import PlanOutput
+from fivcadvisor.crews import create_executing_crew
+from fivcadvisor.outputs import PlanOutput
 
 
 def main():
     """
     Run the planned crew example
     """
-    print("CrewAI Hatchery - Planned Crew Example")
+    print("FivcAdvisor - Planned Crew Example")
     print("\n" + "=" * 50)
 
     # Create a sample planning result structure
