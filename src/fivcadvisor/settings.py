@@ -1,59 +1,124 @@
-from os import environ
+from fivcadvisor.utils import (
+    create_lazy_value,
+    create_default_kwargs,
+)
 
-from fivcadvisor.utils import create_lazy_value
 
+def _load_yaml_file(filename):
+    import yaml
+
+    try:
+        with open(filename, "r") as f:
+            config = yaml.safe_load(f)
+            assert isinstance(config, dict)
+            return config
+    except (
+        AssertionError,
+        FileNotFoundError,
+        ValueError,
+        TypeError,
+        yaml.YAMLError,
+    ):
+        return {}
+
+
+def _load_json_file(filename):
+    import json
+
+    try:
+        with open(filename, "r") as f:
+            config = json.load(f)
+            assert isinstance(config, dict)
+            return config
+    except (
+        AssertionError,
+        FileNotFoundError,
+        ValueError,
+        TypeError,
+        json.JSONDecodeError,
+    ):
+        return {}
+
+
+def _load_file(filename):
+    ext = filename.split(".")[-1]
+    if ext in ["yml", "yaml"]:
+        return _load_yaml_file(filename)
+    elif ext == "json":
+        return _load_json_file(filename)
+    else:
+        raise ValueError(f"Unsupported config file type: {ext}")
+
+
+def _load():
+    import os
+
+    return _load_file(os.environ.get("CONFIG_FILE", "config.yaml"))
+
+
+default_config = create_lazy_value(_load)
 
 default_embedder_config = create_lazy_value(
-    lambda: {
-        "provider": environ.get("DEFAULT_EMBEDDER_PROVIDER") or "openai",
-        "model": environ.get("DEFAULT_EMBEDDER_MODEL") or "text-embedding-v3",
-        "base_url": environ.get("DEFAULT_EMBEDDER_BASE_URL")
-        or "https://api.openai.com/v1",
-        "api_key": environ.get("DEFAULT_EMBEDDER_API_KEY"),
-        "dimension": 1024,
-    }
+    lambda: create_default_kwargs(
+        default_config.get("default_embedder") or {},
+        {
+            "provider": "openai",
+            "model": "text-embedding-v3",
+            "base_url": "https://api.openai.com/v1",
+            "api_key": "",
+            "dimension": 1024,
+        },
+    )
 )
-
 
 default_llm_config = create_lazy_value(
-    lambda: {
-        "provider": environ.get("DEFAULT_LLM_PROVIDER") or "openai",
-        "model": environ.get("DEFAULT_LLM_MODEL") or "gpt-4o-mini",
-        "base_url": environ.get("DEFAULT_LLM_BASE_URL") or "https://api.openai.com/v1",
-        "api_key": environ.get("DEFAULT_LLM_API_KEY"),
-        "temperature": 0.5,
-    }
+    lambda: create_default_kwargs(
+        default_config.get("default_llm") or {},
+        {
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "base_url": "https://api.openai.com/v1",
+            "api_key": "",
+            "temperature": 0.5,
+        },
+    )
 )
-
 
 chat_llm_config = create_lazy_value(
-    lambda: {
-        "provider": environ.get("CHAT_LLM_PROVIDER"),
-        "model": environ.get("CHAT_LLM_MODEL"),
-        "base_url": environ.get("CHAT_LLM_BASE_URL"),
-        "api_key": environ.get("CHAT_LLM_API_KEY"),
-        "temperature": 1.0,
-    }
+    lambda: create_default_kwargs(
+        default_config.get("chat_llm") or {},
+        {
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "base_url": "https://api.openai.com/v1",
+            "api_key": "",
+            "temperature": 1.0,
+        },
+    )
 )
-
 
 reasoning_llm_config = create_lazy_value(
-    lambda: {
-        "provider": environ.get("REASONING_LLM_PROVIDER"),
-        "model": environ.get("REASONING_LLM_MODEL"),
-        "base_url": environ.get("REASONING_LLM_BASE_URL"),
-        "api_key": environ.get("REASONING_LLM_API_KEY"),
-        "temperature": 0.1,
-    }
+    lambda: create_default_kwargs(
+        default_config.get("reasoning_llm") or {},
+        {
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "base_url": "https://api.openai.com/v1",
+            "api_key": "",
+            "temperature": 0.1,
+        },
+    )
 )
 
-
 coding_llm_config = create_lazy_value(
-    lambda: {
-        "provider": environ.get("CODING_LLM_PROVIDER"),
-        "model": environ.get("CODING_LLM_MODEL"),
-        "base_url": environ.get("CODING_LLM_BASE_URL"),
-        "api_key": environ.get("CODING_LLM_API_KEY"),
-        "temperature": 0.1,
-    }
+    lambda: create_default_kwargs(
+        default_config.get("coding_llm") or {},
+        {
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "base_url": "https://api.openai.com/v1",
+            "api_key": "",
+            "temperature": 0.1,
+        },
+    )
 )
