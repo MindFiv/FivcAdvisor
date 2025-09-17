@@ -1,7 +1,19 @@
+__all__ = [
+    "create_default_task",
+    "create_tooling_task",
+    "create_assessing_task",
+    "create_planning_task",
+]
+
+from typing import Optional
 from crewai import Task
 
 
-def create_default_task(*args, **kwargs):
+class _Task(Task):
+    session_id: Optional[str] = None
+
+
+def create_default_task(*args, session_id=None, **kwargs):
     """Create a default task for an agent."""
     kwargs.setdefault(
         "description",
@@ -18,13 +30,15 @@ def create_default_task(*args, **kwargs):
         """,
     )
 
-    if "agent" not in kwargs:
-        from .llms import create_default_llm
-        from .agents import create_default_agent
+    # if "agent" not in kwargs:
+    #     from .llms import create_default_llm
+    #     from .agents import create_default_agent
+    #
+    #     kwargs["agent"] = create_default_agent(llm=create_default_llm())
 
-        kwargs["agent"] = create_default_agent(llm=create_default_llm())
-
-    return Task(*args, **kwargs)
+    task = _Task(*args, **kwargs)
+    task.session_id = session_id
+    return task
 
 
 def create_tooling_task(*args, **kwargs):
@@ -45,11 +59,11 @@ def create_tooling_task(*args, **kwargs):
         """,
     )
     if "output_pydantic" not in kwargs:
-        from .outputs import ToolOutput
+        from .models import ToolRequirement
 
         kwargs.update(
             expected_output="A list of the best tools for the given task",
-            output_pydantic=ToolOutput,
+            output_pydantic=ToolRequirement,
         )
 
     return create_default_task(*args, **kwargs)
@@ -74,11 +88,11 @@ def create_assessing_task(*args, **kwargs):
         """,
     )
     if "output_pydantic" not in kwargs:
-        from .outputs import AssessmentOutput
+        from .models import TaskAssessment
 
         kwargs.update(
             expected_output="A structured assessment of the task complexity and recommended approach",
-            output_pydantic=AssessmentOutput,
+            output_pydantic=TaskAssessment,
         )
 
     return create_default_task(*args, **kwargs)
@@ -102,11 +116,11 @@ def create_planning_task(*args, **kwargs):
     )
 
     if "output_pydantic" not in kwargs:
-        from .outputs import PlanOutput
+        from .models import CrewPlan
 
         kwargs.update(
             expected_output="A structured plan for executing the task",
-            output_pydantic=PlanOutput,
+            output_pydantic=CrewPlan,
         )
 
     return create_default_task(*args, **kwargs)

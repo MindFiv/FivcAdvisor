@@ -2,7 +2,7 @@
 
 ## Flows
 - Use CrewAI Flow decorators: `@start`, `@listen`, `@router`
-- State held in Pydantic models (e.g., `DefaultFlowState`)
+- State held in Pydantic models (e.g., `GeneralFlowState`)
 - Assess → route → execute pattern in `flows/default.py`
 
 ## Agents / Tasks / Tools

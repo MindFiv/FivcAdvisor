@@ -6,30 +6,21 @@ This example shows how the FivcAdvisor intelligently routes tasks
 based on complexity assessment by a consultant agent.
 """
 import asyncio
-import sys
-import os
 from typing import Optional
 
-# Add the src directory to the path so we can import fivcadvisor
-sys.path.insert(
-    0,
-    os.path.join(os.path.dirname(__file__), '..', 'src'))
-
-from fivcadvisor.tools import (
-    create_retriever,
-    create_default_tools,
-    create_mcp_tools,
-)
-from fivcadvisor.flows import create_default_flow
+import dotenv
+from fivcadvisor.tools import default_retriever
+from fivcadvisor.tools.utils import retrievers
+from fivcadvisor.logs import agent_logger
+from fivcadvisor.flows import create_general_flow
 from fivcadvisor.utils import create_output_dir
-from fivcadvisor.tools.retrievers import ToolsRetriever
 
 
 async def run_flow(
         user_query: Optional[str],
-        tools_retriever: Optional[ToolsRetriever] = None,
+        tools_retriever: Optional[retrievers.ToolsRetriever] = None,
 ):
-    flow = create_default_flow(
+    flow = create_general_flow(
         tools_retriever=tools_retriever, verbose=True)
 
     with create_output_dir().subdir('flows'):
@@ -51,7 +42,7 @@ async def main():
     """
     Run the default flow example
     """
-    print("CrewAI Hatchery - Default Flow Example")
+    print("FivcAdvisor - Default Flow Example")
     print("=" * 50)
 
     print("This example demonstrates intelligent task assessment:")
@@ -59,13 +50,15 @@ async def main():
     print("2. Simple tasks → Single work agent")
     print("3. Complex tasks → Director + specialized team")
 
-    retriever = create_retriever()
-    create_default_tools(tools_retriever=retriever)
-    create_mcp_tools(tools_retriever=retriever)
+    dotenv.load_dotenv()
+    agent_logger()
+    default_retriever()
+
     # Demonstrate both modes
     print("\n" + "=" * 50)
     user_query = "What are the key concepts in machine learning?"
-    await run_flow(user_query, tools_retriever=retriever)
+    await run_flow(
+        user_query, tools_retriever=default_retriever())
 
 
 if __name__ == "__main__":

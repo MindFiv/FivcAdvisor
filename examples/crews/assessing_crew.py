@@ -20,7 +20,7 @@ async def main():
     """
     Run the assessment crew example
     """
-    print("CrewAI Hatchery - Assessing Crew Example")
+    print("FivcAdvisor - Assessing Crew Example")
     print("=" * 50)
 
     tools_retriever = create_retriever()

@@ -1,7 +1,19 @@
+__all__ = [
+    "create_default_llm",
+    "create_chat_llm",
+    "create_reasoning_llm",
+    "create_coding_llm",
+]
+
+from typing import Optional
 from crewai import LLM
 
 
-def create_default_llm(*args, **kwargs) -> LLM:
+class _LLM(LLM):
+    session_id: Optional[str] = None
+
+
+def create_default_llm(*args, session_id=None, **kwargs) -> LLM:
     """
     Factory function to create an LLM instance
     """
@@ -10,13 +22,16 @@ def create_default_llm(*args, **kwargs) -> LLM:
     from .settings import default_llm_config
 
     kwargs = create_default_kwargs(kwargs, default_llm_config)
-    provider = kwargs.pop("provider", "openai")
+    kwargs["stream"] = True  # always stream
+    model_provider = kwargs.pop("provider", "openai")
     model = kwargs.pop("model", "")
     if not model:
         raise AssertionError("model not specified")
 
     # using openai compatible mode
-    return LLM(f"{provider}/{model}", *args, **kwargs)
+    llm = _LLM(f"{model_provider}/{model}", *args, **kwargs)
+    llm.session_id = session_id
+    return llm
 
 
 def create_chat_llm(*args, **kwargs) -> LLM:

@@ -5,17 +5,19 @@ FivcAdvisor CLI
 Command-line interface for running FivcAdvisor flows and tools.
 """
 
-import asyncio
-
 import typer
 from typing import Optional
 from pathlib import Path
+
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from .flows import create_default_flow
-from .utils import create_output_dir
+from fivcadvisor import flows, tools, logs
+from fivcadvisor.utils import create_output_dir
+
+load_dotenv()
 
 app = typer.Typer(
     name="fivcadvisor",
@@ -27,22 +29,19 @@ app = typer.Typer(
 )
 
 console = Console()
-flows = {
-    "default": create_default_flow,
-}
 
 
 @app.command()
-def run_flow(
-    flow_type: str = typer.Argument("default", help="Type of flow to run"),
+def run(
+    flow_type: str = typer.Argument("general", help="Type of flow to run"),
     query: Optional[str] = typer.Option(
         None,
         "--query",
         "-q",
         help="User query to process (if not provided, will prompt interactively)",
     ),
-    config: Optional[Path] = typer.Option(
-        None, "--config", "-c", help="Configuration file path"
+    output: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Output file path"
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be done without executing"
@@ -52,35 +51,45 @@ def run_flow(
     ),
 ):
     """
-    Run a CrewAI Hatchery flow
+    Run a FivcAdvisor flow
     """
     console.print(
         Panel.fit(
-            Text("CrewAI Hatchery", style="bold blue"),
+            Text("FivcAdvisor Flow Runner", style="bold blue"),
             subtitle="Intelligent Agent Ecosystem",
         )
     )
+
+    if query is None:
+        query = typer.prompt("Enter your query")
+        if not query:
+            console.print("[red]❌ Query cannot be empty[/red]")
+            raise typer.Exit(1)
+
+    logs.agent_logger()  # build logs
+
+    flow_creator = flows.default_retriever.get(flow_type)
+    if not flow_creator:
+        console.print(f"[red]❌ Unknown flow type: {flow_type}[/red]")
+        console.print("Available flows: general, simple, complex")
+        raise typer.Exit(1)
 
     if dry_run:
         console.print(f"[yellow]DRY RUN:[/yellow] Would run {flow_type} flow")
         if query:
             console.print(f"[yellow]Query:[/yellow] {query}")
-        if config:
-            console.print(f"[yellow]Config:[/yellow] {config}")
+        if output:
+            console.print(f"[yellow]Output:[/yellow] {output}")
         return
 
-    flow_creator = flows.get(flow_type)
-    if not flow_creator:
-        console.print(f"[red]❌ Unknown flow type: {flow_type}[/red]")
-        console.print("Available flows: default")
-        raise typer.Exit(1)
+    flow = flow_creator(
+        tools_retriever=tools.default_retriever(),
+        verbose=verbose,
+    )
 
-    flow = flow_creator(user_query=query)
-    output_dir = create_output_dir()
-
-    with output_dir.subdir("flows"):
+    with create_output_dir(base=output):
         try:
-            flow.kickoff()
+            flow.kickoff(inputs={"user_query": query})
             console.print("[green]✅ Flow completed successfully![/green]")
         except Exception as e:
             console.print(f"[red]❌ Error running flow: {e}[/red]")
@@ -89,26 +98,34 @@ def run_flow(
 
 @app.command()
 def plot(
-    flow_type: str = typer.Argument("default", help="Type of flow to visualize"),
+    flow_type: str = typer.Argument("general", help="Type of flow to visualize"),
     output: Optional[Path] = typer.Option(
         None, "--output", "-o", help="Output file path"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output"
     ),
 ):
     """
     Generate a visualization of a flow
     """
+
     console.print("[blue]Generating flow visualization...[/blue]")
 
-    flow_creator = flows.get(flow_type)
+    logs.agent_logger()  # build logs
+
+    flow_creator = flows.default_retriever.get(flow_type)
     if not flow_creator:
         console.print(f"[red]❌ Unknown flow type: {flow_type}[/red]")
-        console.print("Available flows: default")
+        console.print("Available flows: general, simple, complex")
         raise typer.Exit(1)
 
-    flow = flow_creator()
-    output_dir = create_output_dir(str(output) if output else None)
+    flow = flow_creator(
+        tools_retriever=tools.default_retriever(),
+        verbose=verbose,
+    )
 
-    with output_dir.subdir("flows") as d:
+    with create_output_dir(base=output) as d:
         try:
             flow.plot(flow_type)
             console.print(f"[green]✅ Visualization saved to {d}[/green]")
@@ -136,6 +153,48 @@ def clean():
 
 
 @app.command()
+def serve(
+    host: str = typer.Option(
+        "0.0.0.0", "--host", "-h", help="Host to bind the server to"
+    ),
+    port: int = typer.Option(8000, "--port", "-p", help="Port to bind the server to"),
+    reload: bool = typer.Option(
+        False, "--reload", help="Enable auto-reload for development"
+    ),
+    log_level: str = typer.Option(
+        "info", "--log-level", help="Log level (debug, info, warning, error)"
+    ),
+):
+    """
+    Start the FivcAdvisor API server
+    """
+    console.print(
+        Panel.fit(
+            Text("FivcAdvisor API Server", style="bold green"),
+            subtitle="REST API for Flow Execution",
+        )
+    )
+
+    console.print(f"[blue]Starting server on {host}:{port}[/blue]")
+    console.print(f"[blue]API Documentation: http://{host}:{port}/docs[/blue]")
+    console.print(f"[blue]Health Check: http://{host}:{port}/api/v1/health[/blue]")
+
+    try:
+        from .servers import run_server_app, app
+
+        run_server_app(app, host=host, port=port, reload=reload, log_level=log_level)
+
+    except ImportError as e:
+        console.print(f"[red]❌ Error importing server: {e}[/red]")
+        console.print("[yellow]Make sure FastAPI and uvicorn are installed:[/yellow]")
+        console.print("[yellow]pip install fastapi uvicorn[standard][/yellow]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]❌ Error starting server: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
 def info():
     """
     Show information about FivcAdvisor
@@ -158,6 +217,8 @@ def info():
     [bold]Usage Examples:[/bold]
     fivcadvisor run-flow default                                         # Interactive mode
     fivcadvisor run-flow default --query "What is machine learning?"     # Programmatic mode
+    fivcadvisor serve                                                    # Start API server
+    fivcadvisor serve --port 8080 --reload                              # Development server
     fivcadvisor plot default
     fivcadvisor clean                                                    # Clean temporary files
     fivcadvisor info
@@ -170,7 +231,7 @@ def main():
     """
     Main entry point for the CLI
     """
-    asyncio.run(app())
+    app()
 
 
 if __name__ == "__main__":

@@ -1,41 +1,31 @@
 from typing import Optional, Any
 
 from pydantic import BaseModel
-from crewai.flow.flow import (
-    Flow,
-    listen,
-    router,
-    start,
-)
 
-from ..crews import (
+from fivcadvisor.crews import (
     create_planning_crew,
     create_executing_crew,
     create_tooling_crew,
 )
-from ..tools.retrievers import ToolsRetriever
-from ..outputs import PlanOutput
+from fivcadvisor.models import CrewPlan
+from fivcadvisor.flows.utils.base import Flow, listen, start
 
 
 class ComplexFlowState(BaseModel):
     user_query: str = ""
-    plan: Optional[PlanOutput] = None
+    plan: Optional[CrewPlan] = None
     final_result: Any = None
 
 
 class ComplexFlow(Flow[ComplexFlowState]):
-    def __init__(
-        self,
-        tools_retriever: Optional[ToolsRetriever] = None,
-        verbose: bool = False,
-    ):
-        if not isinstance(tools_retriever, ToolsRetriever):
-            raise TypeError("tools_retriever must be an instance of ToolsRetriever")
+    """
+    FivcAdvisor Flow implementation that:
+    1) Accepts a user query
+    2) Builds a plan
+    3) Executes the plan
+    """
 
-        self.tools_retriever = tools_retriever
-        self.verbose = verbose
-
-        super().__init__()
+    name = "complex"
 
     @start()
     def accept_user_query(self):
@@ -47,11 +37,12 @@ class ComplexFlow(Flow[ComplexFlowState]):
         crew = create_planning_crew(
             tools_retriever=self.tools_retriever,
             verbose=self.verbose,
+            session_id=self.session_id,
         )
         plan = crew.kickoff(inputs={"user_query": self.state.user_query})
-        self.state.plan = plan.pydantic
+        self.state.plan = CrewPlan(**plan.to_dict())
 
-    @router(build_plan)
+    @listen(build_plan)
     def execute_plan(self):
         if not self.state.plan:
             raise ValueError("plan cannot be empty")
@@ -60,6 +51,7 @@ class ComplexFlow(Flow[ComplexFlowState]):
         agent_tool_retriever = create_tooling_crew(
             tools_retriever=self.tools_retriever,
             verbose=self.verbose,
+            session_id=self.session_id,
         )
         for agent in self.state.plan.agents:
             agent_tool_result = agent_tool_retriever.kickoff(
@@ -71,8 +63,9 @@ class ComplexFlow(Flow[ComplexFlowState]):
             tools_retriever=self.tools_retriever,
             plan=self.state.plan,
             verbose=self.verbose,
+            session_id=self.session_id,
         )
         result = crew.kickoff(inputs={"user_query": self.state.user_query})
-        self.state.final_result = result
+        self.state.final_result = result.to_dict()
 
         return self.state.final_result

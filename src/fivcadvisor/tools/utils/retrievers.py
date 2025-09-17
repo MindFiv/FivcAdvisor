@@ -25,11 +25,9 @@ class ToolsRetriever(object):
         if tool.name in self.tools:
             raise ValueError(f"Duplicate tool name: {tool.name}")
 
-        from embedchain.models.data_type import DataType
-
         self.app.add(
             tool.description,
-            data_type=DataType.TEXT.value,
+            data_type="text",
             metadata={"__tool__": tool.name},
         )
         self.tools[tool.name] = tool
@@ -65,9 +63,6 @@ class ToolsRetriever(object):
             query,
             num_documents=self.retrieve_max_num,
         )
-
-        # import json
-        # print(json.dumps(sources))
 
         tool_names = set(
             src["metadata"]["__tool__"]

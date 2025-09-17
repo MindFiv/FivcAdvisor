@@ -2,7 +2,7 @@ from typing import List
 from pydantic import BaseModel, Field
 
 
-class AssessmentOutput(BaseModel):
+class TaskAssessment(BaseModel):
     """Description for an assessment result for a task."""
 
     task_complexity: str = Field(description="Simple, moderate, or complex")
@@ -17,13 +17,13 @@ class AssessmentOutput(BaseModel):
     reasoning: str = Field(description="Explanation of the assessment")
 
 
-class ToolOutput(BaseModel):
+class ToolRequirement(BaseModel):
     """Description for a tool result for a task."""
 
     tools: List[str] = Field(description="List of tools needed for the task")
 
 
-class PlanOutput(BaseModel):
+class CrewPlan(BaseModel):
     """Description for a plan for a task."""
 
     class Agent(BaseModel):

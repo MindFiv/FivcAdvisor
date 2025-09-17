@@ -1,16 +1,26 @@
-def create_default_flow(*args, **kwargs):
-    """Create a DefaultFlow instance.
+from fivcadvisor import utils
+
+
+def create_retriever(*args, **kwargs):
+    """Create a tools retriever tool."""
+    from .utils.retrievers import FlowsRetriever
+
+    return FlowsRetriever(*args, **kwargs)
+
+
+def create_general_flow(*args, **kwargs):
+    """Create a GeneralFlow instance.
 
     Args:
-        *args: Additional arguments passed to DefaultFlow
-        **kwargs: Additional keyword arguments passed to DefaultFlow
+        *args: Additional arguments passed to GeneralFlow
+        **kwargs: Additional keyword arguments passed to GeneralFlow
 
     Returns:
-        DefaultFlow: A configured DefaultFlow instance
+        GeneralFlow: A configured GeneralFlow instance
     """
-    from .default import DefaultFlow
+    from .general import GeneralFlow
 
-    return DefaultFlow(*args, **kwargs)
+    return GeneralFlow(*args, **kwargs)
 
 
 def create_simple_flow(*args, **kwargs):
@@ -29,14 +39,14 @@ def create_simple_flow(*args, **kwargs):
 
 
 def create_complex_flow(*args, **kwargs):
-    """Create a DefaultComplexFlow instance.
+    """Create a ComplexFlow instance.
 
     Args:
-        *args: Additional arguments passed to DefaultComplexFlow
-        **kwargs: Additional keyword arguments passed to DefaultComplexFlow
+        *args: Additional arguments passed to ComplexFlow
+        **kwargs: Additional keyword arguments passed to ComplexFlow
 
     Returns:
-        DefaultComplexFlow: A configured DefaultComplexFlow instance
+        ComplexFlow: A configured ComplexFlow instance
     """
     from .complex import ComplexFlow
 
@@ -49,3 +59,31 @@ def create_evaluating_flow(*args, **kwargs):
 
 def create_engineering_flow(*args, **kwargs):
     raise NotImplementedError("Flow not implemented")
+
+
+def create_default_flow(*args, flows_retriever=None, **kwargs):
+    """Create a default flow instance."""
+    from .utils.retrievers import FlowsRetriever
+
+    assert isinstance(flows_retriever, FlowsRetriever)
+
+    from .general import GeneralFlow
+    from .simple import SimpleFlow
+    from .complex import ComplexFlow
+
+    flow_types = [
+        GeneralFlow,
+        SimpleFlow,
+        ComplexFlow,
+    ]
+    flows_retriever.add_batch(flow_types)
+    return flow_types
+
+
+def _load():
+    retriever = create_retriever()
+    create_default_flow(flows_retriever=retriever)
+    return retriever
+
+
+default_retriever = utils.create_lazy_value(_load)

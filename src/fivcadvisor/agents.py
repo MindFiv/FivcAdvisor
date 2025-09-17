@@ -1,7 +1,22 @@
+__all__ = [
+    "create_default_agent",
+    "create_tooling_agent",
+    "create_consulting_agent",
+    "create_directing_agent",
+    "create_research_agent",
+    "create_engineering_agent",
+    "create_evaluating_agent",
+]
+
+from typing import Optional
 from crewai import Agent
 
 
-def create_default_agent(*args, **kwargs):
+class _Agent(Agent):
+    session_id: Optional[str] = None
+
+
+def create_default_agent(*args, session_id=None, **kwargs):
     """Create a standard ReAct agent for task execution.
 
     Worker agents handle routine operational tasks and execute predefined
@@ -27,7 +42,9 @@ def create_default_agent(*args, **kwargs):
         complete assignments with precision and consistency.
         """,
     )
-    return Agent(*args, **kwargs)
+    agent = _Agent(*args, **kwargs)
+    agent.session_id = session_id
+    return agent
 
 
 def create_tooling_agent(*args, **kwargs):

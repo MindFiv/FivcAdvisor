@@ -1,3 +1,10 @@
+__all__ = [
+    "create_default_db",
+    "create_default_embedder",
+    "create_default_app",
+]
+
+
 def create_default_db(*args, output_dir=None, **kwargs):
     """Create a default database for embedchain."""
     from embedchain.config.vector_db.chroma import ChromaDbConfig
@@ -31,12 +38,20 @@ def create_default_embedder(*args, **kwargs):
     from embedchain.config import BaseEmbedderConfig
     from embedchain.embedder.openai import OpenAIEmbedder
 
+    embedder_api_key = kwargs.pop("api_key", "")
+    embedder_base_url = kwargs.pop("base_url", "")
+    embedder_model = kwargs.pop("model", "")
+    embedder_dimension = kwargs.pop("dimension", 1024)
+
+    if not embedder_api_key:
+        raise RuntimeError("No API key provided")
+
     return OpenAIEmbedder(
         config=BaseEmbedderConfig(
-            model=kwargs["model"],
-            api_key=kwargs["api_key"],
-            api_base=kwargs["base_url"],
-            vector_dimension=kwargs["dimension"],
+            model=embedder_model,
+            api_key=embedder_api_key,
+            api_base=embedder_base_url,
+            vector_dimension=embedder_dimension,
         )
     )
 

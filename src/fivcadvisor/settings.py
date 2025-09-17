@@ -1,3 +1,14 @@
+__all__ = [
+    "config",
+    "default_embedder_config",
+    "default_llm_config",
+    "chat_llm_config",
+    "reasoning_llm_config",
+    "coding_llm_config",
+    "agent_logger_config",
+    "default_logger_config",
+]
+
 from fivcadvisor.utils import (
     create_lazy_value,
     create_default_kwargs,
@@ -19,6 +30,7 @@ def _load_yaml_file(filename):
         TypeError,
         yaml.YAMLError,
     ):
+        print(f"Failed to load config from {filename}")
         return {}
 
 
@@ -37,6 +49,7 @@ def _load_json_file(filename):
         TypeError,
         json.JSONDecodeError,
     ):
+        print(f"Failed to load config from {filename}")
         return {}
 
 
@@ -53,14 +66,16 @@ def _load_file(filename):
 def _load():
     import os
 
-    return _load_file(os.environ.get("CONFIG_FILE", "config.yaml"))
+    config_file = os.environ.get("CONFIG_FILE", "config.yaml")
+    config_file = os.path.abspath(config_file)
+    return _load_file(config_file)
 
 
-default_config = create_lazy_value(_load)
+config = create_lazy_value(_load)
 
 default_embedder_config = create_lazy_value(
     lambda: create_default_kwargs(
-        default_config.get("default_embedder") or {},
+        config.get("default_embedder") or {},
         {
             "provider": "openai",
             "model": "text-embedding-v3",
@@ -73,7 +88,7 @@ default_embedder_config = create_lazy_value(
 
 default_llm_config = create_lazy_value(
     lambda: create_default_kwargs(
-        default_config.get("default_llm") or {},
+        config.get("default_llm") or {},
         {
             "provider": "openai",
             "model": "gpt-4o-mini",
@@ -86,7 +101,7 @@ default_llm_config = create_lazy_value(
 
 chat_llm_config = create_lazy_value(
     lambda: create_default_kwargs(
-        default_config.get("chat_llm") or {},
+        config.get("chat_llm") or {},
         {
             "provider": "openai",
             "model": "gpt-4o-mini",
@@ -99,7 +114,7 @@ chat_llm_config = create_lazy_value(
 
 reasoning_llm_config = create_lazy_value(
     lambda: create_default_kwargs(
-        default_config.get("reasoning_llm") or {},
+        config.get("reasoning_llm") or {},
         {
             "provider": "openai",
             "model": "gpt-4o-mini",
@@ -112,13 +127,33 @@ reasoning_llm_config = create_lazy_value(
 
 coding_llm_config = create_lazy_value(
     lambda: create_default_kwargs(
-        default_config.get("coding_llm") or {},
+        config.get("coding_llm") or {},
         {
             "provider": "openai",
             "model": "gpt-4o-mini",
             "base_url": "https://api.openai.com/v1",
             "api_key": "",
             "temperature": 0.1,
+        },
+    )
+)
+
+agent_logger_config = create_lazy_value(
+    lambda: create_default_kwargs(
+        config.get("agent_logger") or {},
+        {
+            "level": "INFO",
+            "format": "%(asctime)s - %(levelname)s - %(message)s",
+        },
+    )
+)
+
+default_logger_config = create_lazy_value(
+    lambda: create_default_kwargs(
+        config.get("default_logger") or {},
+        {
+            "level": "INFO",
+            "format": "%(asctime)s - %(levelname)s - %(message)s",
         },
     )
 )

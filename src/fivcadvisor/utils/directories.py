@@ -1,5 +1,5 @@
 """
-Utility functions for CrewAI Hatchery
+Utility functions for FivcAdvisor
 """
 
 import os

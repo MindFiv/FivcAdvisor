@@ -75,14 +75,14 @@ fivcadvisor info
 ### Python API
 
 ```python
-from fivcadvisor.flows import create_default_flow
+from fivcadvisor.flows import create_general_flow
 
 # Create and run a flow instance
-flow = create_default_flow()
+flow = create_general_flow()
 result = flow.kickoff()
 
 # With predefined query
-flow = create_default_flow(user_query="What is machine learning?")
+flow = create_general_flow(user_query="What is machine learning?")
 result = flow.kickoff()
 ```
 
@@ -137,9 +137,9 @@ execution:
 The flow maintains state throughout execution:
 
 ```python
-class DefaultFlowState(BaseModel):
+class GeneralFlowState(BaseModel):
     user_query: str = ""
-    assessment: DefaultFlowAssessment = None
+    assessment: GeneralFlowAssessment = None
     final_result: str = ""
     execution_approach: str = ""
 ```
@@ -149,7 +149,7 @@ class DefaultFlowState(BaseModel):
 The consultant agent provides structured assessments:
 
 ```python
-class DefaultFlowAssessment(BaseModel):
+class GeneralFlowAssessment(BaseModel):
     task_complexity: str  # "simple", "moderate", "complex"
     can_handle_directly: bool
     reasoning: str

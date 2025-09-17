@@ -8,6 +8,7 @@ import asyncio
 import sys
 import os
 
+from fivcadvisor.logs import create_agent_logger
 from fivcadvisor.utils import create_output_dir
 
 # Add the src directory to the path so we can import fivcadvisor
@@ -21,7 +22,7 @@ from fivcadvisor.tools import (
     create_mcp_tools,
 )
 from fivcadvisor.crews import create_executing_crew
-from fivcadvisor.outputs import PlanOutput
+from fivcadvisor.models import CrewPlan
 
 
 def main():
@@ -32,15 +33,15 @@ def main():
     print("\n" + "=" * 50)
 
     # Create a sample planning result structure
-    sample_plan = PlanOutput(
+    sample_plan = CrewPlan(
         agents=[
-            PlanOutput.Agent(
+            CrewPlan.Agent(
                 role="Research Analyst",
                 goal="Conduct thorough research on machine learning topics and provide comprehensive analysis",
                 backstory="An experienced data scientist with expertise in machine learning research and analysis",
                 tools=["Search the internet with Serper"],
             ),
-            PlanOutput.Agent(
+            CrewPlan.Agent(
                 role="Content Writer",
                 goal="Create clear and engaging content based on research findings",
                 backstory="A skilled technical writer with experience in making complex topics accessible",
@@ -48,13 +49,13 @@ def main():
             )
         ],
         tasks=[
-            PlanOutput.Task(
+            CrewPlan.Task(
                 description="Research the key concepts in machine learning and their applications",
                 expected_output="A comprehensive list of machine learning concepts with detailed explanations",
                 tools=[],
                 requires_human=False,
             ),
-            PlanOutput.Task(
+            CrewPlan.Task(
                 description="Write a clear and engaging summary of machine learning concepts for beginners",
                 expected_output="A well-structured article explaining machine learning concepts in accessible language",
                 tools=[],
@@ -72,6 +73,7 @@ def main():
     for task in sample_plan.tasks:
         print(f"  * {task.description[:50]}...")
 
+    create_agent_logger()
     tools_retriever = create_retriever()
 
     with create_output_dir():

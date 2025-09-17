@@ -1,41 +1,31 @@
 from typing import Optional, Any
 
 from pydantic import BaseModel
-from crewai.flow.flow import (
-    Flow,
-    listen,
-    router,
-    start,
-)
 
-from ..crews import (
+from fivcadvisor.crews import (
     create_assessing_crew,
     create_simple_crew,
     # create_tooling_crew,
 )
-from ..tools.retrievers import ToolsRetriever
-from ..outputs import AssessmentOutput
+from fivcadvisor.models import TaskAssessment
+from fivcadvisor.flows.utils.base import Flow, listen, start
 
 
 class SimpleFlowState(BaseModel):
     user_query: str = ""
-    assessment: Optional[AssessmentOutput] = None
+    assessment: Optional[TaskAssessment] = None
     final_result: Any = None
 
 
 class SimpleFlow(Flow[SimpleFlowState]):
-    def __init__(
-        self,
-        tools_retriever: Optional[ToolsRetriever] = None,
-        verbose: bool = False,
-    ):
-        if not isinstance(tools_retriever, ToolsRetriever):
-            raise TypeError("tools_retriever must be an instance of ToolsRetriever")
+    """
+    FivcAdvisor Flow implementation that:
+    1) Accepts a user query
+    2) Assesses the complexity
+    3) Routes to a simple default crew or finishes if complex
+    """
 
-        self.tools_retriever = tools_retriever
-        self.verbose = verbose
-
-        super().__init__()
+    name = "simple"
 
     @start()
     def accept_user_query(self):
@@ -46,12 +36,13 @@ class SimpleFlow(Flow[SimpleFlowState]):
     def assess_complexity(self):
         crew = create_assessing_crew(
             tools_retriever=self.tools_retriever,
+            session_id=self.session_id,
             verbose=self.verbose,
         )
         assessment = crew.kickoff(inputs={"user_query": self.state.user_query})
-        self.state.assessment = assessment.pydantic
+        self.state.assessment = TaskAssessment(**assessment.to_dict())
 
-    @router(assess_complexity)
+    @listen(assess_complexity)
     def run_if_simple(self):
         if not self.state.assessment:
             raise ValueError("assessment cannot be empty")
@@ -70,6 +61,7 @@ class SimpleFlow(Flow[SimpleFlowState]):
         crew = create_simple_crew(
             tools_retriever=self.tools_retriever,
             tools_names=tools,
+            session_id=self.session_id,
             verbose=self.verbose,
         )
         result = crew.kickoff(inputs={"user_query": self.state.user_query})

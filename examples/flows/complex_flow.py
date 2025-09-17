@@ -6,23 +6,15 @@ This example shows how the FivcAdvisor intelligently routes tasks
 based on complexity assessment by a consultant agent.
 """
 import asyncio
-import sys
-import os
 from typing import Optional
 
-# Add the src directory to the path so we can import fivcadvisor
-sys.path.insert(
-    0,
-    os.path.join(os.path.dirname(__file__), '..', 'src'))
+import dotenv
 
-from fivcadvisor.tools import (
-    create_retriever,
-    create_default_tools,
-    create_mcp_tools,
-)
+from fivcadvisor.tools import default_retriever
+from fivcadvisor.logs import agent_logger
 from fivcadvisor.flows import create_complex_flow
 from fivcadvisor.utils import create_output_dir
-from fivcadvisor.tools.retrievers import ToolsRetriever
+from fivcadvisor.tools.utils.retrievers import ToolsRetriever
 
 
 async def run_flow(
@@ -51,7 +43,7 @@ async def main():
     """
     Run the default flow example
     """
-    print("CrewAI Hatchery - Default Complex Flow Example")
+    print("FivcAdvisor - Default Complex Flow Example")
     print("=" * 50)
 
     print("This example demonstrates intelligent task planning:")
@@ -59,14 +51,14 @@ async def main():
     print("2. Planning crew outputs a plan")
     print("3. Plan is executed by a crew")
 
-    retriever = create_retriever()
-    create_default_tools(tools_retriever=retriever)
-    create_mcp_tools(tools_retriever=retriever)
+    dotenv.load_dotenv()
+    agent_logger()
+    default_retriever()
     # Demonstrate both modes
     print("\n" + "=" * 50)
     result = await run_flow(
         'Plan a trip to Tokyo in the next five days',
-        tools_retriever=retriever
+        tools_retriever=default_retriever()
     )
     print(result)
 
