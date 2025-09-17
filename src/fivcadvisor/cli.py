@@ -20,7 +20,7 @@ from fivcadvisor.utils import create_output_dir
 load_dotenv()
 
 app = typer.Typer(
-    name="fivcadvisor",
+    name="FivcAdvisor",
     help="FivcAdvisor - "
     "Intelligent agent ecosystem for "
     "autonomous tool generation and "
@@ -83,7 +83,7 @@ def run(
         return
 
     flow = flow_creator(
-        tools_retriever=tools.default_retriever(),
+        tools_retriever=tools.default_retriever,
         verbose=verbose,
     )
 
@@ -121,7 +121,7 @@ def plot(
         raise typer.Exit(1)
 
     flow = flow_creator(
-        tools_retriever=tools.default_retriever(),
+        tools_retriever=tools.default_retriever,
         verbose=verbose,
     )
 
@@ -215,12 +215,12 @@ def info():
     • default - Intelligent task complexity assessment and execution
 
     [bold]Usage Examples:[/bold]
-    fivcadvisor run-flow default                                         # Interactive mode
-    fivcadvisor run-flow default --query "What is machine learning?"     # Programmatic mode
-    fivcadvisor serve                                                    # Start API server
-    fivcadvisor serve --port 8080 --reload                              # Development server
-    fivcadvisor plot default
-    fivcadvisor clean                                                    # Clean temporary files
+    fivcadvisor run general                                         # Interactive mode
+    fivcadvisor run general --query "What is machine learning?"     # Programmatic mode
+    fivcadvisor serve                                               # Start API server
+    fivcadvisor serve --port 8080 --reload                          # Development server
+    fivcadvisor plot general
+    fivcadvisor clean                                               # Clean temporary files
     fivcadvisor info
     """
 

@@ -21,11 +21,6 @@ class Flow(_Flow):
         verbose: bool = False,
         **kwargs,
     ):
-        from fivcadvisor.tools.utils import retrievers
-
-        if not isinstance(tools_retriever, retrievers.ToolsRetriever):
-            raise TypeError("tools_retriever must be an instance of ToolsRetriever")
-
         self.tools_retriever = tools_retriever
         self.verbose = verbose
         self.session_id = session_id or str(uuid4())

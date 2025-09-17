@@ -1,5 +1,3 @@
-__all__ = ["default_manager"]
-
 from asyncio import Queue
 from uuid import uuid4
 
@@ -30,20 +28,16 @@ class Session(object):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.manager.sessions.pop(self.id)
-        self.events.shutdown()
-
-    async def get_event(self):
-        return await self.events.get()
-
-    async def put_event(self, event):
-        await self.events.put(event)
+        # Remove session from manager first to stop routing new events here
+        self.manager.sessions.pop(self.id, None)
+        # Gracefully close the events queue
+        self.events.shutdown(immediate=True)
 
 
 def _load():
     m = SessionManager()
 
-    from crewai import LLM
+    # from crewai import LLM
     from crewai.tools.tool_usage import ToolUsage
     from crewai.utilities.events import (
         base_events,
@@ -53,8 +47,8 @@ def _load():
 
     @crewai_event_bus.on(base_events.BaseEvent)
     def _on_event(source, event):
-        if isinstance(source, LLM):
-            return  # skip llm events
+        # if isinstance(source, LLM):
+        #     return  # skip llm events
 
         if isinstance(source, ToolUsage):
             source = source.agent
@@ -64,7 +58,7 @@ def _load():
         if not session:
             return
 
-        session.put_event(event)
+        session.events.put_nowait(event)
 
     return m
 

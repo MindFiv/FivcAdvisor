@@ -35,7 +35,7 @@ class GeneralFlow(Flow[GeneralFlowState]):
         if not self.state.user_query:
             raise ValueError("user_query cannot be empty")
 
-    @listen(accept_user_query)
+    @router(accept_user_query)
     def assess_complexity(self):
         crew = create_assessing_crew(
             tools_retriever=self.tools_retriever,
@@ -44,16 +44,13 @@ class GeneralFlow(Flow[GeneralFlowState]):
         )
         crew_result = crew.kickoff(inputs={"user_query": self.state.user_query})
         self.state.assessment = TaskAssessment(**crew_result.to_dict())
+        return (
+            "run_simple"
+            if not self.state.assessment.require_director
+            else "plan_complex"
+        )
 
-    @router(assess_complexity)
-    def branch_by_complexity(self):
-        assessment = self.state.assessment
-        if not assessment:
-            raise ValueError("assessment cannot be empty")
-
-        return "complex" if assessment.require_director else "simple"
-
-    @listen("simple")
+    @listen(assess_complexity)
     def run_simple(self):
         crew = create_simple_crew(
             tools_retriever=self.tools_retriever,
@@ -64,7 +61,7 @@ class GeneralFlow(Flow[GeneralFlowState]):
         crew_result = crew.kickoff(inputs={"user_query": self.state.user_query})
         self.state.final_result = crew_result.to_dict()
 
-    @listen("complex")
+    @listen(assess_complexity)
     def plan_complex(self):
         crew = create_planning_crew(
             tools_retriever=self.tools_retriever,
@@ -74,7 +71,7 @@ class GeneralFlow(Flow[GeneralFlowState]):
         crew_result = crew.kickoff(inputs={"user_query": self.state.user_query})
         self.state.plan = CrewPlan(**crew_result.to_dict())
 
-    @listen("plan_complex")
+    @listen(plan_complex)
     def run_complex(self):
         if not self.state.plan:
             raise ValueError("plan cannot be empty")
