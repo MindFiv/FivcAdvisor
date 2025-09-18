@@ -38,3 +38,30 @@ where = ["src"]
 dev = [
     "pytest>=8.4.1",
 ]
+
+[tool.pytest.ini_options]
+# Suppress specific deprecated warnings from third-party libraries
+filterwarnings = [
+    # Suppress all deprecation warnings (broad approach for cleaner test output)
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::RuntimeWarning",
+
+    # Keep important warnings but suppress noisy third-party ones
+    "default::UserWarning",
+    "default::FutureWarning",
+]
+
+# Test discovery settings
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Additional pytest options
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "-p", "no:warnings",  # Disable warnings plugin
+]
