@@ -152,46 +152,7 @@ def clean():
         raise typer.Exit(1)
 
 
-@app.command()
-def serve(
-    host: str = typer.Option(
-        "0.0.0.0", "--host", "-h", help="Host to bind the server to"
-    ),
-    port: int = typer.Option(8000, "--port", "-p", help="Port to bind the server to"),
-    reload: bool = typer.Option(
-        False, "--reload", help="Enable auto-reload for development"
-    ),
-    log_level: str = typer.Option(
-        "info", "--log-level", help="Log level (debug, info, warning, error)"
-    ),
-):
-    """
-    Start the FivcAdvisor API server
-    """
-    console.print(
-        Panel.fit(
-            Text("FivcAdvisor API Server", style="bold green"),
-            subtitle="REST API for Flow Execution",
-        )
-    )
 
-    console.print(f"[blue]Starting server on {host}:{port}[/blue]")
-    console.print(f"[blue]API Documentation: http://{host}:{port}/docs[/blue]")
-    console.print(f"[blue]Health Check: http://{host}:{port}/api/v1/health[/blue]")
-
-    try:
-        from .servers import run_server_app, app
-
-        run_server_app(app, host=host, port=port, reload=reload, log_level=log_level)
-
-    except ImportError as e:
-        console.print(f"[red]❌ Error importing server: {e}[/red]")
-        console.print("[yellow]Make sure FastAPI and uvicorn are installed:[/yellow]")
-        console.print("[yellow]pip install fastapi uvicorn[standard][/yellow]")
-        raise typer.Exit(1)
-    except Exception as e:
-        console.print(f"[red]❌ Error starting server: {e}[/red]")
-        raise typer.Exit(1)
 
 
 @app.command()
@@ -217,8 +178,6 @@ def info():
     [bold]Usage Examples:[/bold]
     fivcadvisor run general                                         # Interactive mode
     fivcadvisor run general --query "What is machine learning?"     # Programmatic mode
-    fivcadvisor serve                                               # Start API server
-    fivcadvisor serve --port 8080 --reload                          # Development server
     fivcadvisor plot general
     fivcadvisor clean                                               # Clean temporary files
     fivcadvisor info

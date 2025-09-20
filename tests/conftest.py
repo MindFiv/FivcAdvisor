@@ -7,10 +7,6 @@ from unittest.mock import Mock, AsyncMock
 from typing import Any, Dict
 
 import pytest
-from fastapi.testclient import TestClient
-
-from fivcadvisor.api import create_server_app
-from fivcadvisor.api.models import FlowExecuteRequest
 
 
 @pytest.fixture(scope="session")
@@ -19,13 +15,6 @@ def event_loop():
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
-
-
-@pytest.fixture
-def test_client():
-    """Create a FastAPI test client for the server app."""
-    app = create_server_app()
-    return TestClient(app)
 
 
 @pytest.fixture
