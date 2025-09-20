@@ -106,7 +106,7 @@ console.log(answer);
 ### Using Gunicorn
 ```bash
 pip install gunicorn
-gunicorn fivcadvisor.servers:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+gunicorn fivcadvisor.api:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
 ### Using Docker

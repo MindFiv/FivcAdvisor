@@ -9,8 +9,8 @@ from typing import Any, Dict
 import pytest
 from fastapi.testclient import TestClient
 
-from fivcadvisor.servers import create_server_app
-from fivcadvisor.servers.models import FlowExecuteRequest
+from fivcadvisor.api import create_server_app
+from fivcadvisor.api.models import FlowExecuteRequest
 
 
 @pytest.fixture(scope="session")

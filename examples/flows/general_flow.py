@@ -9,9 +9,14 @@ import asyncio
 from typing import Optional
 
 import dotenv
-from fivcadvisor.tools import default_retriever
+
+from fivcadvisor.tools import (
+    default_retriever,
+    register_default_tools,
+    register_mcp_tools,
+)
 from fivcadvisor.tools.utils import retrievers
-from fivcadvisor.logs import agent_logger
+from fivcadvisor.logs import agent_logger, register_default_events
 from fivcadvisor.flows import create_general_flow
 from fivcadvisor.utils import create_output_dir
 
@@ -51,14 +56,15 @@ async def main():
     print("3. Complex tasks → Director + specialized team")
 
     dotenv.load_dotenv()
-    agent_logger()
-    default_retriever()
+    register_default_events(logger=agent_logger)
+    register_default_tools(tools_retriever=default_retriever)
+    register_mcp_tools(tools_retriever=default_retriever)
 
     # Demonstrate both modes
     print("\n" + "=" * 50)
     user_query = "What are the key concepts in machine learning?"
     await run_flow(
-        user_query, tools_retriever=default_retriever())
+        user_query, tools_retriever=default_retriever)
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ These tests focus on the core functionality that can be tested.
 
 from unittest.mock import patch, Mock
 
-from fivcadvisor.servers.models import FlowExecuteRequest, FlowExecuteResponse
+from fivcadvisor.api.models import FlowExecuteRequest, FlowExecuteResponse
 
 
 class TestFlowServerBasics:
@@ -72,7 +72,7 @@ class TestFlowTypeValidation:
 class TestRequestValidation:
     """Test request validation."""
 
-    @patch("fivcadvisor.servers.routes.flows_retriever")
+    @patch("fivcadvisor.api.routes.flows_retriever")
     def test_empty_user_query(self, mock_retriever, test_client):
         """Test that empty user_query returns 400 error."""
         # Mock retriever to return a valid flow type
@@ -140,7 +140,7 @@ class TestFlowRetrieverIntegration:
         # The fact that we can create the test client means the server
         # initialization completed successfully, including flow retriever setup
 
-    @patch("fivcadvisor.servers.routes.flows_retriever")
+    @patch("fivcadvisor.api.routes.flows_retriever")
     def test_available_flow_types_validation(self, mock_retriever, test_client):
         """Test validation against known flow types."""
         # Test that the documented flow types are recognized by the system

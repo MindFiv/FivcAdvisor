@@ -66,7 +66,7 @@ def run(
             console.print("[red]❌ Query cannot be empty[/red]")
             raise typer.Exit(1)
 
-    logs.agent_logger()  # build logs
+    logs.register_default_events(logger=logs.agent_logger)  # build logs
 
     flow_creator = flows.default_retriever.get(flow_type)
     if not flow_creator:
@@ -112,7 +112,7 @@ def plot(
 
     console.print("[blue]Generating flow visualization...[/blue]")
 
-    logs.agent_logger()  # build logs
+    logs.register_default_events(logger=logs.agent_logger)  # build logs
 
     flow_creator = flows.default_retriever.get(flow_type)
     if not flow_creator:

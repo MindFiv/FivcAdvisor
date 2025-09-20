@@ -1,4 +1,4 @@
-from fivcadvisor.tools import create_retriever, create_default_tools
+from fivcadvisor.tools import create_retriever, register_default_tools
 from fivcadvisor.tools.calculators import basic_calculator
 
 
@@ -24,7 +24,7 @@ def test_basic_calculator_errors():
 
 def test_retriever_includes_calculator():
     retriever = create_retriever()
-    create_default_tools(tools_retriever=retriever)
+    register_default_tools(tools_retriever=retriever)
     tool = retriever.get("Calculator")
     assert tool is not None
     # ensure it executes

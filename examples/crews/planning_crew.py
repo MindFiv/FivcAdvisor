@@ -10,8 +10,8 @@ sys.path.insert(
 from fivcadvisor.crews import create_planning_crew
 from fivcadvisor.tools import (
     create_retriever,
-    create_default_tools,
-    create_mcp_tools,
+    register_default_tools,
+    register_mcp_tools,
 )
 from fivcadvisor.utils import create_output_dir
 
@@ -26,8 +26,8 @@ async def main():
     tools_retriever = create_retriever()
 
     with create_output_dir():
-        create_default_tools(tools_retriever=tools_retriever)
-        create_mcp_tools(tools_retriever=tools_retriever)
+        register_default_tools(tools_retriever=tools_retriever)
+        register_mcp_tools(tools_retriever=tools_retriever)
         crew = create_planning_crew(
             tools_retriever=tools_retriever,
             verbose=True,

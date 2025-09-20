@@ -17,10 +17,17 @@ from fastapi.responses import JSONResponse
 
 from fivcadvisor import __version__
 from fivcadvisor.logs import default_logger
-from fivcadvisor.tools import default_retriever
+from fivcadvisor.tools import (
+    default_retriever,
+    register_default_tools,
+    register_mcp_tools,
+)
+from fivcadvisor.sessions import (
+    default_manager as session_manager,
+    register_default_events,
+)
 
 from .routes import router as api_router
-from .sessions import default_manager
 
 
 @asynccontextmanager
@@ -44,8 +51,13 @@ async def _lifespan(server_app: FastAPI):
 
 def create_server_app(**kwargs) -> FastAPI:
     """Create and configure the FastAPI application."""
-    default_manager()  # Initialize the session manager
-    default_retriever()  # Initialize the tools retriever
+    register_default_events(
+        session_manager=session_manager
+    )  # Initialize the session manager
+
+    # Initialize the tools retriever
+    register_default_tools(tools_retriever=default_retriever)
+    register_mcp_tools(tools_retriever=default_retriever)
 
     sever_app = FastAPI(
         title="FivcAdvisor API",

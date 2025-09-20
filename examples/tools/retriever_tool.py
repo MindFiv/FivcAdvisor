@@ -10,8 +10,8 @@ sys.path.insert(
 from fivcadvisor.utils import create_output_dir
 from fivcadvisor.tools import (
     create_retriever,
-    create_default_tools,
-    create_mcp_tools,
+    register_default_tools,
+    register_mcp_tools,
 )
 
 
@@ -27,8 +27,8 @@ async def main():
 
     # Create the retriever
     with create_output_dir():
-        create_default_tools(tools_retriever=retriever)
-        create_mcp_tools(tools_retriever=retriever)
+        register_default_tools(tools_retriever=retriever)
+        register_mcp_tools(tools_retriever=retriever)
 
         print("Waiting for retriever to complete...")
         print("\n" + "=" * 50)

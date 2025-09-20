@@ -11,8 +11,8 @@ from fivcadvisor.utils import create_output_dir
 from fivcadvisor.crews import create_assessing_crew
 from fivcadvisor.tools import (
     create_retriever,
-    create_default_tools,
-    create_mcp_tools,
+    register_default_tools,
+    register_mcp_tools,
 )
 
 
@@ -26,8 +26,8 @@ async def main():
     tools_retriever = create_retriever()
 
     with create_output_dir():
-        create_default_tools(tools_retriever=tools_retriever)
-        create_mcp_tools(tools_retriever=tools_retriever)
+        register_default_tools(tools_retriever=tools_retriever)
+        register_mcp_tools(tools_retriever=tools_retriever)
         crew = create_assessing_crew(
             tools_retriever=tools_retriever, verbose=True)
 

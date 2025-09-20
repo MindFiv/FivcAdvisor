@@ -1,11 +1,10 @@
 __all__ = [
     "create_default_logger",
     "create_agent_logger",
+    "register_default_events",
     "agent_logger",
     "default_logger",
 ]
-
-from json import dumps
 
 from fivcadvisor import utils, settings
 
@@ -89,46 +88,49 @@ def create_default_logger(**kwargs):
 
 
 def create_agent_logger(**kwargs):
-    """Create a logger for agents."""
+    """Create a logger for agents.
+
+    Args:
+        **kwargs: Configuration options including:
+            - name: Logger name
+            - level: Logging level (e.g., 'INFO', 'DEBUG')
+            - file: File path for file logging
+            - console: Boolean to control console output (default: False when file is specified)
+            - format: Log message format string
+
+    Returns:
+        Logger: Configured logger instance
+    """
     kwargs = utils.create_default_kwargs(kwargs, settings.agent_logger_config)
     kwargs["name"] = "agent"
-    logger = create_default_logger(**kwargs)
+    return create_default_logger(**kwargs)
 
-    # register to crewai event bus
-    from crewai import LLM
 
-    from crewai.tools.tool_usage import ToolUsage
+def register_default_events(logger=None, **kwargs):
+    """Create a listener that logs events."""
+    assert logger is not None
+
+    import json
+
     from crewai.utilities.events import (
-        base_events,
-        # agent_events,
-        # flow_events,
         crewai_event_bus,
+        base_events,
+        llm_events,
     )
 
     @crewai_event_bus.on(base_events.BaseEvent)
     def _on_event(source, event):
-        if isinstance(source, LLM):
+        if isinstance(event, llm_events.LLMEventBase):
             return  # skip llm events
 
-        if isinstance(source, ToolUsage):
-            source = source.agent
+        session_id = getattr(source, "session_id", "")
+        if not session_id:
+            source = getattr(source, "agent", None)
+            session_id = getattr(source, "session_id", None)
 
-        event_info = event.to_json()
-        event_session = getattr(source, "session_id", "")
-
-        # if isinstance(event, agent_events.AgentLogsExecutionEvent):
-        #     event.formatted_answer
-
-        logger.info(
-            dumps(
-                {
-                    "session_id": event_session,
-                    "event": event_info,
-                }
-            )
-        )
-
-    return logger
+        info = event.to_json()
+        info["session_id"] = session_id
+        logger.info(json.dumps(info))
 
 
 default_logger = utils.create_lazy_value(create_default_logger)

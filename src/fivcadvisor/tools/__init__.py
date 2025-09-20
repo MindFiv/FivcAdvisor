@@ -3,15 +3,13 @@ from fivcadvisor import utils
 
 def create_retriever(*args, **kwargs):
     """Create a tools retriever tool."""
-    from fivcadvisor.tools.utils.retrievers import ToolsRetriever
+    from .utils.retrievers import ToolsRetriever
 
     return ToolsRetriever(*args, **kwargs)
 
 
-def create_default_tools(*args, tools_retriever=None, **kwargs):
-    from fivcadvisor.tools.utils.retrievers import ToolsRetriever
-
-    assert isinstance(tools_retriever, ToolsRetriever)
+def register_default_tools(tools_retriever=None, **kwargs):
+    assert tools_retriever is not None
 
     from .calculators import basic_calculator
     from .time import local_time
@@ -29,11 +27,9 @@ def create_default_tools(*args, tools_retriever=None, **kwargs):
     return tools
 
 
-def create_mcp_tools(*args, tools_retriever=None, config_file="mcp.json", **kwargs):
+def register_mcp_tools(tools_retriever=None, config_file="mcp.json", **kwargs):
     """Create tools for MCP server."""
-    from fivcadvisor.tools.utils.retrievers import ToolsRetriever
-
-    assert isinstance(tools_retriever, ToolsRetriever)
+    assert tools_retriever is not None
 
     import json
     import os
@@ -91,11 +87,11 @@ def create_mcp_tools(*args, tools_retriever=None, config_file="mcp.json", **kwar
     return mcp
 
 
-def _load():
-    retriever = create_retriever()
-    create_default_tools(tools_retriever=retriever)
-    create_mcp_tools(tools_retriever=retriever)
-    return retriever
+# def _load():
+#     retriever = create_retriever()
+#     # register_default_tools(tools_retriever=retriever)
+#     # register_mcp_tools(tools_retriever=retriever)
+#     return retriever
 
 
-default_retriever = utils.create_lazy_value(_load)
+default_retriever = utils.create_lazy_value(create_retriever)
