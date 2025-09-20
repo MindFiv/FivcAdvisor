@@ -61,7 +61,7 @@ def create_engineering_flow(*args, **kwargs):
     raise NotImplementedError("Flow not implemented")
 
 
-def create_default_flow(*args, flows_retriever=None, **kwargs):
+def register_default_flows(*args, flows_retriever=None, **kwargs):
     """Create a default flow instance."""
     from .utils.retrievers import FlowsRetriever
 
@@ -80,10 +80,4 @@ def create_default_flow(*args, flows_retriever=None, **kwargs):
     return flow_types
 
 
-def _load():
-    retriever = create_retriever()
-    create_default_flow(flows_retriever=retriever)
-    return retriever
-
-
-default_retriever = utils.create_lazy_value(_load)
+default_retriever = utils.create_lazy_value(create_retriever)

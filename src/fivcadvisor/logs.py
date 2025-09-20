@@ -133,5 +133,11 @@ def register_default_events(logger=None, **kwargs):
         logger.info(json.dumps(info))
 
 
-default_logger = utils.create_lazy_value(create_default_logger)
+def _load():
+    logger = create_agent_logger()
+    register_default_events(logger=logger)
+    return logger
+
+
+default_logger = utils.create_lazy_value(_load)
 agent_logger = utils.create_lazy_value(create_agent_logger)

@@ -2,19 +2,22 @@
 """
 FivcAdvisor CLI
 
-Command-line interface for running FivcAdvisor flows and tools.
+Command-line interface for running FivcAdvisor graphs and tools.
 """
 
-import typer
+from uuid import uuid4
 from typing import Optional
 from pathlib import Path
+import subprocess
+import sys
+import typer
 
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from fivcadvisor import flows, tools, logs
+from fivcadvisor import graphs, tools, logs
 from fivcadvisor.utils import create_output_dir
 
 load_dotenv()
@@ -33,7 +36,7 @@ console = Console()
 
 @app.command()
 def run(
-    flow_type: str = typer.Argument("general", help="Type of flow to run"),
+    graph_type: str = typer.Argument("general", help="Type of graph to run"),
     query: Optional[str] = typer.Option(
         None,
         "--query",
@@ -51,11 +54,11 @@ def run(
     ),
 ):
     """
-    Run a FivcAdvisor flow
+    Run a FivcAdvisor graph
     """
     console.print(
         Panel.fit(
-            Text("FivcAdvisor Flow Runner", style="bold blue"),
+            Text("FivcAdvisor Graph Runner", style="bold blue"),
             subtitle="Intelligent Agent Ecosystem",
         )
     )
@@ -67,38 +70,40 @@ def run(
             raise typer.Exit(1)
 
     logs.register_default_events(logger=logs.agent_logger)  # build logs
+    graphs.register_default_graphs(graphs_retriever=graphs.default_retriever)
 
-    flow_creator = flows.default_retriever.get(flow_type)
-    if not flow_creator:
-        console.print(f"[red]❌ Unknown flow type: {flow_type}[/red]")
-        console.print("Available flows: general, simple, complex")
+    graph = graphs.default_retriever.get(graph_type)
+    if not graph:
+        console.print(f"[red]❌ Unknown graph type: {graph_type}[/red]")
+        console.print("Available graphs: general, simple, complex")
         raise typer.Exit(1)
 
     if dry_run:
-        console.print(f"[yellow]DRY RUN:[/yellow] Would run {flow_type} flow")
+        console.print(f"[yellow]DRY RUN:[/yellow] Would run {graph_type} graph")
         if query:
             console.print(f"[yellow]Query:[/yellow] {query}")
         if output:
             console.print(f"[yellow]Output:[/yellow] {output}")
         return
 
-    flow = flow_creator(
+    graph_run = graph(
         tools_retriever=tools.default_retriever,
         verbose=verbose,
+        session_id=str(uuid4()),
     )
 
     with create_output_dir(base=output):
         try:
-            flow.kickoff(inputs={"user_query": query})
-            console.print("[green]✅ Flow completed successfully![/green]")
+            graph_run.kickoff(inputs={"user_query": query})
+            console.print("[green]✅ Graph completed successfully![/green]")
         except Exception as e:
-            console.print(f"[red]❌ Error running flow: {e}[/red]")
+            console.print(f"[red]❌ Error running graph: {e}[/red]")
             raise typer.Exit(1)
 
 
 @app.command()
 def plot(
-    flow_type: str = typer.Argument("general", help="Type of flow to visualize"),
+    graph_type: str = typer.Argument("general", help="Type of graph to visualize"),
     output: Optional[Path] = typer.Option(
         None, "--output", "-o", help="Output file path"
     ),
@@ -107,27 +112,29 @@ def plot(
     ),
 ):
     """
-    Generate a visualization of a flow
+    Generate a visualization of a graph
     """
 
-    console.print("[blue]Generating flow visualization...[/blue]")
+    console.print("[blue]Generating graph visualization...[/blue]")
 
     logs.register_default_events(logger=logs.agent_logger)  # build logs
+    graphs.register_default_graphs(graphs_retriever=graphs.default_retriever)
 
-    flow_creator = flows.default_retriever.get(flow_type)
-    if not flow_creator:
-        console.print(f"[red]❌ Unknown flow type: {flow_type}[/red]")
-        console.print("Available flows: general, simple, complex")
+    graph = graphs.default_retriever.get(graph_type)
+    if not graph:
+        console.print(f"[red]❌ Unknown graph type: {graph_type}[/red]")
+        console.print("Available graphs: general, simple, complex")
         raise typer.Exit(1)
 
-    flow = flow_creator(
+    graph_run = graph(
         tools_retriever=tools.default_retriever,
         verbose=verbose,
+        session_id=str(uuid4()),
     )
 
     with create_output_dir(base=output) as d:
         try:
-            flow.plot(flow_type)
+            graph_run.plot(graph_type)
             console.print(f"[green]✅ Visualization saved to {d}[/green]")
         except Exception as e:
             console.print(f"[red]❌ Error generating visualization: {e}[/red]")
@@ -153,6 +160,70 @@ def clean():
 
 
 @app.command()
+def web(
+    port: int = typer.Option(
+        8501, "--port", "-p", help="Port to run the web interface on"
+    ),
+    host: str = typer.Option(
+        "localhost", "--host", "-h", help="Host to bind the web interface to"
+    ),
+    debug: bool = typer.Option(False, "--debug", help="Run in debug mode"),
+):
+    """
+    Launch the FivcAdvisor web interface using Streamlit
+    """
+    console.print(
+        Panel.fit(
+            Text("FivcAdvisor Web Interface", style="bold green"),
+            subtitle="Starting Streamlit Application",
+        )
+    )
+
+    try:
+        # Get the path to the app.py file
+        app_path = Path(__file__).parent / "app.py"
+
+        if not app_path.exists():
+            console.print(f"[red]❌ Web app file not found: {app_path}[/red]")
+            raise typer.Exit(1)
+
+        # Build streamlit command
+        cmd = [
+            sys.executable,
+            "-m",
+            "streamlit",
+            "run",
+            str(app_path),
+            "--server.port",
+            str(port),
+            "--server.address",
+            host,
+            "--server.headless",
+            "true" if not debug else "false",
+            "--browser.gatherUsageStats",
+            "false",
+        ]
+
+        console.print(f"[blue]Starting web interface at http://{host}:{port}[/blue]")
+        console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
+
+        # Run streamlit
+        subprocess.run(cmd, check=True)
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Web interface stopped by user[/yellow]")
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]❌ Error starting web interface: {e}[/red]")
+        console.print(
+            "[yellow]Make sure Streamlit is installed: pip install streamlit[/yellow]"
+        )
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]❌ Unexpected error: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
 def info():
     """
     Show information about FivcAdvisor
@@ -169,13 +240,14 @@ def info():
     • Autonomous tool generation and optimization
     • Event-driven workflow orchestration
 
-    [bold]Available Flows:[/bold]
+    [bold]Available Graphs:[/bold]
     • default - Intelligent task complexity assessment and execution
 
     [bold]Usage Examples:[/bold]
     fivcadvisor run general                                         # Interactive mode
     fivcadvisor run general --query "What is machine learning?"     # Programmatic mode
     fivcadvisor plot general
+    fivcadvisor web                                                 # Launch web interface
     fivcadvisor clean                                               # Clean temporary files
     fivcadvisor info
     """

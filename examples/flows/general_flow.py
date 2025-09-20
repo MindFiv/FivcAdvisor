@@ -56,8 +56,6 @@ async def main():
     print("3. Complex tasks → Director + specialized team")
 
     dotenv.load_dotenv()
-    register_default_events(logger=agent_logger)
-    register_default_tools(tools_retriever=default_retriever)
     register_mcp_tools(tools_retriever=default_retriever)
 
     # Demonstrate both modes

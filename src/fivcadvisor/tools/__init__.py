@@ -87,11 +87,11 @@ def register_mcp_tools(tools_retriever=None, config_file="mcp.json", **kwargs):
     return mcp
 
 
-# def _load():
-#     retriever = create_retriever()
-#     # register_default_tools(tools_retriever=retriever)
-#     # register_mcp_tools(tools_retriever=retriever)
-#     return retriever
+def _load():
+    retriever = create_retriever()
+    register_default_tools(tools_retriever=retriever)
+    # register_mcp_tools(tools_retriever=retriever)
+    return retriever
 
 
-default_retriever = utils.create_lazy_value(create_retriever)
+default_retriever = utils.create_lazy_value(_load)

@@ -51,10 +51,9 @@ def create_simple_crew(
     from .llms import create_default_llm
     from .tasks import create_default_task
     from .agents import create_default_agent
-    from fivcadvisor.tools.utils.retrievers import ToolsRetriever
 
-    if not isinstance(tools_retriever, ToolsRetriever):
-        raise ValueError("tool_retriever must be an instance of ToolsRetriever")
+    if not tools_retriever:
+        raise ValueError("tools_retriever not provided")
 
     if not isinstance(tools_names, list):
         raise ValueError("tool_names must be a list of strings")
@@ -103,10 +102,9 @@ def create_tooling_crew(
     from .llms import create_reasoning_llm
     from .tasks import create_tooling_task
     from .agents import create_tooling_agent
-    from fivcadvisor.tools.utils.retrievers import ToolsRetriever
 
-    if not isinstance(tools_retriever, ToolsRetriever):
-        raise ValueError("tool_retriever must be an instance of ToolsRetriever")
+    if not tools_retriever:
+        raise ValueError("tools_retriever not provided")
 
     agent = create_tooling_agent(
         llm=create_reasoning_llm(
@@ -147,10 +145,9 @@ def create_assessing_crew(
     from .llms import create_reasoning_llm
     from .tasks import create_assessing_task
     from .agents import create_consulting_agent
-    from fivcadvisor.tools.utils.retrievers import ToolsRetriever
 
-    if not isinstance(tools_retriever, ToolsRetriever):
-        raise ValueError("tool_retriever must be an instance of ToolsRetriever")
+    if not tools_retriever:
+        raise ValueError("tools_retriever not provided")
 
     agent = create_consulting_agent(
         llm=create_reasoning_llm(
@@ -191,10 +188,9 @@ def create_planning_crew(
     from .llms import create_reasoning_llm
     from .tasks import create_planning_task
     from .agents import create_directing_agent
-    from fivcadvisor.tools.utils.retrievers import ToolsRetriever
 
-    if not isinstance(tools_retriever, ToolsRetriever):
-        raise ValueError("tool_retriever must be an instance of ToolsRetriever")
+    if not tools_retriever:
+        raise ValueError("tools_retriever not provided")
 
     tools = [
         tools_retriever.get("sequentialthinking"),
@@ -244,15 +240,12 @@ def create_executing_crew(
         create_reasoning_llm,
         create_chat_llm,
     )
-    from .agents import (
-        create_default_agent,
-    )
-    from fivcadvisor.tools.utils.retrievers import ToolsRetriever
+    from .agents import create_default_agent
     from .tasks import create_default_task
     from .models import CrewPlan
 
-    if not isinstance(tools_retriever, ToolsRetriever):
-        raise ValueError("tool_retriever must be an instance of ToolsRetriever")
+    if not tools_retriever:
+        raise ValueError("tools_retriever not provided")
 
     if not isinstance(plan, CrewPlan):
         raise ValueError("plan must be an instance of PlanOutput")

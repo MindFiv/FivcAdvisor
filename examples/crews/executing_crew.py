@@ -5,17 +5,10 @@ Example script demonstrating the create_executing_crew function
 This example shows how to create a crew from a predefined plan structure.
 """
 import asyncio
-import sys
-import os
+import dotenv
 
 from fivcadvisor.logs import create_agent_logger
 from fivcadvisor.utils import create_output_dir
-
-# Add the src directory to the path so we can import fivcadvisor
-sys.path.insert(
-    0,
-    os.path.join(os.path.dirname(__file__), '..', 'src'))
-
 from fivcadvisor.tools import (
     create_retriever,
     register_default_tools,
@@ -24,8 +17,10 @@ from fivcadvisor.tools import (
 from fivcadvisor.crews import create_executing_crew
 from fivcadvisor.models import CrewPlan
 
+dotenv.load_dotenv()
 
-def main():
+
+async def main():
     """
     Run the planned crew example
     """
@@ -84,13 +79,13 @@ def main():
             plan=sample_plan,
             verbose=True,
         )
-        crew.kickoff(inputs={
+        crew_result = crew.kickoff(inputs={
             "user_query":
                 'Write an educative article on machine learning, '
                 'aimed at beginners. And even primary students can understand.'
         })
-        print("\nCrew completed successfully!")
+        print(crew_result.to_dict())
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

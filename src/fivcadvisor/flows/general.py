@@ -60,6 +60,7 @@ class GeneralFlow(Flow[GeneralFlowState]):
         )
         crew_result = crew.kickoff(inputs={"user_query": self.state.user_query})
         self.state.final_result = crew_result.to_dict()
+        return self.state.final_result
 
     @listen(assess_complexity)
     def plan_complex(self):

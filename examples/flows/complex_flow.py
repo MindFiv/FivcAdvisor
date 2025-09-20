@@ -12,13 +12,11 @@ import dotenv
 
 from fivcadvisor.tools import (
     default_retriever,
-    register_default_tools,
     register_mcp_tools,
 )
-from fivcadvisor.logs import agent_logger, register_default_events
 from fivcadvisor.flows import create_complex_flow
 from fivcadvisor.utils import create_output_dir
-from fivcadvisor.tools.utils.retrievers import ToolsRetriever
+from fivcadvisor.tools.utils import ToolsRetriever
 
 
 async def run_flow(
@@ -56,8 +54,6 @@ async def main():
     print("3. Plan is executed by a crew")
 
     dotenv.load_dotenv()
-    register_default_events(logger=agent_logger)
-    register_default_tools(tools_retriever=default_retriever)
     register_mcp_tools(tools_retriever=default_retriever)
     # Demonstrate both modes
     print("\n" + "=" * 50)

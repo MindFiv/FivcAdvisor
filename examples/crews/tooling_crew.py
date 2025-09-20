@@ -1,11 +1,5 @@
 import asyncio
-import sys
-import os
-
-# Add the src directory to the path so we can import fivcadvisor
-sys.path.insert(
-    0,
-    os.path.join(os.path.dirname(__file__), '..', 'src'))
+import dotenv
 
 from fivcadvisor.crews import create_tooling_crew
 from fivcadvisor.tools import (
@@ -14,6 +8,8 @@ from fivcadvisor.tools import (
     register_mcp_tools,
 )
 from fivcadvisor.utils import create_output_dir
+
+dotenv.load_dotenv()
 
 
 async def main():
@@ -33,13 +29,10 @@ async def main():
             verbose=True,
             output_log_file='tooling_crew.json',
         )
-
-        print("Waiting for crew to complete...")
-        print("=" * 50)
-        result = await crew.kickoff_async(inputs={
+        crew_result = await crew.kickoff_async(inputs={
             'user_query': "What time is it now?",
         })
-        print(result)
+        print(crew_result.to_dict())
 
 
 if __name__ == '__main__':
