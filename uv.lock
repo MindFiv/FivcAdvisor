@@ -941,7 +941,6 @@ source = { editable = "." }
 dependencies = [
     { name = "crewai" },
     { name = "crewai-tools", extra = ["mcp"] },
-    { name = "fastapi" },
     { name = "httpx" },
     { name = "pydantic" },
     { name = "python-dotenv" },
@@ -949,7 +948,6 @@ dependencies = [
     { name = "rich" },
     { name = "streamlit" },
     { name = "typer" },
-    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.optional-dependencies]
@@ -967,7 +965,6 @@ dev = [
 requires-dist = [
     { name = "crewai", specifier = ">=0.5.0" },
     { name = "crewai-tools", extras = ["mcp"], specifier = ">=0.1.0" },
-    { name = "fastapi", specifier = ">=0.104.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.2.0" },
@@ -977,7 +974,6 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4.0,<0.6" },
     { name = "streamlit", specifier = ">=1.49.1" },
     { name = "typer", specifier = ">=0.12.3" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
 ]
 provides-extras = ["dev"]
 

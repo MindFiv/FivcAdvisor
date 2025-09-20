@@ -152,9 +152,6 @@ def clean():
         raise typer.Exit(1)
 
 
-
-
-
 @app.command()
 def info():
     """

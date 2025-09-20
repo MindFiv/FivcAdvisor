@@ -18,27 +18,6 @@ def event_loop():
 
 
 @pytest.fixture
-def sample_flow_request():
-    """Sample valid flow execution request."""
-    return FlowExecuteRequest(user_query="Calculate 2 + 2", config={"verbose": True})
-
-
-@pytest.fixture
-def sample_simple_request():
-    """Sample request for simple flow."""
-    return FlowExecuteRequest(user_query="What is 5 * 3?", config={})
-
-
-@pytest.fixture
-def sample_complex_request():
-    """Sample request for complex flow."""
-    return FlowExecuteRequest(
-        user_query="Analyze the current market trends and provide investment recommendations",
-        config={"detailed": True},
-    )
-
-
-@pytest.fixture
 def mock_flow_result():
     """Mock successful flow execution result."""
     return {
