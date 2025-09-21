@@ -238,7 +238,7 @@ def info():
     • Intelligent task assessment with consultant agents
     • Dynamic crew assembly based on task complexity
     • Autonomous tool generation and optimization
-    • Event-driven workflow orchestration
+    • Event-driven graph orchestration
 
     [bold]Available Graphs:[/bold]
     • default - Intelligent task complexity assessment and execution

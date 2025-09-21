@@ -1,9 +1,9 @@
 # Architecture & Patterns
 
-## Flows
-- Use CrewAI Flow decorators: `@start`, `@listen`, `@router`
-- State held in Pydantic models (e.g., `GeneralFlowState`)
-- Assess → route → execute pattern in `flows/default.py`
+## Graphs
+- Use LangGraph for state management and workflow orchestration
+- State held in TypedDict models (e.g., `GraphState`)
+- Assess → route → execute pattern in `graphs/` modules
 
 ## Agents / Tasks / Tools
 - Agent factories in `agents.py`
@@ -11,7 +11,7 @@
 - Tools re-exported from `crewai_tools` via `tools/__init__.py`
 
 ## File Placement Rules
-- New flows: `src/fivcadvisor/flows/<name>.py` and export in `flows/__init__.py`
+- New graphs: `src/fivcadvisor/graphs/<name>.py` and export in `graphs/__init__.py`
 - Agent factories: `src/fivcadvisor/agents.py`
 - Task factories: `src/fivcadvisor/tasks.py`
 - LLM config/variants: `src/fivcadvisor/llms.py`

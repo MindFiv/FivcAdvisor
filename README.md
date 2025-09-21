@@ -35,7 +35,7 @@ make dev
 
 - `src/fivcadvisor/` core library
   - `patterns/` reusable task-patterns
-  - `flows/` flow orchestrators
+  - `graphs/` graph orchestrators using LangGraph
   - `agents/` agent construction helpers
   - `tools/` basic tool wrappers
 - `configs/` configs for sample/demo
@@ -49,13 +49,13 @@ make dev
 # Show all available commands
 fivcadvisor --help
 
-# Run a flow interactively
+# Run a graph interactively
 fivcadvisor run general
 
-# Run a flow with a specific query
+# Run a graph with a specific query
 fivcadvisor run general --query "What is machine learning?"
 
-# Generate flow visualization
+# Generate graph visualization
 fivcadvisor plot general
 
 # Clean temporary files
