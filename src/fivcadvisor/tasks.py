@@ -23,13 +23,19 @@ def create_default_task(*args, session_id=None, **kwargs):
         Make sure you are using the right tools.
         """,
     )
-    kwargs.setdefault(
-        "expected_output",
-        """
-        A helpful, useful, and accurate response to the user query.
-        """,
-    )
+    if "output_pydantic" not in kwargs:
+        from .models import QueryResponse
 
+        kwargs.update(
+            expected_output="A helpful, useful, and accurate response to the user query",
+            output_pydantic=QueryResponse,
+        )
+    # kwargs.setdefault(
+    #     "expected_output",
+    #     """
+    #     A helpful, useful, and accurate response to the user query.
+    #     """,
+    # )
     # if "agent" not in kwargs:
     #     from .llms import create_default_llm
     #     from .agents import create_default_agent

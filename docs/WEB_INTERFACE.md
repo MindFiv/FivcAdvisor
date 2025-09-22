@@ -1,172 +1,118 @@
 # FivcAdvisor Web Interface
 
-FivcAdvisor now includes a modern web interface built with Streamlit, providing an intuitive way to interact with the intelligent agent ecosystem.
+FivcAdvisor includes a modern web interface built with Streamlit, providing an intuitive chat-based way to interact with the intelligent agent ecosystem.
 
 ## Quick Start
 
 ### Launch the Web Interface
 
 ```bash
-# Start with default settings (localhost:8501)
-fivcadvisor web
+# Using Make (recommended)
+make serve
 
-# Specify custom port and host
-fivcadvisor web --port 8080 --host 0.0.0.0
+# Using CLI directly
+uv run fivcadvisor web
 
-# Run in debug mode
-fivcadvisor web --debug
+# Development mode
+make serve-dev
+
+# With custom options
+uv run fivcadvisor web --port 8080 --host 0.0.0.0
 ```
 
 ### Access the Interface
 
 Once started, open your browser and navigate to:
 - Default: http://localhost:8501
-- Custom: http://your-host:your-port
 
 ## Features
 
-### 🎯 Flow Execution
-- **Interactive Query Input**: Enter your queries through a user-friendly text area
-- **Flow Type Selection**: Choose from available flows (general, simple, complex)
-- **Real-time Progress**: Visual progress indicators during flow execution
+### 💬 Chat Interface
+- **Conversational AI**: Natural chat-based interaction with the agent
+- **Multi-turn Conversations**: Context-aware dialogue with conversation history
+- **Real-time Processing**: Instant message processing and response generation
+- **Message History**: Full conversation history with clear user/agent distinction
+
+### 🎯 Query Processing
+- **Graph Selection**: Choose from available graph types:
+  - **General**: Intelligent task complexity assessment and execution
+  - **Simple**: Simple task execution with basic crew
+  - **Complex**: Complex task execution with advanced planning
 - **Verbose Mode**: Toggle detailed logging for debugging
 
 ### 📊 Results Display
-- **Structured Results**: JSON and text output formatting
-- **Success/Error Indicators**: Clear visual feedback on flow execution status
-- **Metadata Display**: Flow type, timestamp, and execution details
-
-### 📈 Flow History
-- **Execution History**: Track all your previous flow runs
-- **Expandable Results**: Click to view detailed results from past executions
-- **Query Preview**: Quick preview of queries with truncation for long text
+- **Formatted Responses**: Markdown-formatted responses with rich text support
+- **JSON Visualization**: Clean display of complex data structures
+- **Success/Error Indicators**: Clear visual feedback with emojis and styling
+- **Conversation Flow**: Seamless integration of responses into chat history
 
 ### ⚙️ Configuration
-- **Sidebar Controls**: Easy access to settings and flow information
-- **Flow Information**: Descriptions and details about available flows
-- **History Management**: Clear history with one click
+- **Sidebar Controls**: Easy access to settings and configuration
+- **Graph Information**: Dynamic descriptions of selected graph types
+- **Example Queries**: One-click example queries to get started quickly
+- **Clear Chat**: Reset conversation history for fresh interactions
+
+## Example Queries
+
+Try these sample queries to explore FivcAdvisor's capabilities:
+
+- "What is machine learning?"
+- "Write a Python function to calculate fibonacci numbers"
+- "Explain the benefits of renewable energy"
+- "Create a simple web scraping script"
+- "What are the latest trends in AI?"
 
 ## Interface Layout
 
-### Main Area
-- **Query Interface**: Large text area for entering queries
-- **Run Button**: Execute flows with visual feedback
-- **Latest Result**: Display of the most recent execution result
+The web interface uses a modern, responsive two-column layout:
 
-### Sidebar
-- **Configuration Panel**: Flow type selection and verbose mode toggle
-- **Flow Information**: Details about selected flow and available options
-- **History Controls**: Clear history and view flow descriptions
-
-### History Panel
-- **Recent Executions**: Last 10 flow runs with expandable details
-- **Quick Access**: Click to view full results from previous runs
-- **Status Indicators**: Visual success/error indicators
-
-## Flow Types
-
-### General Flow
-- **Description**: Intelligent task complexity assessment and execution
-- **Use Case**: Most versatile option for various types of queries
-- **Features**: Automatic complexity assessment and appropriate crew assembly
-
-### Simple Flow
-- **Description**: Simple task execution with basic crew
-- **Use Case**: Straightforward queries that don't require complex planning
-- **Features**: Quick execution with minimal overhead
-
-### Complex Flow
-- **Description**: Complex task execution with advanced planning
-- **Use Case**: Multi-step tasks requiring detailed planning and coordination
-- **Features**: Advanced planning crew and sophisticated task orchestration
-
-## Tips for Best Results
-
-### Query Writing
-- **Be Specific**: Provide clear, detailed queries for better results
-- **Context**: Include relevant context and background information
-- **Goals**: Clearly state what you want to achieve
-
-### Flow Selection
-- **Start Simple**: Try the general flow first for most queries
-- **Escalate**: Use complex flow for multi-step or planning-heavy tasks
-- **Debug**: Enable verbose mode when troubleshooting
-
-### Monitoring
-- **Watch Progress**: Use the progress indicators to monitor execution
-- **Check History**: Review past executions to understand patterns
-- **Error Handling**: Check error messages for troubleshooting guidance
-
-## Troubleshooting
-
-### Common Issues
-
-#### Web Interface Won't Start
-```bash
-# Check if Streamlit is installed
-pip list | grep streamlit
-
-# Install if missing
-pip install streamlit
-
-# Check port availability
-lsof -i :8501
-```
-
-#### Flow Execution Errors
-- **API Keys**: Ensure your .env file contains required API keys
-- **Dependencies**: Run `uv sync` to install all dependencies
-- **Verbose Mode**: Enable verbose logging to see detailed error information
-
-#### Performance Issues
-- **Port Conflicts**: Try a different port with `--port` option
-- **Memory**: Close other applications if experiencing slowdowns
-- **Network**: Check firewall settings if accessing remotely
-
-### Getting Help
-
-1. **Check Logs**: Enable verbose mode for detailed execution logs
-2. **Review History**: Look at successful executions for comparison
-3. **CLI Alternative**: Use `fivcadvisor run` command for debugging
-4. **Documentation**: Refer to the main README for additional information
+- **Left Column (Main)**: Chat interface with conversation history and message input
+- **Right Column (Sidebar)**: Configuration panel, graph information, and example queries
 
 ## Development
 
 ### Running in Development Mode
 
 ```bash
-# Install development dependencies
-uv sync --extra dev
+# Development mode
+make serve-dev
 
-# Run with debug mode
-fivcadvisor web --debug
-
-# Direct Streamlit execution
-uv run streamlit run src/fivcadvisor/app.py
+# Or directly with Python
+uv run python src/fivcadvisor/app/__init__.py
 ```
 
 ### Customization
 
-The web interface is built with Streamlit and can be customized by modifying `src/fivcadvisor/app.py`. Key areas for customization:
+The web interface is implemented in `src/fivcadvisor/app/__init__.py` as a single, clean module that:
 
-- **Styling**: Modify the Streamlit configuration and CSS
-- **Layout**: Adjust column layouts and component organization
-- **Features**: Add new functionality or modify existing behavior
-- **Flows**: Integrate additional flow types or modify existing ones
+- Integrates directly with FivcAdvisor's backend
+- Provides a modern chat-based user experience
+- Supports all graph types and execution modes
+- Handles errors gracefully with user-friendly messages
+- Uses Gradio's theming system for consistent styling
 
-## Security Considerations
+## Troubleshooting
 
-### Local Development
-- Default configuration binds to localhost only
-- No authentication required for local use
-- API keys loaded from .env file
+### Common Issues
 
-### Production Deployment
-- Use `--host 0.0.0.0` carefully in production
-- Consider adding authentication mechanisms
-- Secure API key management
-- Network security and firewall configuration
+1. **Port already in use**: Change port with `uv run fivcadvisor web --port 7861`
+2. **Backend not available**: Ensure dependencies are installed with `uv sync`
+3. **Slow startup**: First run may be slower due to model initialization
+4. **Chat not responding**: Check console for error messages and ensure API keys are configured
 
----
+### Getting Help
 
-For more information about FivcAdvisor flows and capabilities, see the main [README.md](../README.md) and [DESIGN.md](DESIGN.md) documentation.
+- Check the terminal output for detailed error messages
+- Use verbose mode for debugging
+- Refer to the main README.md for general troubleshooting
+
+## Integration
+
+The web interface integrates seamlessly with:
+
+- **CLI Commands**: Launched via `fivcadvisor web`
+- **Make Targets**: `make serve` and `make serve-dev`
+- **Backend Graphs**: Direct integration with all graph types
+- **Configuration**: Respects environment variables and settings
+
+This provides a unified experience across command-line and web interfaces.

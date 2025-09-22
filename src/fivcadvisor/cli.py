@@ -8,8 +8,6 @@ Command-line interface for running FivcAdvisor graphs and tools.
 from uuid import uuid4
 from typing import Optional
 from pathlib import Path
-import subprocess
-import sys
 import typer
 
 from dotenv import load_dotenv
@@ -165,7 +163,7 @@ def web(
         8501, "--port", "-p", help="Port to run the web interface on"
     ),
     host: str = typer.Option(
-        "localhost", "--host", "-h", help="Host to bind the web interface to"
+        "0.0.0.0", "--host", "-h", help="Host to bind the web interface to"
     ),
     debug: bool = typer.Option(False, "--debug", help="Run in debug mode"),
 ):
@@ -180,12 +178,15 @@ def web(
     )
 
     try:
-        # Get the path to the app.py file
-        app_path = Path(__file__).parent / "app.py"
+        import subprocess
+        import sys
+        import os
 
-        if not app_path.exists():
-            console.print(f"[red]❌ Web app file not found: {app_path}[/red]")
-            raise typer.Exit(1)
+        console.print(f"[blue]Starting web interface at http://{host}:{port}[/blue]")
+        console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
+
+        # Get the path to the app module
+        app_path = os.path.join(os.path.dirname(__file__), "app", "__init__.py")
 
         # Build streamlit command
         cmd = [
@@ -193,19 +194,19 @@ def web(
             "-m",
             "streamlit",
             "run",
-            str(app_path),
+            app_path,
             "--server.port",
             str(port),
             "--server.address",
             host,
             "--server.headless",
-            "true" if not debug else "false",
+            "true",
             "--browser.gatherUsageStats",
             "false",
         ]
 
-        console.print(f"[blue]Starting web interface at http://{host}:{port}[/blue]")
-        console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
+        if not debug:
+            cmd.extend(["--logger.level", "error"])
 
         # Run streamlit
         subprocess.run(cmd, check=True)

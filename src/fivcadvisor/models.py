@@ -2,6 +2,13 @@ from typing import List
 from pydantic import BaseModel, Field
 
 
+class QueryResponse(BaseModel):
+    """Description for a query response."""
+
+    answer: str = Field(description="Response to the user query")
+    reasoning: str = Field(description="Reasoning behind the answer")
+
+
 class TaskAssessment(BaseModel):
     """Description for an assessment result for a task."""
 

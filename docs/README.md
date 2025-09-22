@@ -13,67 +13,56 @@ Welcome to the FivcAdvisor documentation! This directory contains comprehensive 
 - Agent ecosystem and workflow orchestration
 - Technical implementation details
 
-#### [🔄 DEFAULT_FLOW.md](DEFAULT_FLOW.md)
-**Default Flow Implementation Guide**
-- Default flow architecture and components
-- Flow execution patterns
-- Task assessment and crew orchestration
-- Configuration and customization options
-
-### Web Interface
-
 #### [🌐 WEB_INTERFACE.md](WEB_INTERFACE.md)
-**Complete Web Interface User Guide**
+**Web Interface User Guide**
 - Getting started with the web interface
 - Feature overview and usage instructions
-- Flow execution and result management
-- Troubleshooting and best practices
+- Graph execution and result management
 - Development and customization guide
 
-#### [⚡ STREAMLIT_IMPLEMENTATION.md](STREAMLIT_IMPLEMENTATION.md)
-**Technical Implementation Details**
-- Streamlit application architecture
-- CLI integration and command structure
-- Testing and validation approach
-- Deployment considerations
-- Future enhancement roadmap
+#### [📦 DEPENDENCIES.md](DEPENDENCIES.md)
+**Dependency Management Guide**
+- Installation options (uv, pip, make)
+- Dependency categories and versions
+- Troubleshooting and maintenance
+- Best practices for development
 
 ## 🚀 Quick Start
 
 ### For Users
 1. **Getting Started**: Read [WEB_INTERFACE.md](WEB_INTERFACE.md) for web interface usage
-2. **Understanding Flows**: Check [DEFAULT_FLOW.md](DEFAULT_FLOW.md) for flow concepts
+2. **Installation**: Check [DEPENDENCIES.md](DEPENDENCIES.md) for setup instructions
 3. **System Overview**: Review [DESIGN.md](DESIGN.md) for architecture understanding
 
 ### For Developers
-1. **Architecture**: Start with [DESIGN.md](DESIGN.md) for system design
-2. **Implementation**: Review [STREAMLIT_IMPLEMENTATION.md](STREAMLIT_IMPLEMENTATION.md) for technical details
-3. **Flow Development**: Study [DEFAULT_FLOW.md](DEFAULT_FLOW.md) for flow patterns
+1. **Setup**: Start with [DEPENDENCIES.md](DEPENDENCIES.md) for development environment
+2. **Architecture**: Review [DESIGN.md](DESIGN.md) for system design
+3. **Web Interface**: Study [WEB_INTERFACE.md](WEB_INTERFACE.md) for interface development
 
 ## 📖 Documentation Categories
 
 ### 🏗️ Architecture & Design
 - **[DESIGN.md](DESIGN.md)**: System architecture, core concepts, and design principles
-- **[STREAMLIT_IMPLEMENTATION.md](STREAMLIT_IMPLEMENTATION.md)**: Web interface technical implementation
 
-### 🔧 Usage & Operations
-- **[WEB_INTERFACE.md](WEB_INTERFACE.md)**: Complete web interface user guide
-- **[DEFAULT_FLOW.md](DEFAULT_FLOW.md)**: Flow implementation and usage patterns
+### 🔧 Setup & Operations
+- **[DEPENDENCIES.md](DEPENDENCIES.md)**: Installation, dependency management, and troubleshooting
+- **[WEB_INTERFACE.md](WEB_INTERFACE.md)**: Web interface usage and development guide
 
 ### 🎯 By Use Case
 
 #### New Users
-- Start with [WEB_INTERFACE.md](WEB_INTERFACE.md) for hands-on experience
+- Start with [DEPENDENCIES.md](DEPENDENCIES.md) for installation
+- Try [WEB_INTERFACE.md](WEB_INTERFACE.md) for hands-on experience
 - Review [DESIGN.md](DESIGN.md) for conceptual understanding
 
 #### Developers
-- Begin with [DESIGN.md](DESIGN.md) for architecture overview
-- Study [STREAMLIT_IMPLEMENTATION.md](STREAMLIT_IMPLEMENTATION.md) for implementation details
-- Reference [DEFAULT_FLOW.md](DEFAULT_FLOW.md) for flow development patterns
+- Begin with [DEPENDENCIES.md](DEPENDENCIES.md) for development setup
+- Study [DESIGN.md](DESIGN.md) for architecture overview
+- Reference [WEB_INTERFACE.md](WEB_INTERFACE.md) for interface development
 
 #### System Administrators
-- Review [WEB_INTERFACE.md](WEB_INTERFACE.md) for deployment guidance
-- Check [STREAMLIT_IMPLEMENTATION.md](STREAMLIT_IMPLEMENTATION.md) for production considerations
+- Review [DEPENDENCIES.md](DEPENDENCIES.md) for deployment requirements
+- Check [WEB_INTERFACE.md](WEB_INTERFACE.md) for web interface deployment
 
 ## 🔗 Related Resources
 
@@ -95,10 +84,9 @@ Welcome to the FivcAdvisor documentation! This directory contains comprehensive 
 - Keep content up-to-date with code changes
 
 ### File Organization
-- **Core concepts**: DESIGN.md
-- **User guides**: WEB_INTERFACE.md
-- **Technical details**: STREAMLIT_IMPLEMENTATION.md
-- **Implementation guides**: DEFAULT_FLOW.md
+- **Architecture**: DESIGN.md
+- **Setup & Dependencies**: DEPENDENCIES.md
+- **User Interface**: WEB_INTERFACE.md
 
 ### Updating Documentation
 1. Keep documentation synchronized with code changes
@@ -120,6 +108,6 @@ Welcome to the FivcAdvisor documentation! This directory contains comprehensive 
 
 ---
 
-**Last Updated**: 2025-09-20  
-**Version**: 0.1.0  
+**Last Updated**: 2025-09-22
+**Version**: 0.1.0
 **Maintainer**: FivcAdvisor Team

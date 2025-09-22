@@ -81,8 +81,9 @@ fivcadvisor web --debug
 ```
 
 The web interface provides:
-- Interactive query input with real-time feedback
-- Flow type selection and configuration
+- Interactive chat-based agent conversation
+- Real-time query processing with streaming responses
+- Graph type selection and configuration
 - Execution history and result visualization
 - Progress monitoring and error handling
 
