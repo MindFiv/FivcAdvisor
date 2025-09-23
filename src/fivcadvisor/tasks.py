@@ -15,6 +15,7 @@ class _Task(Task):
 
 def create_default_task(*args, session_id=None, **kwargs):
     """Create a default task for an agent."""
+    kwargs.setdefault("name", "Generic Task")
     kwargs.setdefault(
         "description",
         """
@@ -30,17 +31,6 @@ def create_default_task(*args, session_id=None, **kwargs):
             expected_output="A helpful, useful, and accurate response to the user query",
             output_pydantic=QueryResponse,
         )
-    # kwargs.setdefault(
-    #     "expected_output",
-    #     """
-    #     A helpful, useful, and accurate response to the user query.
-    #     """,
-    # )
-    # if "agent" not in kwargs:
-    #     from .llms import create_default_llm
-    #     from .agents import create_default_agent
-    #
-    #     kwargs["agent"] = create_default_agent(llm=create_default_llm())
 
     task = _Task(*args, **kwargs)
     task.session_id = session_id
@@ -51,6 +41,7 @@ def create_tooling_task(*args, **kwargs):
     """
     Create a task for retrieving tools.
     """
+    kwargs["name"] = "Tools Retrieving"
     kwargs.setdefault(
         "description",
         """
@@ -77,6 +68,7 @@ def create_tooling_task(*args, **kwargs):
 
 def create_assessing_task(*args, **kwargs):
     """Create an assessing task for an agent."""
+    kwargs["name"] = "Complexity Assessing"
     kwargs.setdefault(
         "description",
         """
@@ -106,6 +98,7 @@ def create_assessing_task(*args, **kwargs):
 
 def create_planning_task(*args, **kwargs):
     """Create a planning task for an agent."""
+    kwargs["name"] = "Task Planning"
     kwargs.setdefault(
         "description",
         """

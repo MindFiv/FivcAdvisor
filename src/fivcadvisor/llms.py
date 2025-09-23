@@ -22,7 +22,7 @@ def create_default_llm(*args, session_id=None, **kwargs) -> LLM:
     from .settings import default_llm_config
 
     kwargs = create_default_kwargs(kwargs, default_llm_config)
-    kwargs["stream"] = True  # always stream
+    kwargs.setdefault("stream", True)
     model_provider = kwargs.pop("provider", "openai")
     model = kwargs.pop("model", "")
     if not model:

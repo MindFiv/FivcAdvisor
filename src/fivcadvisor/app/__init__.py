@@ -22,6 +22,7 @@ from fivcadvisor.tools import (
     register_mcp_tools,
 )
 from fivcadvisor.utils import create_output_dir
+from fivcadvisor.app.components import create_default_chat_box, create_chat_sidebar
 
 __version__ = "0.1.0"
 
@@ -92,34 +93,143 @@ def run_graph_sync(
     return asyncio.run(run_graph_async(graph_type, query, verbose))
 
 
-def format_result(result: Dict[str, Any]) -> str:
-    """Format the result for display in chat."""
+def format_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Format the result for display in chat, returning structured data."""
     if not result["success"]:
-        return f"❌ **Error:** {result['error']}"
+        return {
+            "type": "error",
+            "content": f"❌ **Error:** {result['error']}",
+            "answer": None,
+            "reasoning": None,
+        }
 
     if not result["result"]:
-        return "✅ Query processed successfully, but no result returned."
+        return {
+            "type": "simple",
+            "content": "✅ Query processed successfully, but no result returned.",
+            "answer": None,
+            "reasoning": None,
+        }
 
     # Try to extract the final result nicely
     final_result = result["result"].get("final_result")
     if final_result:
         if isinstance(final_result, dict):
-            if "final_output" in final_result:
-                return f"✅ **Result:**\n\n{final_result['final_output']}"
+            # Check if it has answer and reasoning fields (structured response)
+            if "answer" in final_result and "reasoning" in final_result:
+                return {
+                    "type": "structured",
+                    "content": final_result["answer"],
+                    "answer": final_result["answer"],
+                    "reasoning": final_result["reasoning"],
+                }
+            elif "final_output" in final_result:
+                return {
+                    "type": "simple",
+                    "content": f"✅ **Result:**\n\n{final_result['final_output']}",
+                    "answer": None,
+                    "reasoning": None,
+                }
             else:
-                return f"✅ **Result:**\n\n```json\n{json.dumps(final_result, indent=2)}\n```"
+                # Try to parse as JSON string if it looks like one
+                json_content = json.dumps(final_result, indent=2)
+                parsed_data = _try_parse_agent_response(json_content)
+                if parsed_data:
+                    return {
+                        "type": "structured",
+                        "content": parsed_data["answer"],
+                        "answer": parsed_data["answer"],
+                        "reasoning": parsed_data["reasoning"],
+                    }
+                else:
+                    return {
+                        "type": "simple",
+                        "content": f"✅ **Result:**\n\n```json\n{json_content}\n```",
+                        "answer": None,
+                        "reasoning": None,
+                    }
         else:
-            return f"✅ **Result:**\n\n{final_result}"
+            # Try to parse the string result as JSON
+            parsed_data = _try_parse_agent_response(str(final_result))
+            if parsed_data:
+                return {
+                    "type": "structured",
+                    "content": parsed_data["answer"],
+                    "answer": parsed_data["answer"],
+                    "reasoning": parsed_data["reasoning"],
+                }
+            else:
+                return {
+                    "type": "simple",
+                    "content": f"✅ **Result:**\n\n{final_result}",
+                    "answer": None,
+                    "reasoning": None,
+                }
     else:
-        return (
-            f"✅ **Result:**\n\n```json\n{json.dumps(result['result'], indent=2)}\n```"
-        )
+        # Try to parse the entire result as JSON
+        json_content = json.dumps(result["result"], indent=2)
+        parsed_data = _try_parse_agent_response(json_content)
+        if parsed_data:
+            return {
+                "type": "structured",
+                "content": parsed_data["answer"],
+                "answer": parsed_data["answer"],
+                "reasoning": parsed_data["reasoning"],
+            }
+        else:
+            return {
+                "type": "simple",
+                "content": f"✅ **Result:**\n\n```json\n{json_content}\n```",
+                "answer": None,
+                "reasoning": None,
+            }
 
 
-def process_message(message: str, graph_type: str, verbose: bool) -> str:
-    """Process a user message and return the response."""
+def _try_parse_agent_response(content: str) -> Dict[str, str]:
+    """
+    Try to parse agent response as JSON and extract answer/reasoning.
+
+    Returns:
+        Dict with 'answer' and 'reasoning' keys if successful, None otherwise.
+    """
+    try:
+        # First try to parse as JSON directly
+        if isinstance(content, str):
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError:
+                # If direct parsing fails, try to find JSON-like structure in the string
+                import re
+
+                json_match = re.search(r"\{.*\}", content, re.DOTALL)
+                if json_match:
+                    data = json.loads(json_match.group())
+                else:
+                    return None
+        else:
+            data = content
+
+        # Check if it has the expected structure
+        if isinstance(data, dict) and "answer" in data and "reasoning" in data:
+            return {
+                "answer": str(data["answer"]).strip(),
+                "reasoning": str(data["reasoning"]).strip(),
+            }
+
+        return None
+    except (json.JSONDecodeError, KeyError, TypeError, AttributeError):
+        return None
+
+
+def process_message(message: str, graph_type: str, verbose: bool) -> Dict[str, Any]:
+    """Process a user message and return the structured response."""
     if not message.strip():
-        return "Please enter a message."
+        return {
+            "type": "error",
+            "content": "Please enter a message.",
+            "answer": None,
+            "reasoning": None,
+        }
 
     # Process the query
     result = run_graph_sync(graph_type, message.strip(), verbose)
@@ -145,8 +255,6 @@ def get_example_queries() -> List[str]:
 
 def initialize_session_state():
     """Initialize Streamlit session state variables."""
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
     if "graph_type" not in st.session_state:
         st.session_state.graph_type = "general"
     if "verbose" not in st.session_state:
@@ -166,6 +274,13 @@ def create_interface():
     # Initialize session state
     initialize_session_state()
 
+    # Create chat box and sidebar
+    chat_box = create_default_chat_box(
+        process_message_callback=process_message,
+        get_example_queries_callback=get_example_queries,
+    )
+    sidebar = create_chat_sidebar()
+
     # Header
     st.title("🤖 FivcAdvisor")
     st.markdown(
@@ -173,96 +288,27 @@ def create_interface():
     )
     st.markdown("---")
 
-    # Sidebar configuration
-    with st.sidebar:
-        st.header("⚙️ Configuration")
+    # Render sidebar using sidebar component
+    available_graphs = get_available_graphs()
+    config = sidebar.render_for_chat_box(
+        available_graphs=available_graphs,
+        current_graph_type=st.session_state.graph_type,
+        current_verbose=st.session_state.verbose,
+        chat_box=chat_box,
+        show_examples=True,
+        max_examples=4,
+    )
 
-        available_graphs = get_available_graphs()
+    # Update session state with sidebar configuration
+    st.session_state.graph_type = config["graph_type"]
+    st.session_state.verbose = config["verbose"]
 
-        # Graph type selection
-        graph_options = [(f"{k.title()} - {v}", k) for k, v in available_graphs.items()]
-        graph_labels = [option[0] for option in graph_options]
-        graph_values = [option[1] for option in graph_options]
-
-        selected_index = 0
-        if st.session_state.graph_type in graph_values:
-            selected_index = graph_values.index(st.session_state.graph_type)
-
-        selected_label = st.selectbox(
-            "Graph Type",
-            graph_labels,
-            index=selected_index,
-            help="Select the processing strategy",
-        )
-        st.session_state.graph_type = graph_values[graph_labels.index(selected_label)]
-
-        # Verbose mode
-        st.session_state.verbose = st.checkbox(
-            "Verbose Mode",
-            value=st.session_state.verbose,
-            help="Show detailed processing information",
-        )
-
-        st.markdown("---")
-
-        # Graph information
-        st.subheader("📊 Graph Information")
-        st.info(
-            f"**{st.session_state.graph_type.title()} Graph**\n\n{available_graphs[st.session_state.graph_type]}"
-        )
-
-        st.markdown("---")
-
-        # Clear chat button
-        if st.button("🗑️ Clear Chat", use_container_width=True):
-            st.session_state.messages = []
-            st.rerun()
-
-        # Example queries
-        st.subheader("💡 Example Queries")
-        example_queries = get_example_queries()
-
-        for i, query in enumerate(example_queries[:4]):  # Show first 4 examples
-            if st.button(
-                f"📝 {query[:30]}...", key=f"example_{i}", use_container_width=True
-            ):
-                st.session_state.messages.append({"role": "user", "content": query})
-                with st.spinner("Processing..."):
-                    response = process_message(
-                        query, st.session_state.graph_type, st.session_state.verbose
-                    )
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": response}
-                )
-                st.rerun()
-
-    # Main chat interface
-    st.subheader("💬 Chat with FivcAdvisor")
-
-    # Display chat messages
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # Chat input
-    if prompt := st.chat_input("Ask me anything..."):
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-
-        # Display user message
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        # Generate and display assistant response
-        with st.chat_message("assistant"):
-            with st.spinner("Processing your request..."):
-                response = process_message(
-                    prompt, st.session_state.graph_type, st.session_state.verbose
-                )
-            st.markdown(response)
-
-        # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
+    # Main chat interface using chat box
+    chat_box.render_full_chat_interface(
+        st.session_state.graph_type,
+        st.session_state.verbose,
+        title="💬 Chat with FivcAdvisor",
+    )
 
 
 def main():

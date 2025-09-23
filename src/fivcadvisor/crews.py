@@ -272,6 +272,7 @@ def create_executing_crew(
     for task_plan in plan.tasks:
         tasks.append(
             create_default_task(
+                name=task_plan.name,
                 description=task_plan.description,
                 expected_output=task_plan.expected_output,
                 human_input=task_plan.requires_human,

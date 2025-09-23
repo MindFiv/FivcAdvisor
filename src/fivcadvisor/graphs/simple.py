@@ -9,7 +9,10 @@ from fivcadvisor.crews import (
     create_assessing_crew,
     create_simple_crew,
 )
-from fivcadvisor.models import TaskAssessment
+from fivcadvisor.models import (
+    QueryResponse,
+    TaskAssessment,
+)
 from fivcadvisor.graphs.utils import (
     Graph,
     GraphState,
@@ -59,6 +62,15 @@ def create_simple_graph(*args, **kwargs):
             )
             assessment = crew.kickoff(inputs={"user_query": state.user_query})
             state.assessment = TaskAssessment(**assessment.to_dict())
+            if (
+                not state.assessment.require_director
+                and not state.assessment.required_tools
+                and state.answer
+            ):
+                state.final_result = QueryResponse(
+                    answer=state.assessment.answer,
+                    reasoning=state.assessment.reasoning,
+                )
         except Exception as e:
             state.error = str(e)
 
@@ -66,6 +78,10 @@ def create_simple_graph(*args, **kwargs):
 
     def run_if_simple(state: SimpleGraphState) -> SimpleGraphState:
         """Run simple crew if task is simple."""
+        if state.final_result:
+            # Already have a final result, no need to run
+            return state
+
         try:
             assessment = state.assessment
 

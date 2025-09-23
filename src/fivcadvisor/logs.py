@@ -1,12 +1,11 @@
 __all__ = [
     "create_default_logger",
     "create_agent_logger",
-    "register_default_events",
     "agent_logger",
     "default_logger",
 ]
 
-from fivcadvisor import utils, settings
+from fivcadvisor import utils, settings, events
 
 
 def create_default_logger(**kwargs):
@@ -106,38 +105,12 @@ def create_agent_logger(**kwargs):
     return create_default_logger(**kwargs)
 
 
-def register_default_events(logger=None, **kwargs):
-    """Create a listener that logs events."""
-    assert logger is not None
-
-    import json
-
-    from crewai.utilities.events import (
-        crewai_event_bus,
-        base_events,
-        llm_events,
-    )
-
-    @crewai_event_bus.on(base_events.BaseEvent)
-    def _on_event(source, event):
-        if isinstance(event, llm_events.LLMEventBase):
-            return  # skip llm events
-
-        session_id = getattr(source, "session_id", "")
-        if not session_id:
-            source = getattr(source, "agent", None)
-            session_id = getattr(source, "session_id", None)
-
-        info = event.to_json()
-        info["session_id"] = session_id
-        logger.info(json.dumps(info))
-
-
 def _load():
     logger = create_agent_logger()
-    register_default_events(logger=logger)
+    events.register_flow_events(lambda e: logger.info(e.model_dump_json()))
+
     return logger
 
 
-default_logger = utils.create_lazy_value(_load)
-agent_logger = utils.create_lazy_value(create_agent_logger)
+default_logger = utils.create_lazy_value(create_default_logger)
+agent_logger = utils.create_lazy_value(_load)

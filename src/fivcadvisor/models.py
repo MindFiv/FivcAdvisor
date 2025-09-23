@@ -21,6 +21,10 @@ class TaskAssessment(BaseModel):
         description="List of skills/tools needed "
         "if we are about to use a default agent"
     )
+    answer: str = Field(
+        description="Answer to the user query if task is simple "
+        "and no tools are required"
+    )
     reasoning: str = Field(description="Explanation of the assessment")
 
 
@@ -44,6 +48,7 @@ class CrewPlan(BaseModel):
     class Task(BaseModel):
         """Description for a planning task."""
 
+        name: str = Field(description="Name of the task")
         description: str = Field(description="Description of the task")
         expected_output: str = Field(description="Expected output of the task")
         tools: List[str] = Field(

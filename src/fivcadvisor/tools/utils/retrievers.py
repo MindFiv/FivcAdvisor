@@ -13,7 +13,7 @@ class ToolsRetriever(object):
         from fivcadvisor import embeddings
 
         self.app = embeddings.create_default_app(*args, **kwargs)
-        self.app.reset()
+        # self.app.reset()
 
     def cleanup(self):
         self.max_num = 10  # top k

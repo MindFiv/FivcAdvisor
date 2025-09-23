@@ -10,6 +10,7 @@ import asyncio
 from uuid import uuid4
 
 import dotenv
+from fivcadvisor import logs
 from fivcadvisor.graphs import create_general_graph
 from fivcadvisor.tools import (
     create_retriever,
@@ -27,6 +28,7 @@ async def main():
     print("=" * 50)
 
     # Create tools retriever and register tools
+    assert logs.agent_logger
     tools_retriever = create_retriever()
     
     with create_output_dir():
@@ -35,7 +37,7 @@ async def main():
         
         # Create general graph
         graph = create_general_graph()
-        graph_run = create_general_graph(
+        graph_run = graph(
             tools_retriever=tools_retriever,
             verbose=True,
             session_id=str(uuid4()),

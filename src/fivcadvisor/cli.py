@@ -67,8 +67,8 @@ def run(
             console.print("[red]❌ Query cannot be empty[/red]")
             raise typer.Exit(1)
 
-    logs.register_default_events(logger=logs.agent_logger)  # build logs
-    graphs.register_default_graphs(graphs_retriever=graphs.default_retriever)
+    assert logs.agent_logger
+    assert graphs.default_retriever
 
     graph = graphs.default_retriever.get(graph_type)
     if not graph:
@@ -115,8 +115,8 @@ def plot(
 
     console.print("[blue]Generating graph visualization...[/blue]")
 
-    logs.register_default_events(logger=logs.agent_logger)  # build logs
-    graphs.register_default_graphs(graphs_retriever=graphs.default_retriever)
+    assert logs.agent_logger
+    assert graphs.default_retriever
 
     graph = graphs.default_retriever.get(graph_type)
     if not graph:
