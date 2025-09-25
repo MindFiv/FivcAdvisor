@@ -8,9 +8,12 @@ from langgraph.graph import StateGraph, START, END
 from fivcadvisor.crews import (
     create_planning_crew,
     create_executing_crew,
-    create_tooling_crew,
+    # create_tooling_crew,
 )
-from fivcadvisor.models import CrewPlan
+from fivcadvisor.models import (
+    TaskPlan,
+    # ToolRequirement,
+)
 from fivcadvisor.graphs.utils import (
     Graph,
     GraphState,
@@ -20,7 +23,7 @@ from fivcadvisor.graphs.utils import (
 class ComplexGraphState(GraphState):
     """State for ComplexGraph."""
 
-    plan: Optional[CrewPlan] = None
+    plan: Optional[TaskPlan] = None
 
 
 def create_complex_graph(*args, **kwargs):
@@ -44,8 +47,8 @@ def create_complex_graph(*args, **kwargs):
             state.error = "tools_retriever cannot be empty"
             raise RuntimeError(state.error)
 
-        if not state.session_id:
-            state.error = "session_id cannot be empty"
+        if not state.run_id:
+            state.error = "run_id cannot be empty"
             raise RuntimeError(state.error)
 
         return state
@@ -55,11 +58,11 @@ def create_complex_graph(*args, **kwargs):
         try:
             crew = create_planning_crew(
                 tools_retriever=state.tools_retriever,
-                session_id=state.session_id,
+                run_id=state.run_id,
                 verbose=state.verbose,
             )
             plan = crew.kickoff(inputs={"user_query": state.user_query})
-            state.plan = CrewPlan(**plan.to_dict())
+            state.plan = TaskPlan(**plan.to_dict())
         except Exception as e:
             state.error = f"Planning failed: {str(e)}"
 
@@ -73,26 +76,27 @@ def create_complex_graph(*args, **kwargs):
                 raise RuntimeError("plan cannot be empty")
 
             # Ensure tools for each agent
-            agent_tool_retriever = create_tooling_crew(
-                tools_retriever=state.tools_retriever,
-                session_id=state.session_id,
-                verbose=state.verbose,
-            )
-            for agent in plan.agents:
-                agent_tool_result = agent_tool_retriever.kickoff(
-                    inputs={"user_query": agent.goal}
-                )
-                agent.tools = agent_tool_result.pydantic.tools
+            # crew = create_tooling_crew(
+            #     tools_retriever=state.tools_retriever,
+            #     run_id=state.run_id,
+            #     verbose=state.verbose,
+            # )
+            # for task in plan.tasks:
+            #     crew_result = crew.kickoff(
+            #         inputs={"user_query": task.goal}
+            #     )
+            #     tool_requirement = ToolRequirement(
+            #         **crew_result.to_dict())
+            #     task.tools = tool_requirement.tools
 
             crew = create_executing_crew(
                 tools_retriever=state.tools_retriever,
                 plan=plan,
-                session_id=state.session_id,
+                run_id=state.run_id,
                 verbose=state.verbose,
             )
             crew_result = crew.kickoff(inputs={"user_query": state.user_query})
-            crew_result = crew_result.to_dict()
-            state.final_result = crew_result
+            state.final_result = str(crew_result)
         except Exception as e:
             state.error = f"Execution failed: {str(e)}"
 

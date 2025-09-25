@@ -13,10 +13,10 @@ from crewai import Agent
 
 
 class _Agent(Agent):
-    session_id: Optional[str] = None
+    run_id: Optional[str] = None
 
 
-def create_default_agent(*args, session_id=None, **kwargs):
+def create_default_agent(*args, run_id=None, **kwargs):
     """Create a standard ReAct agent for task execution.
 
     Worker agents handle routine operational tasks and execute predefined
@@ -43,7 +43,7 @@ def create_default_agent(*args, session_id=None, **kwargs):
         """,
     )
     agent = _Agent(*args, **kwargs)
-    agent.session_id = session_id
+    agent.run_id = run_id
     return agent
 
 

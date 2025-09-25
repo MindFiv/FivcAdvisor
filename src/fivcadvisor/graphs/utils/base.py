@@ -14,10 +14,10 @@ class GraphState(BaseModel):
     """Base state for all graphs."""
 
     tools_retriever: Optional[Any]
-    session_id: Optional[str]
+    run_id: Optional[str]
     verbose: bool = True
     user_query: str
-    final_result: Any = None
+    final_result: Optional[str] = ""
     error: Optional[str] = None
 
 

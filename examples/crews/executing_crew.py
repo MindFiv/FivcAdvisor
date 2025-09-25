@@ -15,7 +15,7 @@ from fivcadvisor.tools import (
     register_mcp_tools,
 )
 from fivcadvisor.crews import create_executing_crew
-from fivcadvisor.models import CrewPlan
+from fivcadvisor.models import TaskPlan
 
 dotenv.load_dotenv()
 
@@ -28,29 +28,23 @@ async def main():
     print("\n" + "=" * 50)
 
     # Create a sample planning result structure
-    sample_plan = CrewPlan(
-        agents=[
-            CrewPlan.Agent(
-                role="Research Analyst",
-                goal="Conduct thorough research on machine learning topics and provide comprehensive analysis",
-                backstory="An experienced data scientist with expertise in machine learning research and analysis",
-                tools=["Search the internet with Serper"],
-            ),
-            CrewPlan.Agent(
-                role="Content Writer",
-                goal="Create clear and engaging content based on research findings",
-                backstory="A skilled technical writer with experience in making complex topics accessible",
-                tools=[],
-            )
-        ],
+    sample_plan = TaskPlan(
         tasks=[
-            CrewPlan.Task(
+            TaskPlan.Task(
+                agent_role="Research Analyst",
+                agent_goal="Conduct thorough research on machine learning topics and provide comprehensive analysis",
+                agent_backstory="An experienced data scientist with expertise in machine learning research and analysis",
+                name="Research Machine Learning Concepts",
                 description="Research the key concepts in machine learning and their applications",
                 expected_output="A comprehensive list of machine learning concepts with detailed explanations",
                 tools=[],
                 requires_human=False,
             ),
-            CrewPlan.Task(
+            TaskPlan.Task(
+                agent_role="Content Writer",
+                agent_goal="Create clear and engaging content based on research findings",
+                agent_backstory="A skilled technical writer with experience in making complex topics accessible",
+                name="Write Summary Article",
                 description="Write a clear and engaging summary of machine learning concepts for beginners",
                 expected_output="A well-structured article explaining machine learning concepts in accessible language",
                 tools=[],
@@ -61,9 +55,6 @@ async def main():
 
     print("Creating crew from plan...")
     print("\nPlan structure:")
-    print(f"- Agents: {len(sample_plan.agents)}")
-    for agent in sample_plan.agents:
-        print(f"  * {agent.role}")
     print(f"- Tasks: {len(sample_plan.tasks)}")
     for task in sample_plan.tasks:
         print(f"  * {task.description[:50]}...")
@@ -84,7 +75,7 @@ async def main():
                 'Write an educative article on machine learning, '
                 'aimed at beginners. And even primary students can understand.'
         })
-        print(crew_result.to_dict())
+        print(str(crew_result))
 
 
 if __name__ == '__main__':

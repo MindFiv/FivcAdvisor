@@ -2,13 +2,6 @@ from typing import List
 from pydantic import BaseModel, Field
 
 
-class QueryResponse(BaseModel):
-    """Description for a query response."""
-
-    answer: str = Field(description="Response to the user query")
-    reasoning: str = Field(description="Reasoning behind the answer")
-
-
 class TaskAssessment(BaseModel):
     """Description for an assessment result for a task."""
 
@@ -34,20 +27,15 @@ class ToolRequirement(BaseModel):
     tools: List[str] = Field(description="List of tools needed for the task")
 
 
-class CrewPlan(BaseModel):
+class TaskPlan(BaseModel):
     """Description for a plan for a task."""
-
-    class Agent(BaseModel):
-        """Description for a planning agent."""
-
-        role: str = Field(description="Role of the agent")
-        goal: str = Field(description="Goal of the agent")
-        backstory: str = Field(description="Backstory of the agent")
-        tools: List[str] = Field(description="List of tools needed for the agent")
 
     class Task(BaseModel):
         """Description for a planning task."""
 
+        agent_role: str = Field(description="Role of the agent for this task")
+        agent_goal: str = Field(description="Goal of the agent for this task")
+        agent_backstory: str = Field(description="Backstory of the agent for this task")
         name: str = Field(description="Name of the task")
         description: str = Field(description="Description of the task")
         expected_output: str = Field(description="Expected output of the task")
@@ -58,7 +46,5 @@ class CrewPlan(BaseModel):
         requires_human: bool = Field(
             description="Whether human input is required for this agent"
         )
-        # agent_role: str = Field(description="Role of the agent for this task")
 
-    agents: List[Agent] = Field(description="List of agents needed for the task")
     tasks: List[Task] = Field(description="List of tasks to be executed")

@@ -6,9 +6,9 @@ from pydantic import BaseModel
 class UIEvent(BaseModel):
     """Base UI event."""
 
-    session_id: str
-    task_id: str
-    task_name: str
+    run_id: str
+    task_id: Optional[str]
+    task_name: Optional[str]
 
 
 class UIEventTaskStarted(UIEvent):
@@ -65,10 +65,10 @@ def register_ui_events(callback: Callable, **kwargs):
     def _on_llm_started(source, event):
         callback(
             UIEventTaskProgressStarted(
-                session_id=source.session_id,
-                task_id=event.task_id,
+                run_id=getattr(source, "run_id", ""),
+                task_id=event.task_id and str(event.task_id),
                 task_name=event.task_name,
-                agent_id=event.agent_id,
+                agent_id=event.agent_id and str(event.agent_id),
                 agent_role=event.agent_role,
                 messages=event.messages,
             )
@@ -78,10 +78,10 @@ def register_ui_events(callback: Callable, **kwargs):
     def _on_llm_completed(source, event):
         callback(
             UIEventTaskProgressCompleted(
-                session_id=source.session_id,
-                task_id=event.task_id,
+                run_id=getattr(source, "run_id", ""),
+                task_id=event.task_id and str(event.task_id),
                 task_name=event.task_name,
-                agent_id=event.agent_id,
+                agent_id=event.agent_id and str(event.agent_id),
                 agent_role=event.agent_role,
                 messages=event.messages,
             )
@@ -90,7 +90,7 @@ def register_ui_events(callback: Callable, **kwargs):
     # @crewai_event_bus.on(llm_events.LLMCallFailedEvent)
     # def _on_llm_failed(source, event):
     #     callback(EventTaskProgress(
-    #         session_id=source.session_id,
+    #         run_id=source.run_id,
     #         task_id=event.task_id,
     #         task_name=event.task_name,
     #         agent_id=event.agent_id,
@@ -102,10 +102,10 @@ def register_ui_events(callback: Callable, **kwargs):
     def _on_llm_stream(source, event):
         callback(
             UIEventTaskProgressStream(
-                session_id=source.session_id,
-                task_id=event.task_id,
+                run_id=getattr(source, "run_id", ""),
+                task_id=event.task_id and str(event.task_id),
                 task_name=event.task_name,
-                agent_id=event.agent_id,
+                agent_id=event.agent_id and str(event.agent_id),
                 agent_role=event.agent_role,
                 chunk=event.chunk,
             )
@@ -115,7 +115,7 @@ def register_ui_events(callback: Callable, **kwargs):
     def _on_task_started(source, event):
         callback(
             UIEventTaskStarted(
-                session_id=source.session_id,
+                run_id=getattr(source, "run_id", ""),
                 task_id=str(source.id),
                 task_name=source.name,
             )
@@ -125,7 +125,7 @@ def register_ui_events(callback: Callable, **kwargs):
     def _on_task_completed(source, event):
         callback(
             UIEventTaskCompleted(
-                session_id=source.session_id,
+                run_id=getattr(source, "run_id", ""),
                 task_id=str(source.id),
                 task_name=source.name,
                 output=event.output.raw,
@@ -136,7 +136,7 @@ def register_ui_events(callback: Callable, **kwargs):
     def _on_task_failed(source, event):
         callback(
             UIEventTaskFailed(
-                session_id=source.session_id,
+                run_id=getattr(source, "run_id", ""),
                 task_id=str(source.id),
                 task_name=source.name,
                 error=event.error,

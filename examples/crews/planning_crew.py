@@ -35,7 +35,7 @@ async def main():
                 "并从中提取一些有商业价值的信息，最终通过分析这些高商业价值的信息，"
                 "形成一份商业报告。在其中可以告诉我们有哪些可以抓住的商机。",
         })
-        print(crew_result.to_dict())
+        print(str(crew_result))
 
 
 if __name__ == '__main__':

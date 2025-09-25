@@ -11,29 +11,29 @@ from crewai import Crew
 
 
 class _Crew(Crew):
-    session_id: Optional[str] = None
+    run_id: Optional[str] = None
 
 
-def create_default_crew(*args, session_id=None, **kwargs):
+def create_default_crew(*args, run_id=None, **kwargs):
     """
     Create a default crew for handling a task.
     Args:
         *args: Additional arguments passed to Crew constructor
-        session_id (str): The session id to use for the crew
+        run_id (str): The session id to use for the crew
         **kwargs: Additional keyword arguments to pass to Crew constructor
 
     Returns:
         Crew: A configured crew
     """
     crew = _Crew(*args, **kwargs)
-    crew.session_id = session_id
+    crew.run_id = run_id
     return crew
 
 
 def create_simple_crew(
     tools_retriever=None,
     tools_names=None,
-    session_id=None,
+    run_id=None,
     **kwargs,
 ):
     """
@@ -42,7 +42,7 @@ def create_simple_crew(
     Args:
         tools_retriever (ToolsRetriever): The tool retriever to use for creating the crew
         tools_names (List[str]): The names of the tools to use for the task
-        session_id (str): The session id to use for the crew
+        run_id (str): The session id to use for the crew
         **kwargs: Additional keyword arguments to pass to Crew constructor
 
     Returns:
@@ -66,25 +66,25 @@ def create_simple_crew(
         raise ValueError("Tools not found for simple task")
 
     agent = create_default_agent(
-        llm=create_default_llm(session_id=session_id),
-        session_id=session_id,
+        llm=create_default_llm(run_id=run_id),
+        run_id=run_id,
     )
     task = create_default_task(
         agent=agent,
         tools=task_tools or None,
-        session_id=session_id,
+        run_id=run_id,
     )
     return create_default_crew(
         agents=[agent],
         tasks=[task],
-        session_id=session_id,
+        run_id=run_id,
         **kwargs,
     )
 
 
 def create_tooling_crew(
     tools_retriever=None,
-    session_id=None,
+    run_id=None,
     **kwargs,
 ):
     """
@@ -92,7 +92,7 @@ def create_tooling_crew(
 
     Args:
         tools_retriever (ToolsRetriever): The tool retriever to use for creating the crew
-        session_id (str): The session id to use for the crew
+        run_id (str): The run id to use for the crew
         **kwargs: Additional keyword arguments to pass to Crew constructor
 
     Returns:
@@ -108,26 +108,26 @@ def create_tooling_crew(
 
     agent = create_tooling_agent(
         llm=create_reasoning_llm(
-            session_id=session_id,
+            run_id=run_id,
         ),
-        session_id=session_id,
+        run_id=run_id,
     )
     task = create_tooling_task(
         agent=agent,
         tools=[tools_retriever.to_tool()],
-        session_id=session_id,
+        run_id=run_id,
     )
     return create_default_crew(
         agents=[agent],
         tasks=[task],
-        session_id=session_id,
+        run_id=run_id,
         **kwargs,
     )
 
 
 def create_assessing_crew(
     tools_retriever=None,
-    session_id=None,
+    run_id=None,
     **kwargs,
 ):
     """
@@ -136,7 +136,7 @@ def create_assessing_crew(
 
     Args:
         tools_retriever (ToolsRetriever): The tool retriever to use for creating the crew
-        session_id (str): The session id to use for the crew
+        run_id (str): The run id to use for the crew
         **kwargs: Additional keyword arguments to pass to Crew constructor
 
     Returns:
@@ -151,26 +151,26 @@ def create_assessing_crew(
 
     agent = create_consulting_agent(
         llm=create_reasoning_llm(
-            session_id=session_id,
+            run_id=run_id,
         ),
-        session_id=session_id,
+        run_id=run_id,
     )
     task = create_assessing_task(
         agent=agent,
         tools=[tools_retriever.to_tool()],
-        session_id=session_id,
+        run_id=run_id,
     )
     return create_default_crew(
         agents=[agent],
         tasks=[task],
-        session_id=session_id,
+        run_id=run_id,
         **kwargs,
     )
 
 
 def create_planning_crew(
     tools_retriever=None,
-    session_id=None,
+    run_id=None,
     **kwargs,
 ):
     """
@@ -179,7 +179,7 @@ def create_planning_crew(
 
     Args:
         tools_retriever (ToolsRetriever): The tool retriever to use for creating the crew
-        session_id (str): The session id to use for the crew
+        run_id (str): The run id to use for the crew
         **kwargs: Additional keyword arguments to pass to Crew constructor
 
     Returns:
@@ -198,20 +198,20 @@ def create_planning_crew(
     ]
     tools = [t for t in tools if t is not None]
     agent = create_directing_agent(
-        llm=create_reasoning_llm(session_id=session_id),
-        session_id=session_id,
+        llm=create_reasoning_llm(run_id=run_id),
+        run_id=run_id,
     )
     task = create_planning_task(
         agent=agent,
         tools=tools,
-        session_id=session_id,
+        run_id=run_id,
     )
     return create_default_crew(
         agents=[agent],
         tasks=[task],
         planning=True,
-        planning_llm=create_reasoning_llm(session_id=session_id),
-        session_id=session_id,
+        planning_llm=create_reasoning_llm(run_id=run_id),
+        run_id=run_id,
         **kwargs,
     )
 
@@ -219,7 +219,7 @@ def create_planning_crew(
 def create_executing_crew(
     tools_retriever=None,
     plan=None,
-    session_id=None,
+    run_id=None,
     **kwargs,
 ):
     """
@@ -228,7 +228,7 @@ def create_executing_crew(
     Args:
         plan (PlanOutput): The plan to use for creating the crew
         tools_retriever (ToolsRetriever): The tool retriever to use for creating the crew
-        session_id (str): The session id to use for the crew
+        run_id (str): The run id to use for the crew
         **kwargs: Additional keyword arguments to pass to Crew constructor
 
     Returns:
@@ -237,59 +237,55 @@ def create_executing_crew(
     from crewai import Process
     from .llms import (
         create_default_llm,
-        create_reasoning_llm,
+        # create_reasoning_llm,
         create_chat_llm,
     )
     from .agents import create_default_agent
     from .tasks import create_default_task
-    from .models import CrewPlan
+    from .models import TaskPlan
 
     if not tools_retriever:
         raise ValueError("tools_retriever not provided")
 
-    if not isinstance(plan, CrewPlan):
+    if not isinstance(plan, TaskPlan):
         raise ValueError("plan must be an instance of PlanOutput")
-
-    # Create specialist agents based on the plan
-    agents = []
-    for agent_plan in plan.agents:
-        agent_tools = tools_retriever.get_batch(agent_plan.tools)
-        agent_tools = [t for t in agent_tools if t is not None]
-        agents.append(
-            create_default_agent(
-                role=agent_plan.role,
-                goal=agent_plan.goal,
-                backstory=agent_plan.backstory,
-                tools=agent_tools or None,
-                # allow_delegation=True,
-                llm=create_default_llm(session_id=session_id),
-                session_id=session_id,
-            )
-        )
 
     # Create tasks based on the plan
     tasks = []
-    for task_plan in plan.tasks:
+    tasks_agents = []
+    for task in plan.tasks:
+        task_tools = tools_retriever.get_batch(task.tools)
+        task_tools = [t for t in task_tools if t is not None]
+        task_agent = create_default_agent(
+            role=task.agent_role,
+            goal=task.agent_goal,
+            backstory=task.agent_backstory,
+            llm=create_default_llm(run_id=run_id),
+            run_id=run_id,
+        )
         tasks.append(
             create_default_task(
-                name=task_plan.name,
-                description=task_plan.description,
-                expected_output=task_plan.expected_output,
-                human_input=task_plan.requires_human,
-                session_id=session_id,
+                agent=task_agent,
+                name=task.name,
+                description=task.description,
+                expected_output=task.expected_output,
+                human_input=task.requires_human,
+                run_id=run_id,
+                tools=task_tools or None,
             )
         )
+        tasks_agents.append(task_agent)
 
     # Create and return the crew
     return create_default_crew(
-        manager_llm=create_reasoning_llm(session_id=session_id),
-        chat_llm=create_chat_llm(session_id=session_id),
+        # manager_llm=create_reasoning_llm(run_id=run_id),
+        chat_llm=create_chat_llm(run_id=run_id),
         tasks=tasks,
-        agents=agents,
-        process=Process.hierarchical,
+        agents=tasks_agents,
+        process=Process.sequential,
         # memory=True,
-        planning=True,
-        planning_llm=create_reasoning_llm(session_id=session_id),
-        session_id=session_id,
+        # planning=True,
+        # planning_llm=create_reasoning_llm(run_id=run_id),
+        run_id=run_id,
         **kwargs,
     )

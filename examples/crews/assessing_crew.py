@@ -28,7 +28,7 @@ async def main():
         crew_result = crew.kickoff(inputs={
             'user_query': "What is machine learning?"
         })
-        print(crew_result.to_dict())
+        print(str(crew_result))
 
 
 if __name__ == '__main__':

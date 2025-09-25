@@ -32,7 +32,7 @@ async def main():
         crew_result = await crew.kickoff_async(inputs={
             'user_query': "What time is it now?",
         })
-        print(crew_result.to_dict())
+        print(str(crew_result))
 
 
 if __name__ == '__main__':

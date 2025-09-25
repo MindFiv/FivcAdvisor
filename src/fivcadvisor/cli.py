@@ -87,7 +87,7 @@ def run(
     graph_run = graph(
         tools_retriever=tools.default_retriever,
         verbose=verbose,
-        session_id=str(uuid4()),
+        run_id=str(uuid4()),
     )
 
     with create_output_dir(base=output):
@@ -127,7 +127,7 @@ def plot(
     graph_run = graph(
         tools_retriever=tools.default_retriever,
         verbose=verbose,
-        session_id=str(uuid4()),
+        run_id=str(uuid4()),
     )
 
     with create_output_dir(base=output) as d:

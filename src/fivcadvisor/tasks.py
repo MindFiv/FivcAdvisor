@@ -10,10 +10,10 @@ from crewai import Task
 
 
 class _Task(Task):
-    session_id: Optional[str] = None
+    run_id: Optional[str] = None
 
 
-def create_default_task(*args, session_id=None, **kwargs):
+def create_default_task(*args, run_id=None, **kwargs):
     """Create a default task for an agent."""
     kwargs.setdefault("name", "Generic Task")
     kwargs.setdefault(
@@ -25,15 +25,15 @@ def create_default_task(*args, session_id=None, **kwargs):
         """,
     )
     if "output_pydantic" not in kwargs:
-        from .models import QueryResponse
-
         kwargs.update(
             expected_output="A helpful, useful, and accurate response to the user query",
-            output_pydantic=QueryResponse,
+            output_json=None,
+            output_pydantic=None,
+            # markdown=True,
         )
 
     task = _Task(*args, **kwargs)
-    task.session_id = session_id
+    task.run_id = run_id
     return task
 
 
@@ -115,11 +115,11 @@ def create_planning_task(*args, **kwargs):
     )
 
     if "output_pydantic" not in kwargs:
-        from .models import CrewPlan
+        from .models import TaskPlan
 
         kwargs.update(
             expected_output="A structured plan for executing the task",
-            output_pydantic=CrewPlan,
+            output_pydantic=TaskPlan,
         )
 
     return create_default_task(*args, **kwargs)

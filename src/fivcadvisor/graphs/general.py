@@ -13,8 +13,7 @@ from fivcadvisor.crews import (
 )
 from fivcadvisor.models import (
     TaskAssessment,
-    CrewPlan,
-    QueryResponse,
+    TaskPlan,
 )
 from fivcadvisor.graphs.utils import (
     Graph,
@@ -26,7 +25,7 @@ class GeneralGraphState(GraphState):
     """State for GeneralGraph."""
 
     assessment: Optional[TaskAssessment] = None
-    plan: Optional[CrewPlan] = None
+    plan: Optional[TaskPlan] = None
 
 
 def create_general_graph(*args, **kwargs):
@@ -50,8 +49,8 @@ def create_general_graph(*args, **kwargs):
             state.error = "tools_retriever cannot be empty"
             raise RuntimeError(state.error)
 
-        if not state.session_id:
-            state.error = "session_id cannot be empty"
+        if not state.run_id:
+            state.error = "run_id cannot be empty"
             raise RuntimeError(state.error)
 
         return state
@@ -61,7 +60,7 @@ def create_general_graph(*args, **kwargs):
         try:
             crew = create_assessing_crew(
                 tools_retriever=state.tools_retriever,
-                session_id=state.session_id,
+                run_id=state.run_id,
                 verbose=state.verbose,
             )
             assessment = crew.kickoff(inputs={"user_query": state.user_query})
@@ -71,10 +70,7 @@ def create_general_graph(*args, **kwargs):
                 and not state.assessment.required_tools
                 and state.answer
             ):
-                state.final_result = QueryResponse(
-                    answer=state.assessment.answer,
-                    reasoning=state.assessment.reasoning,
-                )
+                state.final_result = state.assessment.answer
         except Exception as e:
             state.error = f"Assessment failed: {str(e)}"
 
@@ -108,12 +104,11 @@ def create_general_graph(*args, **kwargs):
             crew = create_simple_crew(
                 tools_retriever=state.tools_retriever,
                 tools_names=crew_tools,
-                session_id=state.session_id,
+                run_id=state.run_id,
                 verbose=state.verbose,
             )
             crew_result = crew.kickoff(inputs={"user_query": state.user_query})
-            crew_result = crew_result.to_dict()
-            state.final_result = crew_result
+            state.final_result = str(crew_result)
         except Exception as e:
             state.error = f"Simple execution failed: {str(e)}"
 
@@ -124,11 +119,11 @@ def create_general_graph(*args, **kwargs):
         try:
             crew = create_planning_crew(
                 tools_retriever=state.tools_retriever,
-                session_id=state.session_id,
+                run_id=state.run_id,
                 verbose=state.verbose,
             )
             plan = crew.kickoff(inputs={"user_query": state.user_query})
-            state.plan = CrewPlan(**plan.to_dict())
+            state.plan = TaskPlan(**plan.to_dict())
         except Exception as e:
             state.error = f"Planning failed: {str(e)}"
 
@@ -144,12 +139,11 @@ def create_general_graph(*args, **kwargs):
             crew = create_executing_crew(
                 tools_retriever=state.tools_retriever,
                 plan=plan,
-                session_id=state.session_id,
+                run_id=state.run_id,
                 verbose=state.verbose,
             )
             crew_result = crew.kickoff(inputs={"user_query": state.user_query})
-            crew_result = crew_result.to_dict()
-            state.final_result = crew_result
+            state.final_result = str(crew_result)
         except Exception as e:
             state.error = f"Complex execution failed: {str(e)}"
 

@@ -38,7 +38,7 @@ async def main():
         graph_run = graph(
             tools_retriever=tools_retriever,
             verbose=True,
-            session_id=str(uuid4()),
+            run_id=str(uuid4()),
         )
         
         # Test with a complex query that requires planning

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class FlowEvent(BaseModel):
-    session_id: str
+    run_id: str
 
 
 class FlowEventAgent(FlowEvent):
@@ -47,7 +47,7 @@ class FlowEventCrewStarted(FlowEventCrew):
 class FlowEventCrewCompleted(FlowEventCrew):
     """Crew completed event."""
 
-    output: Optional[Dict[str, Any]] = None
+    output: Optional[str] = None
 
 
 def register_flow_events(callback: Callable, **kwargs):
@@ -64,7 +64,7 @@ def register_flow_events(callback: Callable, **kwargs):
     def _on_agent_started(source, event):
         callback(
             FlowEventAgentStarted(
-                session_id=source.session_id,
+                run_id=source.run_id,
                 agent_id=str(source.id),
                 agent_role=source.role,
                 query=event.task_prompt,
@@ -75,10 +75,10 @@ def register_flow_events(callback: Callable, **kwargs):
     def _on_agent_completed(source, event):
         callback(
             FlowEventAgentCompleted(
-                session_id=source.session_id,
+                run_id=source.run_id,
                 agent_id=str(source.id),
                 agent_role=source.role,
-                output=event.output,
+                output=str(event.output),
             )
         )
 
@@ -86,7 +86,7 @@ def register_flow_events(callback: Callable, **kwargs):
     def _on_task_started(source, event):
         callback(
             FlowEventTaskStarted(
-                session_id=source.session_id,
+                run_id=source.run_id,
                 task_id=str(source.id),
                 task_name=source.name,
             )
@@ -96,10 +96,10 @@ def register_flow_events(callback: Callable, **kwargs):
     def _on_task_completed(source, event):
         callback(
             FlowEventTaskCompleted(
-                session_id=source.session_id,
+                run_id=source.run_id,
                 task_id=str(source.id),
                 task_name=source.name,
-                output=event.output.raw,
+                output=str(event.output),
             )
         )
 
@@ -107,7 +107,7 @@ def register_flow_events(callback: Callable, **kwargs):
     def _on_crew_started(source, event):
         callback(
             FlowEventCrewStarted(
-                session_id=source.session_id,
+                run_id=source.run_id,
                 crew_id=str(source.id),
                 crew_name=source.name,
                 inputs=event.inputs,
@@ -118,9 +118,9 @@ def register_flow_events(callback: Callable, **kwargs):
     def _on_crew_completed(source, event):
         callback(
             FlowEventCrewCompleted(
-                session_id=source.session_id,
+                run_id=source.run_id,
                 crew_id=str(source.id),
                 crew_name=source.name,
-                output=event.output.to_dict(),
+                output=str(event.output),
             )
         )

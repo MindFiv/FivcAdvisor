@@ -89,7 +89,7 @@ class MockFlow:
         self.result = result or {"result": f"Mock {name} flow result"}
         self.should_error = should_error
         self.tools_retriever = None
-        self.session_id = "test-session-123"
+        self.run_id = "test-session-123"
         self.verbose = False
 
     async def kickoff_async(self, inputs: Dict[str, Any]) -> Any:

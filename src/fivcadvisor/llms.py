@@ -10,10 +10,10 @@ from crewai import LLM
 
 
 class _LLM(LLM):
-    session_id: Optional[str] = None
+    run_id: Optional[str] = None
 
 
-def create_default_llm(*args, session_id=None, **kwargs) -> LLM:
+def create_default_llm(*args, run_id=None, **kwargs) -> LLM:
     """
     Factory function to create an LLM instance
     """
@@ -30,7 +30,7 @@ def create_default_llm(*args, session_id=None, **kwargs) -> LLM:
 
     # using openai compatible mode
     llm = _LLM(f"{model_provider}/{model}", *args, **kwargs)
-    llm.session_id = session_id
+    llm.run_id = run_id
     return llm
 
 

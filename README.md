@@ -2,6 +2,24 @@
 
 Pattern-driven flows and tools on top of CrewAI. Use small, reusable patterns to compose effective agent task flows without heavy upfront planning.
 
+## 🚀 Latest: Async Optimization
+
+FivcAdvisor now features **non-blocking async execution** for the Streamlit web interface!
+
+### ✅ Key Improvements
+- **Non-blocking execution** - Interface stays responsive while agents work
+- **Real-time progress** - See live updates of agent status
+- **Cancellation support** - Stop long-running tasks anytime
+- **Professional UX** - Modern, responsive user experience
+
+### 🎯 Quick Demo
+```bash
+# Try the async-optimized demo
+uv run streamlit run demos/demo_async_app.py
+```
+
+📚 **[Full Async Documentation →](docs/async-optimization/README.md)**
+
 ## Quickstart
 
 1. Ensure Python 3.10+
@@ -38,8 +56,11 @@ make dev
   - `graphs/` graph orchestrators using LangGraph
   - `agents/` agent construction helpers
   - `tools/` basic tool wrappers
+  - `app/` Streamlit web interface (async-optimized)
 - `configs/` configs for sample/demo
-- `tests/` minimal smoke tests
+- `tests/` test suites including async optimization tests
+- `demos/` demonstration applications
+- `docs/` comprehensive documentation
 
 ## Usage
 
@@ -81,9 +102,12 @@ fivcadvisor web --debug
 ```
 
 The web interface provides:
-- Interactive chat-based agent conversation
-- Real-time query processing with streaming responses
-- Graph type selection and configuration
+- **Interactive chat-based agent conversation**
+- **Non-blocking async execution** - Interface stays responsive
+- **Real-time progress updates** - See agent status and progress
+- **Cancellation support** - Stop tasks anytime
+- **Graph type selection and configuration**
+- **Professional user experience** - Modern, responsive design
 - Execution history and result visualization
 - Progress monitoring and error handling
 

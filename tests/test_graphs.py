@@ -10,7 +10,7 @@ from fivcadvisor.graphs import (
     create_complex_graph,
     create_retriever,
 )
-from fivcadvisor.models import TaskAssessment, CrewPlan
+from fivcadvisor.models import TaskAssessment, TaskPlan
 
 
 class TestGraphsCreation:
@@ -63,17 +63,13 @@ class TestGraphExecution:
     @pytest.fixture
     def mock_plan(self):
         """Create a mock crew plan."""
-        return CrewPlan(
-            agents=[
-                CrewPlan.Agent(
-                    role="Analyst",
-                    goal="Analyze data",
-                    backstory="Expert analyst",
-                    tools=["calculator"],
-                )
-            ],
+        return TaskPlan(
             tasks=[
-                CrewPlan.Task(
+                TaskPlan.Task(
+                    agent_role="Analyst",
+                    agent_goal="Analyze data",
+                    agent_backstory="Expert analyst",
+                    name="Analyze Data",
                     description="Analyze the data",
                     expected_output="Analysis report",
                     tools=["calculator"],
@@ -85,7 +81,7 @@ class TestGraphExecution:
     def test_simple_graph_validation(self, mock_tools_retriever):
         """Test SimpleGraph input validation."""
         graph = create_simple_graph()
-        graph_run = graph(tools_retriever=mock_tools_retriever, session_id="test")
+        graph_run = graph(tools_retriever=mock_tools_retriever, run_id="test")
 
         # Test empty query - this should work but may fail during execution
         # For now, let's just test that the graph_run is created successfully
@@ -99,7 +95,7 @@ class TestGraphExecution:
     def test_general_graph_validation(self, mock_tools_retriever):
         """Test GeneralGraph input validation."""
         graph = create_general_graph()
-        graph_run = graph(tools_retriever=mock_tools_retriever, session_id="test")
+        graph_run = graph(tools_retriever=mock_tools_retriever, run_id="test")
 
         # Test that we can create a graph run
         assert graph_run is not None
@@ -111,7 +107,7 @@ class TestGraphExecution:
     def test_complex_graph_validation(self, mock_tools_retriever):
         """Test ComplexGraph input validation."""
         graph = create_complex_graph()
-        graph_run = graph(tools_retriever=mock_tools_retriever, session_id="test")
+        graph_run = graph(tools_retriever=mock_tools_retriever, run_id="test")
 
         # Test that we can create a graph run
         assert graph_run is not None

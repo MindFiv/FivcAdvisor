@@ -10,7 +10,6 @@ from fivcadvisor.crews import (
     create_simple_crew,
 )
 from fivcadvisor.models import (
-    QueryResponse,
     TaskAssessment,
 )
 from fivcadvisor.graphs.utils import (
@@ -46,8 +45,8 @@ def create_simple_graph(*args, **kwargs):
             state.error = "tools_retriever cannot be empty"
             raise RuntimeError(state.error)
 
-        if not state.session_id:
-            state.error = "session_id cannot be empty"
+        if not state.run_id:
+            state.error = "run_id cannot be empty"
             raise RuntimeError(state.error)
 
         return state
@@ -57,7 +56,7 @@ def create_simple_graph(*args, **kwargs):
         try:
             crew = create_assessing_crew(
                 tools_retriever=state.tools_retriever,
-                session_id=state.session_id,
+                run_id=state.run_id,
                 verbose=state.verbose,
             )
             assessment = crew.kickoff(inputs={"user_query": state.user_query})
@@ -67,10 +66,7 @@ def create_simple_graph(*args, **kwargs):
                 and not state.assessment.required_tools
                 and state.answer
             ):
-                state.final_result = QueryResponse(
-                    answer=state.assessment.answer,
-                    reasoning=state.assessment.reasoning,
-                )
+                state.final_result = state.assessment.answer
         except Exception as e:
             state.error = str(e)
 
@@ -97,12 +93,11 @@ def create_simple_graph(*args, **kwargs):
             crew = create_simple_crew(
                 tools_retriever=state.tools_retriever,
                 tools_names=crew_tools,
-                session_id=state.session_id,
+                run_id=state.run_id,
                 verbose=state.verbose,
             )
             crew_result = crew.kickoff(inputs={"user_query": state.user_query})
-            crew_result = crew_result.to_dict()
-            state.final_result = crew_result
+            state.final_result = str(crew_result)
         except Exception as e:
             state.error = f"Simple execution failed: {str(e)}"
 
