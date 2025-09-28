@@ -1,125 +1,69 @@
 __all__ = [
-    "create_default_task",
-    "create_tooling_task",
-    "create_assessing_task",
-    "create_planning_task",
+    "run_tooling_task",
+    "run_assessing_task",
+    "run_planning_task",
 ]
 
 from typing import Optional
-from crewai import Task
+
+from fivcadvisor import schemas
+from fivcadvisor import agents
+from fivcadvisor import tools
 
 
-class _Task(Task):
-    run_id: Optional[str] = None
+async def run_tooling_task(
+    query: str, tools_retriever: Optional[tools.ToolsRetriever] = None, **kwargs
+) -> schemas.TaskRequirement:
+    """Run a tooling task for an agent."""
+    if "tools" not in kwargs and tools_retriever is not None:
+        kwargs["tools"] = [tools_retriever.to_tool()]
 
-
-def create_default_task(*args, run_id=None, **kwargs):
-    """Create a default task for an agent."""
-    kwargs.setdefault("name", "Generic Task")
-    kwargs.setdefault(
-        "description",
-        """
-        Execute the assigned task efficiently using available tools.
-        User Request: {user_query}
-        Make sure you are using the right tools.
-        """,
-    )
-    if "output_pydantic" not in kwargs:
-        kwargs.update(
-            expected_output="A helpful, useful, and accurate response to the user query",
-            output_json=None,
-            output_pydantic=None,
-            # markdown=True,
-        )
-
-    task = _Task(*args, **kwargs)
-    task.run_id = run_id
-    return task
-
-
-def create_tooling_task(*args, **kwargs):
-    """
-    Create a task for retrieving tools.
-    """
-    kwargs["name"] = "Tools Retrieving"
-    kwargs.setdefault(
-        "description",
-        """
-        Retrieve the best tools for a given task.
-        User Request: {user_query}
-        """,
-    )
-    kwargs.setdefault(
-        "expected_output",
-        """
-        A list of the best tools for the given task.
-        """,
-    )
-    if "output_pydantic" not in kwargs:
-        from .models import ToolRequirement
-
-        kwargs.update(
-            expected_output="A list of the best tools for the given task",
-            output_pydantic=ToolRequirement,
-        )
-
-    return create_default_task(*args, **kwargs)
-
-
-def create_assessing_task(*args, **kwargs):
-    """Create an assessing task for an agent."""
-    kwargs["name"] = "Complexity Assessing"
-    kwargs.setdefault(
-        "description",
-        """
-        Analyze the user request and determine the best approach for handling it:
-        
-        User Request: "{user_query}"
-
-        Your assessment should consider:
-        1. Task complexity (simple, moderate, complex)
-        2. Whether a single simple agent can handle this effectively
-        3. What skills/capabilities are needed
-        4. Whether this requires multiple specialized agents working together
-
-        Provide your assessment in the specified format.
-        """,
-    )
-    if "output_pydantic" not in kwargs:
-        from .models import TaskAssessment
-
-        kwargs.update(
-            expected_output="A structured assessment of the task complexity and recommended approach",
-            output_pydantic=TaskAssessment,
-        )
-
-    return create_default_task(*args, **kwargs)
-
-
-def create_planning_task(*args, **kwargs):
-    """Create a planning task for an agent."""
-    kwargs["name"] = "Task Planning"
-    kwargs.setdefault(
-        "description",
-        """
-        Analyze the user request and create a plan for execution:
-        
-        User Request: "{user_query}"
-        
-        Your plan should:
-        1. Break down the task into manageable sub tasks
-        2. Identify what types of specialized agents are needed
-
-        Then return the plan with agents and tasks in the specified format.
-        """,
+    agent = agents.create_tooling_agent(**kwargs)
+    agent_prompt = f"Retrieve the best tools for the following task: \n" f"{query}"
+    return await agent.structured_output_async(
+        schemas.TaskRequirement, prompt=agent_prompt
     )
 
-    if "output_pydantic" not in kwargs:
-        from .models import TaskPlan
 
-        kwargs.update(
-            expected_output="A structured plan for executing the task",
-            output_pydantic=TaskPlan,
-        )
+async def run_assessing_task(
+    query: str,
+    tools_retriever: Optional[tools.ToolsRetriever] = None,
+    **kwargs,
+) -> schemas.TaskAssessment:
+    """Run an assessing task for an agent."""
+    if "tools" not in kwargs and tools_retriever is not None:
+        kwargs["tools"] = [tools_retriever.to_tool()]
 
-    return create_default_task(*args, **kwargs)
+    agent = agents.create_consultant_agent(**kwargs)
+    agent_prompt = (
+        f"Assess the following query and determine "
+        f"the best approach for handling it: \n"
+        f"1. Determine if the query requires a planning agent \n"
+        f"2. If not, determine if the query requires a backstory \n"
+        f"3. If not, determine if the query requires any tools \n"
+        f"4. If it is a simple query, answer the query directly \n"
+        f"Query: {query}"
+    )
+    return await agent.structured_output_async(
+        schemas.TaskAssessment, prompt=agent_prompt
+    )
+
+
+async def run_planning_task(
+    query: str,
+    tools_retriever: Optional[tools.ToolsRetriever] = None,
+    **kwargs,
+) -> schemas.TaskTeam:
+    """Run a planning task for an agent."""
+    if "tools" not in kwargs and tools_retriever is not None:
+        kwargs["tools"] = [tools_retriever.to_tool()]
+
+    agent = agents.create_planning_agent(**kwargs)
+    agent_prompt = (
+        f"Analyze the flowing query and create a team for execution: \n"
+        f"1. Identify what types of specialized agents are needed \n"
+        f"2. Provide a backstory as system prompt for each agent \n"
+        f"3. Identify the tools each agent needs \n"
+        f"Query: {query} \n"
+    )
+    return await agent.structured_output_async(schemas.TaskTeam, prompt=agent_prompt)

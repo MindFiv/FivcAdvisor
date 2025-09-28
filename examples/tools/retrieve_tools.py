@@ -1,29 +1,25 @@
 import asyncio
-import sys
-import os
-
-# Add the src directory to the path so we can import fivcadvisor
-sys.path.insert(
-    0,
-    os.path.join(os.path.dirname(__file__), '..', 'src'))
+import dotenv
 
 from fivcadvisor.utils import create_output_dir
 from fivcadvisor.tools import (
-    create_retriever,
+    ToolsRetriever,
     register_default_tools,
     register_mcp_tools,
 )
 
+dotenv.load_dotenv()
+
 
 async def main():
     """
-    Run the assessment crew example
+    Run the tool retriever example.
     """
 
     print("FivcAdvisor - Tool Retriever Example")
     print("\n" + "=" * 50)
 
-    retriever = create_retriever()
+    retriever = ToolsRetriever()
 
     # Create the retriever
     with create_output_dir():

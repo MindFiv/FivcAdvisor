@@ -1,97 +1,68 @@
-from fivcadvisor import utils
+__all__ = [
+    "register_default_tools",
+    "register_mcp_tools",
+    "default_retriever",
+    "ToolsRetriever",
+]
+
+from typing import Optional
+
+from fivcadvisor.utils import create_lazy_value
+from fivcadvisor.tools.types import ToolsRetriever, ToolsConfig
 
 
-def create_retriever(*args, **kwargs):
-    """Create a tools retriever tool."""
-    from .utils.retrievers import ToolsRetriever
-
-    return ToolsRetriever(*args, **kwargs)
-
-
-def register_default_tools(tools_retriever=None, **kwargs):
+def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **kwargs):
     assert tools_retriever is not None
 
-    from .calculators import basic_calculator
-    from .time import local_time
-    from .webs import web_searcher, web_scraper
+    from strands.tools.registry import ToolRegistry
+    from strands_tools import (
+        calculator,
+        current_time,
+        # think,
+        python_repl,
+        # retrieve,
+        # browser,
+    )
 
-    tools = [
-        basic_calculator,
-        # date_calculator,
-        local_time,
-        web_searcher,
-        web_scraper,
-    ]
+    r = ToolRegistry()
+    tool_names = r.process_tools(
+        [
+            calculator,
+            current_time,
+            # think,
+            python_repl,
+            # retrieve,
+            # browser,
+        ]
+    )
+    tools = [r.registry.get(name) for name in tool_names]
     tools_retriever.add_batch(tools)
 
     return tools
 
 
-def register_mcp_tools(tools_retriever=None, config_file="mcp.json", **kwargs):
+def register_mcp_tools(
+    tools_retriever: Optional[ToolsRetriever] = None,
+    config_file: str = "mcp.json",
+    **kwargs,
+):
     """Create tools for MCP server."""
     assert tools_retriever is not None
 
-    import json
-    import os
+    config = ToolsConfig(config_file=config_file)
+    for c in config.get_clients():
+        tools = c.list_tools_sync()
+        tools_retriever.add_batch(tools)
+        # tools.pagination_token
 
-    from mcp import StdioServerParameters
-    from crewai_tools import MCPServerAdapter
-
-    def _get_config(filename):
-        try:
-            with open(filename, "r") as f:
-                c = json.load(f)
-                assert isinstance(c, dict)
-                c = c.get("mcpServers", {})
-                assert isinstance(c, dict)
-                return c
-        except (
-            FileNotFoundError,
-            ValueError,
-            AssertionError,
-            TypeError,
-        ):
-            return None
-
-    def _get_params(config_dict):
-        def _convert(c):
-            assert isinstance(c, dict)
-            if "command" not in c:
-                return c
-
-            c_cmd = c.get("command") or ""
-            c_args = c.get("args") or []
-            c_env = c.get("env") or {}
-
-            assert isinstance(c_args, list)
-            assert isinstance(c_env, dict)
-
-            c_env.update(**os.environ)
-
-            return StdioServerParameters(command=c_cmd, args=c_args, env=c_env)
-
-        try:
-            return [_convert(v) for _, v in config_dict.items()]
-        except (ValueError, TypeError, AssertionError):
-            return None
-
-    configs = _get_config(config_file)
-    config_params = configs and _get_params(configs)
-    if not config_params:
-        return None
-
-    mcp = MCPServerAdapter(config_params)
-    tools = list(t for t in mcp.tools)
-    tools_retriever.add_batch(tools)
-
-    return mcp
+    return config
 
 
-def _load():
-    retriever = create_retriever()
+def _load_retriever() -> ToolsRetriever:
+    retriever = ToolsRetriever()
     register_default_tools(tools_retriever=retriever)
-    # register_mcp_tools(tools_retriever=retriever)
+    register_mcp_tools(tools_retriever=retriever)
     return retriever
 
 
-default_retriever = utils.create_lazy_value(_load)
+default_retriever = create_lazy_value(_load_retriever)

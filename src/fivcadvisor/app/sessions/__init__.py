@@ -62,16 +62,16 @@ class Session(object):
     """
 
     def __init__(
-            self,
-            graph_retriever=None,
-            tools_retriever=None,
+        self,
+        agents_retriever=None,
+        tools_retriever=None,
     ):
         """Initialize the session manager."""
         if "session_data" not in st.session_state:
             st.session_state.session_data = SessionData()
 
-        assert graph_retriever is not None
-        self.graph_retriever = graph_retriever
+        assert agents_retriever is not None
+        self.agents_retriever = agents_retriever
         assert tools_retriever is not None
         self.tools_retriever = tools_retriever
 
@@ -96,9 +96,10 @@ class Session(object):
     def is_processing(self):
         """Check if there is a query being processed."""
         return (
-                st.session_state.session_data.is_processing
-                or bool(st.session_state.session_data.user_query)
-                or st.session_state.session_data.execution_status == SessionExecutionStatus.RUNNING
+            st.session_state.session_data.is_processing
+            or bool(st.session_state.session_data.user_query)
+            or st.session_state.session_data.execution_status
+            == SessionExecutionStatus.RUNNING
         )
 
     @property
@@ -149,7 +150,9 @@ class Session(object):
 
             # Reset cancel flag and start new execution
             self._cancel_flag.clear()
-            st.session_state.session_data.execution_status = SessionExecutionStatus.RUNNING
+            st.session_state.session_data.execution_status = (
+                SessionExecutionStatus.RUNNING
+            )
             st.session_state.session_data.progress_message = (
                 "Starting agent execution..."
             )
@@ -169,7 +172,7 @@ class Session(object):
             # Update progress
             st.session_state.session_data.progress_message = "Initializing graph..."
 
-            graph = self.graph_retriever.get(st.session_state.session_data.mode)
+            graph = self.agents_retriever.get(st.session_state.session_data.mode)
             if not graph:
                 raise RuntimeError(
                     f"Graph not found for mode: {st.session_state.session_data.mode}"
@@ -209,24 +212,31 @@ class Session(object):
             # Process result
             result_text = result.get("final_result") or ""
             st.session_state.session_data.execution_result = result_text
-            st.session_state.session_data.execution_status = SessionExecutionStatus.COMPLETED
+            st.session_state.session_data.execution_status = (
+                SessionExecutionStatus.COMPLETED
+            )
             st.session_state.session_data.progress_message = (
                 "Execution completed successfully"
             )
 
         except Exception as e:
             st.session_state.session_data.execution_error = str(e)
-            st.session_state.session_data.execution_status = SessionExecutionStatus.ERROR
+            st.session_state.session_data.execution_status = (
+                SessionExecutionStatus.ERROR
+            )
             st.session_state.session_data.progress_message = (
                 f"Execution failed: {str(e)}"
             )
 
     def _check_execution_status(self):
         """Check execution status and handle completion."""
-        if st.session_state.session_data.execution_status == SessionExecutionStatus.COMPLETED:
+        if (
+            st.session_state.session_data.execution_status
+            == SessionExecutionStatus.COMPLETED
+        ):
             # Add result message and reset status
             result = (
-                    st.session_state.session_data.execution_result or "No result available"
+                st.session_state.session_data.execution_result or "No result available"
             )
             self.add_message(SessionMessage(role="assistant", content=result))
             st.session_state.session_data.execution_status = SessionExecutionStatus.IDLE
@@ -234,11 +244,14 @@ class Session(object):
             st.session_state.session_data.execution_result = None
             st.rerun()
 
-        elif st.session_state.session_data.execution_status == SessionExecutionStatus.ERROR:
+        elif (
+            st.session_state.session_data.execution_status
+            == SessionExecutionStatus.ERROR
+        ):
             # Add error message and reset status
             error_msg = (
-                    st.session_state.session_data.execution_error
-                    or "Unknown error occurred"
+                st.session_state.session_data.execution_error
+                or "Unknown error occurred"
             )
             self.add_message(
                 SessionMessage(role="assistant", content=f"❌ Error: {error_msg}")
@@ -249,7 +262,8 @@ class Session(object):
             st.rerun()
 
         elif (
-                st.session_state.session_data.execution_status == SessionExecutionStatus.CANCELLED
+            st.session_state.session_data.execution_status
+            == SessionExecutionStatus.CANCELLED
         ):
             # Add cancellation message and reset status
             self.add_message(
@@ -259,7 +273,10 @@ class Session(object):
             st.session_state.session_data.progress_message = ""
             st.rerun()
 
-        elif st.session_state.session_data.execution_status == SessionExecutionStatus.RUNNING:
+        elif (
+            st.session_state.session_data.execution_status
+            == SessionExecutionStatus.RUNNING
+        ):
             # Schedule another check in a moment
             time.sleep(0.1)
             st.rerun()
@@ -268,10 +285,10 @@ class Session(object):
         """Cancel the current execution."""
         with self._execution_lock:
             if (
-                    self._execution_thread
-                    and self._execution_thread.is_alive()
-                    and st.session_state.session_data.execution_status
-                    == SessionExecutionStatus.RUNNING
+                self._execution_thread
+                and self._execution_thread.is_alive()
+                and st.session_state.session_data.execution_status
+                == SessionExecutionStatus.RUNNING
             ):
                 self._cancel_flag.set()
                 st.session_state.session_data.progress_message = (

@@ -1,50 +1,97 @@
-from typing import List
-from pydantic import BaseModel, Field
+__all__ = [
+    "create_default_model",
+    "create_chat_model",
+    "create_reasoning_model",
+    "create_coding_model",
+]
+
+from strands.models import Model
 
 
-class TaskAssessment(BaseModel):
-    """Description for an assessment result for a task."""
+def _openai_model(*args, **kwargs) -> Model:
+    from strands.models.openai import OpenAIModel
 
-    task_complexity: str = Field(description="Simple, moderate, or complex")
-    require_director: bool = Field(
-        description="Whether we need a director to handle this task "
-        "instead of a default agent"
+    return OpenAIModel(
+        client_args={
+            "api_key": kwargs.get("api_key", ""),
+            "base_url": kwargs.get("base_url", ""),
+        },
+        model_id=kwargs.get("model", ""),
+        params={
+            # "max_tokens": 2000,
+            "temperature": kwargs.get("temperature", 0.5)
+        },
     )
-    required_tools: List[str] = Field(
-        description="List of skills/tools needed "
-        "if we are about to use a default agent"
+
+
+def _ollama_model(*args, **kwargs) -> Model:
+    from strands.models.ollama import OllamaModel
+
+    return OllamaModel(
+        kwargs.get("base_url", "http://localhost:8000"),
+        model_id=kwargs.get("model", ""),
+        temperature=kwargs.get("temperature", 0.5),
     )
-    answer: str = Field(
-        description="Answer to the user query if task is simple "
-        "and no tools are required"
+
+
+def create_default_model(*args, **kwargs) -> Model:
+    """
+    Factory function to create an LLM instance
+    """
+    # Set defaults from env if available
+    from .utils import create_default_kwargs
+    from .settings import default_llm_config
+
+    kwargs = create_default_kwargs(kwargs, default_llm_config)
+
+    model_provider = kwargs.pop("provider")
+    if not model_provider:
+        raise AssertionError("provider not specified")
+
+    # model_id = kwargs.pop("model", "")
+    # if not model_id:
+    #     raise AssertionError("model not specified")
+
+    if model_provider == "openai":
+        return _openai_model(*args, **kwargs)
+    if model_provider == "ollama":
+        return _ollama_model(*args, **kwargs)
+    else:
+        raise AssertionError(f"Unsupported model provider: {model_provider}")
+
+
+def create_chat_model(*args, **kwargs) -> Model:
+    """
+    Factory function to create an LLM instance for chat
+    """
+    # Set defaults from env if available
+    from .utils import create_default_kwargs
+    from .settings import chat_llm_config
+
+    return create_default_model(*args, **create_default_kwargs(kwargs, chat_llm_config))
+
+
+def create_reasoning_model(*args, **kwargs) -> Model:
+    """
+    Factory function to create an LLM instance for task assessment
+    """
+    # Set defaults from env if available
+    from .utils import create_default_kwargs
+    from .settings import reasoning_llm_config
+
+    return create_default_model(
+        *args, **create_default_kwargs(kwargs, reasoning_llm_config)
     )
-    reasoning: str = Field(description="Explanation of the assessment")
 
 
-class ToolRequirement(BaseModel):
-    """Description for a tool result for a task."""
+def create_coding_model(*args, **kwargs) -> Model:
+    """
+    Factory function to create an LLM instance for coding tasks
+    """
+    # Set defaults from env if available
+    from .utils import create_default_kwargs
+    from .settings import coding_llm_config
 
-    tools: List[str] = Field(description="List of tools needed for the task")
-
-
-class TaskPlan(BaseModel):
-    """Description for a plan for a task."""
-
-    class Task(BaseModel):
-        """Description for a planning task."""
-
-        agent_role: str = Field(description="Role of the agent for this task")
-        agent_goal: str = Field(description="Goal of the agent for this task")
-        agent_backstory: str = Field(description="Backstory of the agent for this task")
-        name: str = Field(description="Name of the task")
-        description: str = Field(description="Description of the task")
-        expected_output: str = Field(description="Expected output of the task")
-        tools: List[str] = Field(
-            description="List of tools needed for the task, "
-            "if different from the agent's default tools"
-        )
-        requires_human: bool = Field(
-            description="Whether human input is required for this agent"
-        )
-
-    tasks: List[Task] = Field(description="List of tasks to be executed")
+    return create_default_model(
+        *args, **create_default_kwargs(kwargs, coding_llm_config)
+    )

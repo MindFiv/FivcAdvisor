@@ -2,20 +2,22 @@
 """
 FivcAdvisor CLI
 
-Command-line interface for running FivcAdvisor graphs and tools.
+Command-line interface for running FivcAdvisor agents and tools.
 """
 
-from uuid import uuid4
+import subprocess
+import sys
+import os
 from typing import Optional
 from pathlib import Path
-import typer
 
+import typer
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from fivcadvisor import graphs, tools, logs
+from fivcadvisor import agents, tools
 from fivcadvisor.utils import create_output_dir
 
 load_dotenv()
@@ -34,7 +36,7 @@ console = Console()
 
 @app.command()
 def run(
-    graph_type: str = typer.Argument("general", help="Type of graph to run"),
+    agent_name: str = typer.Argument("Generic", help="Type of agent to run"),
     query: Optional[str] = typer.Option(
         None,
         "--query",
@@ -52,11 +54,11 @@ def run(
     ),
 ):
     """
-    Run a FivcAdvisor graph
+    Run a FivcAdvisor agent
     """
     console.print(
         Panel.fit(
-            Text("FivcAdvisor Graph Runner", style="bold blue"),
+            Text("FivcAdvisor Agent Runner", style="bold blue"),
             subtitle="Intelligent Agent Ecosystem",
         )
     )
@@ -67,75 +69,31 @@ def run(
             console.print("[red]❌ Query cannot be empty[/red]")
             raise typer.Exit(1)
 
-    assert logs.agent_logger
-    assert graphs.default_retriever
-
-    graph = graphs.default_retriever.get(graph_type)
-    if not graph:
-        console.print(f"[red]❌ Unknown graph type: {graph_type}[/red]")
-        console.print("Available graphs: general, simple, complex")
+    agent_creator = agents.default_retriever.get(agent_name)
+    if not agent_creator:
+        console.print(f"[red]❌ Unknown agent type: {agent_name}[/red]")
+        console.print(f"Available agents: {agents.default_retriever.get_all()}")
         raise typer.Exit(1)
 
     if dry_run:
-        console.print(f"[yellow]DRY RUN:[/yellow] Would run {graph_type} graph")
+        console.print(f"[yellow]DRY RUN:[/yellow] Would run {agent_name} agent")
         if query:
             console.print(f"[yellow]Query:[/yellow] {query}")
         if output:
             console.print(f"[yellow]Output:[/yellow] {output}")
         return
 
-    graph_run = graph(
+    agent = agent_creator(
         tools_retriever=tools.default_retriever,
         verbose=verbose,
-        run_id=str(uuid4()),
     )
 
     with create_output_dir(base=output):
         try:
-            graph_run.kickoff(inputs={"user_query": query})
-            console.print("[green]✅ Graph completed successfully![/green]")
+            agent(query)
+            console.print("[green]✅ Agent completed successfully![/green]")
         except Exception as e:
-            console.print(f"[red]❌ Error running graph: {e}[/red]")
-            raise typer.Exit(1)
-
-
-@app.command()
-def plot(
-    graph_type: str = typer.Argument("general", help="Type of graph to visualize"),
-    output: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="Output file path"
-    ),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"
-    ),
-):
-    """
-    Generate a visualization of a graph
-    """
-
-    console.print("[blue]Generating graph visualization...[/blue]")
-
-    assert logs.agent_logger
-    assert graphs.default_retriever
-
-    graph = graphs.default_retriever.get(graph_type)
-    if not graph:
-        console.print(f"[red]❌ Unknown graph type: {graph_type}[/red]")
-        console.print("Available graphs: general, simple, complex")
-        raise typer.Exit(1)
-
-    graph_run = graph(
-        tools_retriever=tools.default_retriever,
-        verbose=verbose,
-        run_id=str(uuid4()),
-    )
-
-    with create_output_dir(base=output) as d:
-        try:
-            graph_run.plot(graph_type)
-            console.print(f"[green]✅ Visualization saved to {d}[/green]")
-        except Exception as e:
-            console.print(f"[red]❌ Error generating visualization: {e}[/red]")
+            console.print(f"[red]❌ Error running agent: {e}[/red]")
             raise typer.Exit(1)
 
 
@@ -178,10 +136,6 @@ def web(
     )
 
     try:
-        import subprocess
-        import sys
-        import os
-
         console.print(f"[blue]Starting web interface at http://{host}:{port}[/blue]")
         console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
 
@@ -239,15 +193,11 @@ def info():
     • Intelligent task assessment with consultant agents
     • Dynamic crew assembly based on task complexity
     • Autonomous tool generation and optimization
-    • Event-driven graph orchestration
-
-    [bold]Available Graphs:[/bold]
-    • default - Intelligent task complexity assessment and execution
+    • Event-driven agent orchestration
 
     [bold]Usage Examples:[/bold]
-    fivcadvisor run general                                         # Interactive mode
-    fivcadvisor run general --query "What is machine learning?"     # Programmatic mode
-    fivcadvisor plot general
+    fivcadvisor run Generic                                         # Interactive mode
+    fivcadvisor run Generic --query "What is machine learning?"     # Programmatic mode
     fivcadvisor web                                                 # Launch web interface
     fivcadvisor clean                                               # Clean temporary files
     fivcadvisor info

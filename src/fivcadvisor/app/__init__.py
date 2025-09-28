@@ -12,9 +12,7 @@ __all__ = [
 import streamlit as st
 import time
 
-# from fivcadvisor import events
-from fivcadvisor import graphs
-from fivcadvisor import tools
+from fivcadvisor import agents, tools
 from fivcadvisor.app.sessions import (
     Session,
     SessionExecutionStatus,
@@ -31,7 +29,7 @@ def create_default_ui():
 
     # Initialize session state
     session = Session(
-        graph_retriever=graphs.default_retriever,
+        agents_retriever=agents.default_retriever,
         tools_retriever=tools.default_retriever,
     )
     # Initialize components

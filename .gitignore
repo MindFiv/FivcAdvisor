@@ -25,6 +25,7 @@ crewai-rag-tool.lock
 
 # Temporary files and generated content
 configs/config.yaml
+repl_state/
 tmp/
 temp/
 .tmp/

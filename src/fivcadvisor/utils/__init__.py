@@ -2,9 +2,14 @@ __all__ = [
     "create_default_kwargs",
     "create_lazy_value",
     "create_output_dir",
+    "LazyValue",
+    "OutputDir",
 ]
 
 from typing import Optional, Callable
+
+from .variables import LazyValue
+from .directories import OutputDir
 
 
 def create_default_kwargs(kwargs: dict, defaults: dict):
@@ -19,8 +24,6 @@ def create_default_kwargs(kwargs: dict, defaults: dict):
 
 def create_lazy_value(getter: Callable):
     """Create a LazyValue proxy from a factory callable."""
-    from .variables import LazyValue
-
     return LazyValue(getter)
 
 
@@ -28,6 +31,4 @@ def create_output_dir(base: Optional[str] = None):
     """
     Create an output directory for FivcAdvisor.
     """
-    from .directories import OutputDir
-
     return OutputDir(base)

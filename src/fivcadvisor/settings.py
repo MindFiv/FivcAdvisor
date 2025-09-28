@@ -20,9 +20,9 @@ def _load_yaml_file(filename):
 
     try:
         with open(filename, "r") as f:
-            config = yaml.safe_load(f)
-            assert isinstance(config, dict)
-            return config
+            conf = yaml.safe_load(f)
+            assert isinstance(conf, dict)
+            return conf
     except (
         AssertionError,
         FileNotFoundError,
@@ -39,9 +39,9 @@ def _load_json_file(filename):
 
     try:
         with open(filename, "r") as f:
-            config = json.load(f)
-            assert isinstance(config, dict)
-            return config
+            conf = json.load(f)
+            assert isinstance(conf, dict)
+            return conf
     except (
         AssertionError,
         FileNotFoundError,
