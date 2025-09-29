@@ -13,6 +13,7 @@ class ToolsRetriever(object):
         self.tools: dict[str, AgentTool] = {}
         db = db or embeddings.default_embedding_db
         self.collection = db.get_collection("tools")
+        self.collection.clear()  # clean up any old data
 
     def __str__(self):
         return f"ToolsRetriever(num_tools={len(self.tools)})"
@@ -21,7 +22,7 @@ class ToolsRetriever(object):
         self.max_num = 10  # top k
         self.min_score = 0.0  # min score
         self.tools.clear()
-        self.collection.delete()
+        self.collection.clear()
 
     def add(self, tool: AgentTool, **kwargs):
         tool_name = tool.tool_name
@@ -37,6 +38,7 @@ class ToolsRetriever(object):
             metadata={"__tool__": tool_name},
         )
         self.tools[tool_name] = tool
+        print(f"Total Docs {self.collection.count()} in ToolsRetriever")
 
     def add_batch(self, tools: List[AgentTool]):
         for tool in tools:
@@ -93,7 +95,7 @@ class ToolsRetriever(object):
     def to_tool(self):
         """Convert the retriever to a tool."""
         return make_tool(
-            name="Tools Retriever",
+            name="tools_retriever",
             description="Use this tool to retrieve the best tools for a given task",
             inputSchema=self._ToolSchema.model_json_schema(),
             context=False,

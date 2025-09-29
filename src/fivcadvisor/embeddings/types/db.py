@@ -16,7 +16,7 @@ class EmbeddingDB(object):
     ):
         assert function is not None
         self.function = function
-        self.output_dir = output_dir or OutputDir()
+        self.output_dir = output_dir or OutputDir().subdir("db")
         self.db = chromadb.PersistentClient(path=str(self.output_dir))
 
     def get_collection(self, name: str) -> "EmbeddingCollection":
@@ -32,7 +32,7 @@ class EmbeddingCollection(object):
     def __init__(self, collection: chromadb.Collection):
         self.collection = collection
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000, chunk_overlap=200
+            chunk_size=2000, chunk_overlap=100
         )
 
     def add(self, text: str, metadata: Optional[Dict[str, Any]] = None):
@@ -50,6 +50,14 @@ class EmbeddingCollection(object):
             "documents"
         ][0]
 
-    def delete(self):
+    def clear(self):
         """Delete the collection."""
-        self.collection.delete()
+        while True:
+            ids2delete = self.collection.peek(limit=100)["ids"]
+            if not ids2delete:
+                break
+            self.collection.delete(ids=ids2delete)
+
+    def count(self):
+        """Count the number of documents in the collection."""
+        return self.collection.count()

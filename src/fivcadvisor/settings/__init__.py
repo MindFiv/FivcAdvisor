@@ -7,71 +7,24 @@ __all__ = [
     "coding_llm_config",
     "agent_logger_config",
     "default_logger_config",
+    "SettingsConfig",
 ]
 
+import os
 from fivcadvisor.utils import (
     create_lazy_value,
     create_default_kwargs,
 )
+from fivcadvisor.settings.types import SettingsConfig
 
 
-def _load_yaml_file(filename):
-    import yaml
-
-    try:
-        with open(filename, "r") as f:
-            conf = yaml.safe_load(f)
-            assert isinstance(conf, dict)
-            return conf
-    except (
-        AssertionError,
-        FileNotFoundError,
-        ValueError,
-        TypeError,
-        yaml.YAMLError,
-    ):
-        print(f"Failed to load config from {filename}")
-        return {}
-
-
-def _load_json_file(filename):
-    import json
-
-    try:
-        with open(filename, "r") as f:
-            conf = json.load(f)
-            assert isinstance(conf, dict)
-            return conf
-    except (
-        AssertionError,
-        FileNotFoundError,
-        ValueError,
-        TypeError,
-        json.JSONDecodeError,
-    ):
-        print(f"Failed to load config from {filename}")
-        return {}
-
-
-def _load_file(filename):
-    ext = filename.split(".")[-1]
-    if ext in ["yml", "yaml"]:
-        return _load_yaml_file(filename)
-    elif ext == "json":
-        return _load_json_file(filename)
-    else:
-        raise ValueError(f"Unsupported config file type: {ext}")
-
-
-def _load():
-    import os
-
-    config_file = os.environ.get("CONFIG_FILE", "config.yaml")
+def _load_config():
+    config_file = os.environ.get("SETTINGS_FILE", "settings.yaml")
     config_file = os.path.abspath(config_file)
-    return _load_file(config_file)
+    return SettingsConfig(config_file)
 
 
-config = create_lazy_value(_load)
+config = create_lazy_value(_load_config)
 
 default_embedder_config = create_lazy_value(
     lambda: create_default_kwargs(

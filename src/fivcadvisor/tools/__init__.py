@@ -5,7 +5,10 @@ __all__ = [
     "ToolsRetriever",
 ]
 
+import os
 from typing import Optional
+
+from strands.types.exceptions import MCPClientInitializationError
 
 from fivcadvisor.utils import create_lazy_value
 from fivcadvisor.tools.types import ToolsRetriever, ToolsConfig
@@ -18,8 +21,9 @@ def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **k
     from strands_tools import (
         calculator,
         current_time,
-        # think,
         python_repl,
+        # swarm,
+        # workflow,
         # retrieve,
         # browser,
     )
@@ -29,8 +33,9 @@ def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **k
         [
             calculator,
             current_time,
-            # think,
             python_repl,
+            # swarm,
+            # workflow,
             # retrieve,
             # browser,
         ]
@@ -43,17 +48,24 @@ def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **k
 
 def register_mcp_tools(
     tools_retriever: Optional[ToolsRetriever] = None,
-    config_file: str = "mcp.json",
     **kwargs,
 ):
     """Create tools for MCP server."""
     assert tools_retriever is not None
 
+    config_file = os.environ.get("MCP_FILE", "mcp.yaml")
+    config_file = os.path.abspath(config_file)
+
     config = ToolsConfig(config_file=config_file)
     for c in config.get_clients():
-        tools = c.list_tools_sync()
+        try:
+            tools = c.list_tools_sync()
+            # tools.pagination_token
+        except MCPClientInitializationError as e:
+            print(f"Error loading tools from {c}: {e}")
+            continue
+
         tools_retriever.add_batch(tools)
-        # tools.pagination_token
 
     return config
 

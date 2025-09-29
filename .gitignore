@@ -24,7 +24,8 @@ venv/
 crewai-rag-tool.lock
 
 # Temporary files and generated content
-configs/config.yaml
+configs/settings.yaml
+configs/mcp.yaml
 repl_state/
 tmp/
 temp/

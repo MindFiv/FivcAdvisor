@@ -1,4 +1,3 @@
-import json
 import os
 
 from mcp import StdioServerParameters, stdio_client
@@ -7,29 +6,63 @@ from strands.tools.mcp import MCPClient
 
 
 class ToolsConfig(object):
-    def __init__(self, config_file: str = "mcp.json"):
-        self.config_file = config_file
-        self.configs = self._load_config() or {}
+    def __init__(self, config_file: str = "mcp.yaml"):
+        self.errors = []
+        self.configs = self._load_file(config_file) or {}
         self.clients = self._parse_config() or []
+        if self.errors:
+            print(
+                f"Errors loading config: {self.errors}," f" in directory: {os.getcwd()}"
+            )
 
     def get_clients(self):
         return self.clients
 
-    def _load_config(self):
+    def _load_yaml_file(self, filename):
+        import yaml
+
         try:
-            with open(self.config_file, "r") as f:
-                c = json.load(f)
-                assert isinstance(c, dict)
-                c = c.get("mcpServers", {})
-                assert isinstance(c, dict)
-                return c
+            with open(filename, "r") as f:
+                conf = yaml.safe_load(f)
+                assert isinstance(conf, dict)
+                return conf
         except (
+            AssertionError,
             FileNotFoundError,
             ValueError,
-            AssertionError,
             TypeError,
-        ):
-            return None
+            yaml.YAMLError,
+        ) as e:
+            self.errors.append(e)
+            return {}
+
+    def _load_json_file(self, filename):
+        import json
+
+        try:
+            with open(filename, "r") as f:
+                conf = json.load(f)
+                assert isinstance(conf, dict)
+                return conf
+        except (
+            AssertionError,
+            FileNotFoundError,
+            ValueError,
+            TypeError,
+            json.JSONDecodeError,
+        ) as e:
+            self.errors.append(e)
+            return {}
+
+    def _load_file(self, filename):
+        ext = filename.split(".")[-1]
+        if ext in ["yml", "yaml"]:
+            return self._load_yaml_file(filename)
+        elif ext == "json":
+            return self._load_json_file(filename)
+        else:
+            self.errors.append(ValueError(f"Unsupported config file type: {ext}"))
+            return {}
 
     def _parse_config(self):
         if not self.configs:
@@ -58,9 +91,11 @@ class ToolsConfig(object):
                 return MCPClient(lambda: sse_client(c["url"]))
 
             else:
-                raise AssertionError("invalid mcp format")
+                self.errors.append(AssertionError("invalid mcp format"))
+                return None
 
         try:
             return [_parse(v) for _, v in self.configs.items()]
-        except (ValueError, TypeError, AssertionError):
+        except (ValueError, TypeError, AssertionError) as e:
+            self.errors.append(e)
             return None
