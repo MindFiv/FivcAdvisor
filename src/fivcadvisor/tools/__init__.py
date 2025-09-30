@@ -5,7 +5,7 @@ __all__ = [
     "ToolsRetriever",
 ]
 
-import atexit
+# import atexit
 import os
 from typing import Optional
 
@@ -22,7 +22,7 @@ def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **k
     from strands_tools import (
         calculator,
         current_time,
-        python_repl,
+        # python_repl,
         # swarm,
         # workflow,
         # retrieve,
@@ -34,7 +34,7 @@ def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **k
         [
             calculator,
             current_time,
-            python_repl,
+            # python_repl,
             # swarm,
             # workflow,
             # retrieve,
@@ -61,10 +61,10 @@ def register_mcp_tools(
     for c in config.get_clients():
         try:
             tools = c.start().list_tools_sync()
-            atexit.register(lambda: c.stop(None, None, None))
+            # atexit.register(lambda: c.stop(None, None, None))
             # tools.pagination_token
         except MCPClientInitializationError as e:
-            c.stop(None, None, None)  # fixme
+            # c.stop(None, None, None)  # fixme
             print(f"Error loading tools from {c}: {e}")
             continue
 

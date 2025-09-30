@@ -42,7 +42,7 @@ async def main():
 
     agent = agents.create_companion_agent(callback_handler=debugger_callback_handler)
     # agent.hooks.add_hook(LoggingHook())
-    result = agent("what is the weather in SF?")
+    result = agent("What time is it now?")
 
     # print(f'Result: {str(result)}')
 

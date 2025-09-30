@@ -10,9 +10,10 @@ __all__ = [
 ]
 
 import asyncio
+from typing import Optional
 
 import streamlit as st
-from strands.types.session import SessionMessage
+from strands.types.content import Message
 
 from fivcadvisor import agents, tools
 from fivcadvisor.app.sessions import ChatSession
@@ -20,24 +21,71 @@ from fivcadvisor.app.tools import ToolCallback, ToolTraceList
 
 
 class StreamCallback(object):
+    loading_indicator = """
+    <style>
+    @keyframes dots {
+        0%, 20% {
+            content: '●';
+        }
+        40% {
+            content: '●●';
+        }
+        60%, 100% {
+            content: '●●●';
+        }
+    }
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 0.7;
+            transform: scale(1.15);
+        }
+    }
+    @keyframes glow {
+        0%, 100% {
+            text-shadow: 0 0 5px #3498db, 0 0 10px #3498db;
+        }
+        50% {
+            text-shadow: 0 0 10px #3498db, 0 0 20px #3498db, 0 0 30px #5dade2;
+        }
+    }
+    .loading-dots {
+        display: inline-block;
+        margin-left: 6px;
+        font-size: 1.0em;
+        font-weight: bold;
+        color: #3498db;
+        animation: pulse 1.5s ease-in-out infinite, glow 2s ease-in-out infinite;
+    }
+    .loading-dots::after {
+        content: '●●●';
+        animation: dots 1.2s infinite;
+    }
+    </style>
+    """
+
     def __init__(self, placeholder):
         self.text = ""
         self.placeholder = placeholder
-        self.first_call = True
+        text_with_loading = "<span class='loading-dots'></span>"
+        self.placeholder.markdown(
+            self.loading_indicator + text_with_loading, unsafe_allow_html=True
+        )
 
-    def __call__(self, data: str):
-        # Clear loading message on first data
-        if self.first_call:
-            self.first_call = False
-            self.placeholder.empty()
-
+    def __call__(self, data: Optional[str]):
         self.text += data
-        if self.text:
-            self.placeholder.markdown(self.text)
+        # Display text with animated loading dots
+        text_with_loading = f"{self.text}<span class='loading-dots'></span>"
+        self.placeholder.markdown(
+            self.loading_indicator + text_with_loading, unsafe_allow_html=True
+        )
 
 
-def render_message(message: SessionMessage, tool_traces: ToolTraceList):
-    msg = message.to_message()
+def render_message(message: Message, tool_traces: Optional[ToolTraceList] = None):
+    msg = message
     msg_role = msg["role"]
     msg_content = msg["content"]
 
@@ -48,12 +96,15 @@ def render_message(message: SessionMessage, tool_traces: ToolTraceList):
                 st.markdown(block["text"])
 
         if "toolUse" in block:
-            tool_traces.begin(block["toolUse"])
+            if tool_traces:
+                tool_traces.begin(block["toolUse"])
 
         if "toolResult" in block:
-            tool_traces.end(block["toolResult"])
+            if tool_traces:
+                tool_traces.end(block["toolResult"])
 
-    tool_traces.render()
+    if tool_traces:
+        tool_traces.render()
 
 
 def create_default_ui():
@@ -80,57 +131,27 @@ def create_default_ui():
 
     tool_traces = ToolTraceList()
     for msg in chat_session.get_history():
-        render_message(msg, tool_traces)
+        render_message(msg.to_message(), tool_traces)
 
     if user_query := st.chat_input("Ask me anything..."):
         with st.chat_message("user"):
             st.write(user_query)
 
         tool_placeholder = st.empty()
+        tool_callback = ToolCallback(tool_placeholder)
 
         with st.chat_message("assistant"):
             stream_placeholder = st.empty()
+            stream_callback = StreamCallback(stream_placeholder)
 
-            # Show animated loading message with CSS animation
-            loading_html = """
-            <style>
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            .loading-container {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                font-weight: bold;
-            }
-            .spinner {
-                display: inline-block;
-                width: 20px;
-                height: 20px;
-                border: 3px solid rgba(0, 0, 0, 0.1);
-                border-top-color: #3498db;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-            }
-            </style>
-            <div class="loading-container">
-                <div class="spinner"></div>
-                <span>🤔🧐🤓</span>
-            </div>
-            """
-            stream_placeholder.markdown(loading_html, unsafe_allow_html=True)
-
-            on_tool = ToolCallback(tool_placeholder)
-            on_stream = StreamCallback(stream_placeholder)
-
-            asyncio.run(
-                chat_session.run(
-                    user_query,
-                    on_stream=on_stream,
-                    on_tool=on_tool,
-                )
+        asyncio.run(
+            chat_session.run(
+                user_query,
+                on_stream=stream_callback,
+                on_tool=tool_callback,
             )
+        )
+        st.rerun()
 
 
 def main():

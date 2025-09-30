@@ -1,15 +1,14 @@
 import uuid
-from typing import Optional, Callable, List
+from typing import Optional, Callable, List, cast
 
 import streamlit as st
 from strands.agent import (
     AgentResult,
-    SummarizingConversationManager,
+    SlidingWindowConversationManager,
 )
-from strands.session import (
-    FileSessionManager,
-)
-from strands.types.session import SessionMessage
+from strands.types.session import Message, SessionMessage
+from strands.types.streaming import StreamEvent
+from strands.session import FileSessionManager
 
 from fivcadvisor import agents, tools, settings, utils
 
@@ -34,9 +33,7 @@ class ChatSession(object):
         self.on_stream: Optional[Callable] = None
         self.agent_is_running = False
         self.agent = agents.create_companion_agent(
-            conversation_manager=SummarizingConversationManager(
-                summarization_agent=agents.create_default_agent()
-            ),
+            conversation_manager=SlidingWindowConversationManager(),
             session_manager=self.session_manager,
             callback_handler=self._on_callback,
         )
@@ -80,14 +77,21 @@ class ChatSession(object):
             self.agent_is_running = False
 
     def _on_callback(self, **kwargs):
-        if "data" in kwargs:
-            if self.on_stream:
-                self.on_stream(kwargs["data"])
+        if "event" in kwargs:
+            event = cast(StreamEvent, kwargs["event"])
+            if "contentBlockDelta" in event:
+                chunk = event["contentBlockDelta"].get("delta", {})
+                chunk = chunk and chunk.get("text")
+                if self.on_stream and isinstance(chunk, str):
+                    self.on_stream(chunk)
 
-        else:
-            if "message" in kwargs:
-                message = kwargs["message"]
-                for block in message["content"]:
-                    if "toolUse" in block or "toolResult" in block:
-                        if self.on_tool:
-                            self.on_tool(block)
+            # elif "messageStop" in event:
+            #     if self.on_stream:
+            #         self.on_stream("")
+
+        elif "message" in kwargs:
+            message = cast(Message, kwargs["message"])
+            for content in message.get("content"):
+                if "toolUse" in content or "toolResult" in content:
+                    if self.on_tool:
+                        self.on_tool(content)
