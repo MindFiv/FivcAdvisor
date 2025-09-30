@@ -57,18 +57,23 @@ pip install -e ".[dev]"
 |---------|---------|---------|
 | typer | >=0.12.3 | CLI framework |
 | rich | >=13.7.1 | Terminal formatting |
-| gradio | >=4.0.0 | Web interface |
-| crewai | >=0.5.0 | AI orchestration |
-| langgraph | >=0.2.0 | Graph workflows |
+| streamlit | >=1.49.1 | Web interface |
+| strands-agents | >=1.9.1 | AI agent framework |
+| strands-agents-tools | >=0.2.8 | Agent tools library |
+| openai | >=1.109.1 | OpenAI API client |
 | pydantic | >=2.7.0 | Data validation |
 | PyYAML | >=6.0.1 | Configuration files |
 | python-dotenv | >=1.0.1 | Environment variables |
 | httpx | >=0.28.1 | HTTP client |
+| chromadb | >=1.1.0 | Vector database |
+| langchain-text-splitters | >=0.3.11 | Text processing |
+| audioread | >=3.0.1 | Audio file support |
 
 ### Development Dependencies
 | Package | Version | Purpose |
 |---------|---------|---------|
 | pytest | >=8.2.0 | Testing framework |
+| pytest-asyncio | >=0.21.0 | Async testing support |
 | ruff | >=0.4.0,<0.6 | Linting and formatting |
 
 ## 🔧 Dependency Management

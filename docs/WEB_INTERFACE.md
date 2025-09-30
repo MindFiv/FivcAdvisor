@@ -1,8 +1,8 @@
 # FivcAdvisor Web Interface
 
-FivcAdvisor includes a modern web interface built with Streamlit, providing an intuitive chat-based way to interact with the intelligent agent ecosystem.
+FivcAdvisor includes a modern, interactive web interface built with **Streamlit**, providing an intuitive chat-based way to interact with the intelligent agent ecosystem.
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Launch the Web Interface
 
@@ -13,7 +13,7 @@ make serve
 # Using CLI directly
 uv run fivcadvisor web
 
-# Development mode
+# Development mode with auto-reload
 make serve-dev
 
 # With custom options
@@ -23,96 +23,201 @@ uv run fivcadvisor web --port 8080 --host 0.0.0.0
 ### Access the Interface
 
 Once started, open your browser and navigate to:
-- Default: http://localhost:8501
+- **Default**: http://localhost:8501
+- **Custom**: http://localhost:[your-port]
 
-## Features
+## ✨ Features
 
 ### 💬 Chat Interface
-- **Conversational AI**: Natural chat-based interaction with the agent
-- **Multi-turn Conversations**: Context-aware dialogue with conversation history
-- **Real-time Processing**: Instant message processing and response generation
-- **Message History**: Full conversation history with clear user/agent distinction
+- **Natural Conversation**: Chat-based interaction with the Companion agent
+- **Multi-turn Dialogue**: Context-aware conversations with full history
+- **Async Execution**: Non-blocking interface that stays responsive
+- **Streaming Responses**: Real-time response generation
+- **Message History**: Persistent conversation history across sessions
 
-### 🎯 Query Processing
-- **Graph Selection**: Choose from available graph types:
-  - **General**: Intelligent task complexity assessment and execution
-  - **Simple**: Simple task execution with basic crew
-  - **Complex**: Complex task execution with advanced planning
-- **Verbose Mode**: Toggle detailed logging for debugging
+### 🛠️ Tool Integration
+- **Automatic Tool Selection**: Agent automatically chooses appropriate tools
+- **Tool Execution Tracking**: Visual feedback for tool usage
+- **Built-in Tools**: Calculator, Python REPL, time utilities
+- **MCP Tools**: Support for external MCP-compatible tools
+- **Tool Results Display**: Clear presentation of tool outputs
 
-### 📊 Results Display
-- **Formatted Responses**: Markdown-formatted responses with rich text support
-- **JSON Visualization**: Clean display of complex data structures
-- **Success/Error Indicators**: Clear visual feedback with emojis and styling
-- **Conversation Flow**: Seamless integration of responses into chat history
+### 📊 User Interface
+- **Clean Design**: Modern, intuitive Streamlit interface
+- **Responsive Layout**: Adapts to different screen sizes
+- **Sidebar Information**: System status and configuration
+- **Message Formatting**: Markdown support for rich text
+- **Error Handling**: Graceful error messages and recovery
 
-### ⚙️ Configuration
-- **Sidebar Controls**: Easy access to settings and configuration
-- **Graph Information**: Dynamic descriptions of selected graph types
-- **Example Queries**: One-click example queries to get started quickly
-- **Clear Chat**: Reset conversation history for fresh interactions
+### 🔄 Session Management
+- **Persistent Sessions**: Conversations saved across page reloads
+- **Session History**: Access to previous conversations
+- **Conversation Summarization**: Automatic context management
+- **Session Configuration**: Customizable session settings
 
-## Example Queries
+## 💡 Example Queries
 
 Try these sample queries to explore FivcAdvisor's capabilities:
 
+### General Questions
 - "What is machine learning?"
+- "Explain quantum computing in simple terms"
+- "What are the benefits of renewable energy?"
+
+### Code Generation
 - "Write a Python function to calculate fibonacci numbers"
-- "Explain the benefits of renewable energy"
-- "Create a simple web scraping script"
-- "What are the latest trends in AI?"
+- "Create a function to sort a list of dictionaries by a key"
+- "Show me how to read a CSV file in Python"
 
-## Interface Layout
+### Calculations
+- "Calculate the compound interest on $10,000 at 5% for 10 years"
+- "What is 15% of 250?"
+- "Convert 100 USD to EUR"
 
-The web interface uses a modern, responsive two-column layout:
+### Information
+- "What time is it?"
+- "Tell me about the history of the internet"
+- "Explain how neural networks work"
 
-- **Left Column (Main)**: Chat interface with conversation history and message input
-- **Right Column (Sidebar)**: Configuration panel, graph information, and example queries
+## 🎨 Interface Layout
 
-## Development
+The web interface features a clean, single-column layout:
+
+- **Header**: Application title and branding
+- **Chat Area**: Scrollable conversation history with user and agent messages
+- **Input Box**: Text input for user queries at the bottom
+- **Sidebar**: System information and configuration (collapsible)
+
+## 🔧 Development
 
 ### Running in Development Mode
 
 ```bash
-# Development mode
+# Development mode with auto-reload
 make serve-dev
 
-# Or directly with Python
-uv run python src/fivcadvisor/app/__init__.py
+# Or directly with Streamlit
+uv run streamlit run src/fivcadvisor/app/__init__.py --server.port 8501
 ```
+
+### Architecture
+
+The web interface consists of:
+
+**Main Components:**
+- `src/fivcadvisor/app/__init__.py` - Main Streamlit application
+- `src/fivcadvisor/app/sessions.py` - Session management
+- `src/fivcadvisor/app/tools.py` - Tool tracking and visualization
+
+**Key Features:**
+- Async agent execution for responsive UI
+- Session persistence with file-based storage
+- Tool usage tracking and display
+- Streaming response support
+- Conversation summarization
 
 ### Customization
 
-The web interface is implemented in `src/fivcadvisor/app/__init__.py` as a single, clean module that:
+You can customize the interface by modifying:
 
-- Integrates directly with FivcAdvisor's backend
-- Provides a modern chat-based user experience
-- Supports all graph types and execution modes
-- Handles errors gracefully with user-friendly messages
-- Uses Gradio's theming system for consistent styling
+1. **Agent Configuration** (`app/sessions.py`):
+   - Change the default agent type
+   - Modify system prompts
+   - Configure conversation management
 
-## Troubleshooting
+2. **UI Styling** (`app/__init__.py`):
+   - Update page configuration
+   - Modify layout and styling
+   - Add custom components
+
+3. **Tool Display** (`app/tools.py`):
+   - Customize tool visualization
+   - Add tool-specific formatting
+   - Enhance tool result display
+
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-1. **Port already in use**: Change port with `uv run fivcadvisor web --port 7861`
-2. **Backend not available**: Ensure dependencies are installed with `uv sync`
-3. **Slow startup**: First run may be slower due to model initialization
-4. **Chat not responding**: Check console for error messages and ensure API keys are configured
+#### Port Already in Use
+```bash
+# Change to a different port
+uv run fivcadvisor web --port 8080
+```
+
+#### Dependencies Not Installed
+```bash
+# Install all dependencies
+uv sync
+
+# Or with make
+make install
+```
+
+#### API Keys Not Configured
+```bash
+# Copy example environment file
+cp .env.example .env
+
+# Edit .env and add your API keys
+# OPENAI_API_KEY=your_key_here
+```
+
+#### Slow Startup
+- First run may be slower due to:
+  - Model initialization
+  - Tool loading
+  - MCP server connections
+- Subsequent runs will be faster
+
+#### Chat Not Responding
+1. Check terminal output for error messages
+2. Verify API keys are configured correctly
+3. Ensure LLM provider is accessible
+4. Check network connectivity
+
+#### Session Issues
+```bash
+# Clear session data
+rm -rf .fivcadvisor/sessions/*
+
+# Or clean all temporary files
+make clean
+```
 
 ### Getting Help
 
-- Check the terminal output for detailed error messages
-- Use verbose mode for debugging
-- Refer to the main README.md for general troubleshooting
+- **Terminal Output**: Check for detailed error messages
+- **Logs**: Review session logs in `.fivcadvisor/sessions/`
+- **Documentation**: Refer to [README.md](../README.md) and [DESIGN.md](DESIGN.md)
+- **Issues**: Report bugs on the project repository
 
-## Integration
+## 🔗 Integration
 
 The web interface integrates seamlessly with:
 
-- **CLI Commands**: Launched via `fivcadvisor web`
-- **Make Targets**: `make serve` and `make serve-dev`
-- **Backend Graphs**: Direct integration with all graph types
-- **Configuration**: Respects environment variables and settings
+### CLI Integration
+```bash
+# Launch from CLI
+fivcadvisor web
+
+# Or with Make
+make serve
+```
+
+### Agent System
+- Uses the same agent system as CLI
+- Shares tool registry
+- Consistent behavior across interfaces
+
+### Configuration
+- Respects environment variables
+- Uses same settings files
+- Shares session storage
+
+### Tool System
+- Access to all registered tools
+- MCP tool support
+- Dynamic tool loading
 
 This provides a unified experience across command-line and web interfaces.
