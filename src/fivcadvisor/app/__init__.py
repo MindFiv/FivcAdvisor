@@ -23,10 +23,17 @@ class StreamCallback(object):
     def __init__(self, placeholder):
         self.text = ""
         self.placeholder = placeholder
+        self.first_call = True
 
     def __call__(self, data: str):
+        # Clear loading message on first data
+        if self.first_call:
+            self.first_call = False
+            self.placeholder.empty()
+
         self.text += data
-        self.placeholder.markdown(self.text)
+        if self.text:
+            self.placeholder.markdown(self.text)
 
 
 def render_message(message: SessionMessage, tool_traces: ToolTraceList):
@@ -46,7 +53,7 @@ def render_message(message: SessionMessage, tool_traces: ToolTraceList):
         if "toolResult" in block:
             tool_traces.end(block["toolResult"])
 
-    tool_traces.render(force=False)
+    tool_traces.render()
 
 
 def create_default_ui():
@@ -79,13 +86,44 @@ def create_default_ui():
         with st.chat_message("user"):
             st.write(user_query)
 
+        tool_placeholder = st.empty()
+
         with st.chat_message("assistant"):
-            tool_placeholder = st.empty()
             stream_placeholder = st.empty()
-            stream_placeholder.write("...")
+
+            # Show animated loading message with CSS animation
+            loading_html = """
+            <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .loading-container {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-weight: bold;
+            }
+            .spinner {
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border: 3px solid rgba(0, 0, 0, 0.1);
+                border-top-color: #3498db;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+            </style>
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <span>🤔🧐🤓</span>
+            </div>
+            """
+            stream_placeholder.markdown(loading_html, unsafe_allow_html=True)
 
             on_tool = ToolCallback(tool_placeholder)
             on_stream = StreamCallback(stream_placeholder)
+
             asyncio.run(
                 chat_session.run(
                     user_query,

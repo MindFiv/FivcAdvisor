@@ -114,7 +114,7 @@ class ToolTraceList(object):
             self.tool_traces.append(tool_trace)
         tool_trace.end(message)
 
-    def render(self, force=True):
+    def render(self, force=False):
         for tool_trace in self.tool_traces:
             if tool_trace.is_complete:
                 tool_trace.render(force=force)
@@ -132,5 +132,7 @@ class ToolCallback(object):
         elif "toolResult" in message:
             self.tool_traces.end(message["toolResult"])
 
-        with self.placeholder:
+        # Clear the placeholder and re-render all traces
+        self.placeholder.empty()
+        with self.placeholder.container():
             self.tool_traces.render(force=True)

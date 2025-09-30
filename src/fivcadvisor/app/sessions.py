@@ -84,9 +84,10 @@ class ChatSession(object):
             if self.on_stream:
                 self.on_stream(kwargs["data"])
 
-        elif "message" in kwargs:
-            message = kwargs["message"]
-            for block in message["content"]:
-                if "toolUse" in block or "toolResult" in block:
-                    if self.on_tool:
-                        self.on_tool(block)
+        else:
+            if "message" in kwargs:
+                message = kwargs["message"]
+                for block in message["content"]:
+                    if "toolUse" in block or "toolResult" in block:
+                        if self.on_tool:
+                            self.on_tool(block)
