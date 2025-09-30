@@ -67,7 +67,7 @@ class TestAgentCreatorDecorator:
     def test_decorator_basic(self):
         """Test basic decorator functionality."""
 
-        @agent_creator("TestAgent", "A test agent creator")
+        @agent_creator("TestAgent")
         def create_test_agent():
             """Test agent creator function"""
             return Mock(spec=Agent)
@@ -81,8 +81,9 @@ class TestAgentCreatorDecorator:
     def test_decorator_with_function_args(self):
         """Test decorator with function that takes arguments."""
 
-        @agent_creator("ConfigurableAgent", "An agent that can be configured")
+        @agent_creator("ConfigurableAgent")
         def create_configurable_agent(*args, **kwargs):
+            """An agent that can be configured"""
             mock_agent = Mock(spec=Agent)
             mock_agent.name = kwargs.get("name", "DefaultName")
             return mock_agent
@@ -95,8 +96,9 @@ class TestAgentCreatorDecorator:
         """Test that the decorator preserves the original function's behavior."""
         call_count = 0
 
-        @agent_creator("CountingAgent", "An agent that counts calls")
+        @agent_creator("CountingAgent")
         def create_counting_agent():
+            """An agent that counts calls"""
             nonlocal call_count
             call_count += 1
             return Mock(spec=Agent)
@@ -114,7 +116,7 @@ class TestAgentsRetrieverIntegration:
     def test_add_decorated_creator(self):
         """Test adding a decorated creator to the retriever."""
 
-        @agent_creator("IntegrationAgent", "An agent for integration testing")
+        @agent_creator("IntegrationAgent")
         def create_integration_agent():
             """An agent for integration testing"""
             return Mock(spec=Agent)
@@ -132,12 +134,14 @@ class TestAgentsRetrieverIntegration:
     def test_multiple_decorated_creators(self):
         """Test adding multiple decorated creators."""
 
-        @agent_creator("Agent1", "First agent")
+        @agent_creator("Agent1")
         def create_agent1():
+            """First agent"""
             return Mock(spec=Agent)
 
-        @agent_creator("Agent2", "Second agent")
+        @agent_creator("Agent2")
         def create_agent2():
+            """Second agent"""
             return Mock(spec=Agent)
 
         retriever = AgentsRetriever()
@@ -150,8 +154,9 @@ class TestAgentsRetrieverIntegration:
     def test_retrieve_and_use_creator(self):
         """Test retrieving and using a creator from the retriever."""
 
-        @agent_creator("UsableAgent", "An agent that can be used")
+        @agent_creator("UsableAgent")
         def create_usable_agent(name="DefaultName"):
+            """An agent that can be used"""
             mock_agent = Mock(spec=Agent)
             mock_agent.name = name
             return mock_agent
@@ -168,12 +173,14 @@ class TestAgentsRetrieverIntegration:
     def test_duplicate_name_error(self):
         """Test that adding creators with duplicate names raises an error."""
 
-        @agent_creator("DuplicateAgent", "First agent")
+        @agent_creator("DuplicateAgent")
         def create_agent1():
+            """First agent"""
             return Mock(spec=Agent)
 
-        @agent_creator("DuplicateAgent", "Second agent with same name")
+        @agent_creator("DuplicateAgent")
         def create_agent2():
+            """Second agent with same name"""
             return Mock(spec=Agent)
 
         retriever = AgentsRetriever()

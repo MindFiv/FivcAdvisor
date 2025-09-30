@@ -20,9 +20,6 @@ venv/
 # Env
 .env
 
-# Lock files
-crewai-rag-tool.lock
-
 # Temporary files and generated content
 configs/settings.yaml
 configs/mcp.yaml
@@ -30,4 +27,5 @@ repl_state/
 tmp/
 temp/
 .tmp/
+.coverage
 .fivcadvisor/
