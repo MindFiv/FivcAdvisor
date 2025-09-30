@@ -34,8 +34,10 @@ class ChatSession(object):
         self.on_stream: Optional[Callable] = None
         self.agent_is_running = False
         self.agent = agents.create_companion_agent(
+            conversation_manager=SummarizingConversationManager(
+                summarization_agent=agents.create_default_agent()
+            ),
             session_manager=self.session_manager,
-            conversation_manager=SummarizingConversationManager(),
             callback_handler=self._on_callback,
         )
 

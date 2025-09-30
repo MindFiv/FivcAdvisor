@@ -61,7 +61,7 @@ def create_default_agent(*args, **kwargs) -> Agent:
     kwargs.setdefault("name", "Generic")
 
     if "tools" not in kwargs:
-        kwargs["tools"] = [tools.default_retriever.to_tool()]
+        kwargs["tools"] = tools.default_retriever.get_all()
 
     if "model" not in kwargs:
         kwargs["model"] = models.create_default_model()
@@ -80,18 +80,7 @@ def create_companion_agent(*args, **kwargs) -> Agent:
         kwargs["model"] = models.create_chat_model()
 
     if "tools" not in kwargs:
-        default_tools = [
-            i
-            for i in tools.default_retriever.get_batch(
-                [
-                    "current_time",
-                    "calculator",
-                ]
-            )
-            if i is not None
-        ]
-        if default_tools:
-            kwargs["tools"] = default_tools
+        kwargs["tools"] = tools.default_retriever.get_all()
 
     return create_default_agent(*args, **kwargs)
 

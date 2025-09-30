@@ -36,12 +36,3 @@ coding_llm:
   base_url: "https://api.openai.com/v1"
   temperature: 0.1
   max_tokens: 2000
-
-agent_logger:
-  level: "INFO"
-  format: "%(message)s"
-  file: ".fivcadvisor/agent-logs.json"
-
-default_logger:
-  level: "INFO"
-  format: "[Server] [%(asctime)s] - [%(levelname)s] - %(message)s"

@@ -5,6 +5,7 @@ __all__ = [
     "ToolsRetriever",
 ]
 
+import atexit
 import os
 from typing import Optional
 
@@ -59,9 +60,11 @@ def register_mcp_tools(
     config = ToolsConfig(config_file=config_file)
     for c in config.get_clients():
         try:
-            tools = c.list_tools_sync()
+            tools = c.start().list_tools_sync()
+            atexit.register(lambda: c.stop(None, None, None))
             # tools.pagination_token
         except MCPClientInitializationError as e:
+            c.stop(None, None, None)  # fixme
             print(f"Error loading tools from {c}: {e}")
             continue
 
@@ -74,6 +77,7 @@ def _load_retriever() -> ToolsRetriever:
     retriever = ToolsRetriever()
     register_default_tools(tools_retriever=retriever)
     register_mcp_tools(tools_retriever=retriever)
+    print(f"Registered Tools: {[t.tool_name for t in retriever.get_all()]}")
     return retriever
 
 
