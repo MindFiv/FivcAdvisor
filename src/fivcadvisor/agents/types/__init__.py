@@ -3,6 +3,7 @@ __all__ = [
     "AgentsRetriever",
     "FunctionAgentCreator",
     "agent_creator",
+    "ToolFilteringConversationManager",
 ]
 
 from .retrievers import (
@@ -10,4 +11,7 @@ from .retrievers import (
     AgentsCreatorBase,
     FunctionAgentCreator,
     agent_creator,
+)
+from .conversations import (
+    ToolFilteringConversationManager,
 )

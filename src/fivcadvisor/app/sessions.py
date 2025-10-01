@@ -2,10 +2,7 @@ import uuid
 from typing import Optional, Callable, List, cast
 
 import streamlit as st
-from strands.agent import (
-    AgentResult,
-    SlidingWindowConversationManager,
-)
+from strands.agent import AgentResult, SlidingWindowConversationManager
 from strands.types.session import Message, SessionMessage
 from strands.types.streaming import StreamEvent
 from strands.session import FileSessionManager
@@ -32,8 +29,12 @@ class ChatSession(object):
         self.on_tool: Optional[Callable] = None
         self.on_stream: Optional[Callable] = None
         self.agent_is_running = False
+
+        # 使用组合模式：工具过滤 + 滑动窗口管理
         self.agent = agents.create_companion_agent(
-            conversation_manager=SlidingWindowConversationManager(),
+            conversation_manager=agents.ToolFilteringConversationManager(
+                SlidingWindowConversationManager(window_size=40)
+            ),
             session_manager=self.session_manager,
             callback_handler=self._on_callback,
         )

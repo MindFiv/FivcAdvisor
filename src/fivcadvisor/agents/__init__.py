@@ -8,6 +8,7 @@ __all__ = [
     "create_evaluating_agent",
     "default_retriever",
     "AgentsRetriever",
+    "ToolFilteringConversationManager",
 ]
 
 from typing import cast, List, Optional
@@ -25,6 +26,7 @@ from fivcadvisor.agents.types import (
     agent_creator,
     AgentsRetriever,
     AgentsCreatorBase,
+    ToolFilteringConversationManager,
 )
 
 
