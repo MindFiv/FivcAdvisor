@@ -4,7 +4,7 @@ import streamlit as st
 from strands.types.tools import ToolResult, ToolUse
 
 
-class ToolTrace(object):
+class ToolRenderer(object):
     def __init__(self):
         self.tool_begin = {}
         self.tool_end = {}
@@ -96,21 +96,21 @@ class ToolTrace(object):
             st.json({"tool_use": tool_use_block, "tool_result": tool_result_block})
 
 
-class ToolTraceList(object):
+class ToolsRenderer(object):
     def __init__(self):
-        self.tool_traces: List[ToolTrace] = [ToolTrace()]
+        self.tool_traces: List[ToolRenderer] = [ToolRenderer()]
 
     def begin(self, message: ToolUse):
         tool_trace = self.tool_traces[-1]
         if tool_trace.is_complete:
-            tool_trace = ToolTrace()
+            tool_trace = ToolRenderer()
             self.tool_traces.append(tool_trace)
         tool_trace.begin(message)
 
     def end(self, message: ToolResult):
         tool_trace = self.tool_traces[-1]
         if tool_trace.is_complete:
-            tool_trace = ToolTrace()
+            tool_trace = ToolRenderer()
             self.tool_traces.append(tool_trace)
         tool_trace.end(message)
 
@@ -122,7 +122,7 @@ class ToolTraceList(object):
 
 class ToolCallback(object):
     def __init__(self, placeholder):
-        self.tool_traces = ToolTraceList()
+        self.tool_traces = ToolsRenderer()
         self.placeholder = placeholder
 
     def __call__(self, message: ToolUse | ToolResult):
