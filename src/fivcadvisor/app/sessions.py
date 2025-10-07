@@ -2,7 +2,11 @@ import uuid
 from typing import Optional, Callable, List, cast
 
 import streamlit as st
-from strands.agent import AgentResult, SlidingWindowConversationManager
+from strands.agent import (
+    AgentResult,
+    SlidingWindowConversationManager,
+    # SummarizingConversationManager,
+)
 from strands.types.session import Message, SessionMessage
 from strands.types.streaming import StreamEvent
 from strands.session import FileSessionManager
@@ -33,7 +37,7 @@ class ChatSession(object):
         # 使用组合模式：工具过滤 + 滑动窗口管理
         self.agent = agents.create_companion_agent(
             conversation_manager=agents.ToolFilteringConversationManager(
-                SlidingWindowConversationManager(window_size=40)
+                SlidingWindowConversationManager()
             ),
             session_manager=self.session_manager,
             callback_handler=self._on_callback,
@@ -48,6 +52,28 @@ class ChatSession(object):
                     "session_id", str(uuid.uuid4())
                 )
         return st.session_state.session_id
+
+    def cleanup(self):
+        session_id = str(uuid.uuid4())
+        with utils.OutputDir():
+            config = settings.SettingsConfig("run.yml")
+            config.set("session_id", session_id)
+            config.save()
+
+        st.session_state.session_id = session_id
+
+        self.session_manager = FileSessionManager(
+            session_id,
+            str(utils.OutputDir().subdir("sessions")),
+        )
+        # 使用组合模式：工具过滤 + 滑动窗口管理
+        self.agent = agents.create_companion_agent(
+            conversation_manager=agents.ToolFilteringConversationManager(
+                SlidingWindowConversationManager()
+            ),
+            session_manager=self.session_manager,
+            callback_handler=self._on_callback,
+        )
 
     @property
     def is_running(self):

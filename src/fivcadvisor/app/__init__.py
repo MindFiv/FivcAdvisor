@@ -47,6 +47,10 @@ def create_default_ui():
     with st.sidebar:
         st.header("FivcAdvisor")
 
+        # Reset button
+        if st.button("🔄 重置会话", use_container_width=True, type="secondary"):
+            chat_session.cleanup()
+
     messages_renderer = MessagesRenderer(chat_session.get_history())
     messages_renderer.render()
 

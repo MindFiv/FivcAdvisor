@@ -34,6 +34,23 @@ def _ollama_model(*args, **kwargs) -> Model:
     )
 
 
+def _litellm_model(*args, **kwargs) -> Model:
+    from strands.models.litellm import LiteLLMModel
+
+    return LiteLLMModel(
+        # client_args={
+        #     "api_key": kwargs.get("api_key", ""),
+        #     "base_url": kwargs.get("base_url", ""),
+        # },
+        model_id=kwargs.get("model", ""),
+        params=dict(
+            api_key=kwargs.get("api_key", ""),
+            base_url=kwargs.get("base_url", ""),
+            temperature=kwargs.get("temperature", 0.5),
+        ),
+    )
+
+
 def create_default_model(*args, **kwargs) -> Model:
     """
     Factory function to create an LLM instance
@@ -54,8 +71,10 @@ def create_default_model(*args, **kwargs) -> Model:
 
     if model_provider == "openai":
         return _openai_model(*args, **kwargs)
-    if model_provider == "ollama":
+    elif model_provider == "ollama":
         return _ollama_model(*args, **kwargs)
+    elif model_provider == "litellm":
+        return _litellm_model(*args, **kwargs)
     else:
         raise AssertionError(f"Unsupported model provider: {model_provider}")
 
