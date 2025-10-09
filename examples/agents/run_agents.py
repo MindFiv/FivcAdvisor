@@ -1,4 +1,5 @@
 import asyncio
+# import json
 from typing import Any
 
 import dotenv
@@ -28,8 +29,10 @@ class LoggingHook(HookProvider):
 
 def debugger_callback_handler(**kwargs):
     # Print the values in kwargs so that we can see everything
-    if 'message' in kwargs:
-        print(kwargs)
+    if "data" in kwargs:
+        return
+
+    print(kwargs)
 
 
 async def main():
@@ -41,10 +44,12 @@ async def main():
     print("\n" + "=" * 50)
 
     agent = agents.create_companion_agent(callback_handler=debugger_callback_handler)
+    print(agent.agent_id)
+    print(agent.name)
     # agent.hooks.add_hook(LoggingHook())
     result = agent("What time is it now?")
 
-    # print(f'Result: {str(result)}')
+    print(f'Result: {str(result)}')
 
 
 if __name__ == '__main__':

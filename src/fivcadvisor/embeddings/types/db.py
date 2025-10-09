@@ -46,9 +46,14 @@ class EmbeddingCollection(object):
 
     def search(self, query: str, num_documents: int = 10) -> list:
         """Search the collection."""
-        return self.collection.query(query_texts=[query], n_results=num_documents)[
-            "documents"
-        ][0]
+        results = self.collection.query(query_texts=[query], n_results=num_documents)
+        result_docs = results["documents"][0]
+        result_metas = results["metadatas"][0]
+        result_scores = results["distances"][0]
+        return [
+            {"text": doc, "metadata": meta, "score": score}
+            for doc, meta, score in zip(result_docs, result_metas, result_scores)
+        ]
 
     def clear(self):
         """Delete the collection."""

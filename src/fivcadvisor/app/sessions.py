@@ -79,7 +79,7 @@ class ChatSession(object):
     def is_running(self):
         return self.agent_is_running
 
-    def get_history(self) -> List[SessionMessage]:
+    def list_messages(self) -> List[SessionMessage]:
         return self.session_manager.list_messages(
             self.session_manager.session_id,
             self.agent.agent_id,

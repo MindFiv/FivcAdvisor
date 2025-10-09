@@ -166,6 +166,7 @@ For comprehensive documentation, see the [docs/](docs/) directory:
 
 - **[System Design](docs/DESIGN.md)** - Architecture and design principles
 - **[Web Interface Guide](docs/WEB_INTERFACE.md)** - Complete web interface usage
+- **[TaskTracer Serialization](docs/TRACER_SERIALIZATION.md)** - Task state persistence and recovery
 - **[Dependencies](docs/DEPENDENCIES.md)** - Installation and dependency management
 - **[Documentation Index](docs/README.md)** - Complete documentation overview
 

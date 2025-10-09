@@ -78,7 +78,7 @@ class ToolsRetriever(object):
         tool_names = set(
             src["metadata"]["__tool__"]
             for src in sources
-            if src["metadata"]["score"] >= self.retrieve_min_score
+            if src["score"] >= self.retrieve_min_score
         )
         return [self.get(name) for name in tool_names]
 

@@ -29,6 +29,9 @@ class OutputDir(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         os.chdir(self._back)
 
+    def glob(self, *args, **kwargs):
+        return self.base.glob(*args, **kwargs)
+
     def subdir(self, name: str) -> "OutputDir":
         return OutputDir(os.path.join(str(self), name))
 

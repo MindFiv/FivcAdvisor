@@ -20,6 +20,8 @@ class TestEmbeddingCollection:
         mock_collection.query = Mock(
             return_value={
                 "documents": [["doc1", "doc2"]],
+                "metadatas": [[{"key": "value1"}, {"key": "value2"}]],
+                "distances": [[0.1, 0.2]],
             }
         )
         mock_collection.count = Mock(return_value=2)
@@ -53,8 +55,12 @@ class TestEmbeddingCollection:
         results = collection.search("query", num_documents=2)
 
         assert len(results) == 2
-        assert results[0] == "doc1"
-        assert results[1] == "doc2"
+        assert results[0]["text"] == "doc1"
+        assert results[0]["metadata"] == {"key": "value1"}
+        assert results[0]["score"] == 0.1
+        assert results[1]["text"] == "doc2"
+        assert results[1]["metadata"] == {"key": "value2"}
+        assert results[1]["score"] == 0.2
         mock_chroma_collection.query.assert_called_once()
 
     def test_count(self, mock_chroma_collection):

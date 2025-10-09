@@ -21,24 +21,24 @@ class TestTaskAssessment:
         assessment = TaskAssessment(
             require_planning=True,
             require_tools=["calculator", "python_repl"],
-            answer="This is a complex task",
+            reasoning="This is a complex task",
         )
 
         assert assessment.require_planning is True
         assert assessment.require_tools == ["calculator", "python_repl"]
-        assert assessment.answer == "This is a complex task"
+        assert assessment.reasoning == "This is a complex task"
 
     def test_init_no_tools(self):
         """Test TaskAssessment with no tools required."""
         assessment = TaskAssessment(
             require_planning=False,
             require_tools=[],
-            answer="Simple answer",
+            reasoning="Simple task",
         )
 
         assert assessment.require_planning is False
         assert assessment.require_tools == []
-        assert assessment.answer == "Simple answer"
+        assert assessment.reasoning == "Simple task"
 
     def test_validation_error(self):
         """Test that missing required fields raises ValidationError."""
@@ -50,22 +50,23 @@ class TestTaskAssessment:
         assessment = TaskAssessment(
             require_planning=True,
             require_tools=["tool1"],
-            answer="answer",
+            reasoning="test reasoning",
         )
         data = assessment.model_dump()
 
         assert data["require_planning"] is True
         assert data["require_tools"] == ["tool1"]
-        assert data["answer"] == "answer"
+        assert data["reasoning"] == "test reasoning"
 
     def test_json_schema(self):
         """Test JSON schema generation."""
         schema = TaskAssessment.model_json_schema()
 
         assert "properties" in schema
-        assert "require_planning" in schema["properties"]
-        assert "require_tools" in schema["properties"]
-        assert "answer" in schema["properties"]
+        # Check for alias names in schema (Pydantic uses aliases in JSON schema)
+        assert "requires_planning_agent" in schema["properties"]
+        assert "required_tools" in schema["properties"]
+        assert "reasoning" in schema["properties"]
 
 
 class TestTaskRequirement:

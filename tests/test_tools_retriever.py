@@ -201,11 +201,19 @@ class TestToolsRetriever:
 
         retriever.add_batch([tool1, tool2])
 
-        # Mock search results
+        # Mock search results - score should be at top level
         retriever.collection.search = Mock(
             return_value=[
-                {"metadata": {"__tool__": "calculator", "score": 0.9}},
-                {"metadata": {"__tool__": "search", "score": 0.7}},
+                {
+                    "text": "Calculate math",
+                    "metadata": {"__tool__": "calculator"},
+                    "score": 0.9,
+                },
+                {
+                    "text": "Search the web",
+                    "metadata": {"__tool__": "search"},
+                    "score": 0.7,
+                },
             ]
         )
 
@@ -230,11 +238,19 @@ class TestToolsRetriever:
 
         retriever.add_batch([tool1, tool2])
 
-        # Mock search results with different scores
+        # Mock search results with different scores - score should be at top level
         retriever.collection.search = Mock(
             return_value=[
-                {"metadata": {"__tool__": "calculator", "score": 0.9}},
-                {"metadata": {"__tool__": "search", "score": 0.7}},
+                {
+                    "text": "Calculate math",
+                    "metadata": {"__tool__": "calculator"},
+                    "score": 0.9,
+                },
+                {
+                    "text": "Search the web",
+                    "metadata": {"__tool__": "search"},
+                    "score": 0.7,
+                },
             ]
         )
 
@@ -255,9 +271,14 @@ class TestToolsRetriever:
 
         retriever.add(tool1)
 
+        # Mock search results - score should be at top level
         retriever.collection.search = Mock(
             return_value=[
-                {"metadata": {"__tool__": "calculator", "score": 0.9}},
+                {
+                    "text": "Calculate math",
+                    "metadata": {"__tool__": "calculator"},
+                    "score": 0.9,
+                },
             ]
         )
 

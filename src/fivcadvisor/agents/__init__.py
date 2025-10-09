@@ -6,12 +6,13 @@ __all__ = [
     "create_research_agent",
     "create_engineering_agent",
     "create_evaluating_agent",
+    "create_generic_agent_swarm",
     "default_retriever",
     "AgentsRetriever",
     "ToolFilteringConversationManager",
 ]
 
-from typing import cast, List, Optional
+from typing import cast, List, Optional, Callable
 
 from strands.agent import Agent
 from strands.multiagent import Swarm
@@ -68,7 +69,18 @@ def create_default_agent(*args, **kwargs) -> Agent:
     if "model" not in kwargs:
         kwargs["model"] = models.create_default_model()
 
-    return Agent(*args, **kwargs)
+    agent = Agent(*args, **kwargs)
+
+    if isinstance(agent.callback_handler, Callable):
+        callback = agent.callback_handler
+
+        def _callback_wrapper(**cb_kwargs):
+            cb_kwargs["agent"] = agent
+            callback(**cb_kwargs)
+
+        agent.callback_handler = _callback_wrapper
+
+    return agent
 
 
 @agent_creator("Companion")
@@ -217,7 +229,7 @@ def create_generic_agent_swarm(
         s_tools = tools_retriever.get_batch(s.tools)
         s_tools = [t for t in s_tools if t is not None]
         s_agents.append(
-            team.create_default_agent(
+            create_default_agent(
                 name=s.name,
                 tools=s_tools,
                 system_prompt=s.backstory,
