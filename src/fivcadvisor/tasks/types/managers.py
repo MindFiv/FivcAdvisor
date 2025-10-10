@@ -2,16 +2,28 @@
 Task manager for centralized task execution monitoring.
 
 This module provides TaskManager class for managing and monitoring multiple tasks
-across different agents and tracers.
+across different agent swarms. TaskManager uses TaskRuntimeRepository for persistence
+and TaskMonitor for tracking individual task execution.
+
+Key Features:
+    - Create and track agent swarm tasks
+    - Automatic persistence through repository pattern
+    - Query task status and execution steps
+    - Centralized task lifecycle management
 """
 
-import os
-from typing import List, Any, Optional, Callable, Dict
+from typing import List, Any, Optional, Callable
 
 from fivcadvisor import agents, schemas, tools
-from fivcadvisor.utils import OutputDir
-
-from .tracers import TaskTracer, TaskEvent
+from fivcadvisor.tasks.types.monitors import (
+    TaskMonitor,
+    # TaskRuntime,
+    TaskRuntimeStep,
+    TaskRuntimeRepository,
+)
+from fivcadvisor.tasks.types.repositories.files import (
+    FileTaskRuntimeRepository,
+)
 
 
 class TaskManager(object):
@@ -20,57 +32,56 @@ class TaskManager(object):
 
     TaskManager provides a unified interface to:
     - Create and track tasks with agent swarms
-    - Monitor task execution status
-    - Persist task history to disk
+    - Monitor task execution status through TaskMonitor
+    - Persist task history through TaskRuntimeRepository
 
     Usage:
         >>> from fivcadvisor.tasks.types import TaskManager
-        >>> from fivcadvisor import schemas
+        >>> from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
+        >>> from fivcadvisor import schemas, tools
         >>> from fivcadvisor.utils import OutputDir
         >>>
-        >>> # Create manager with persistence
-        >>> manager = TaskManager(output_dir=OutputDir("./data"))
+        >>> # Create manager with file-based persistence
+        >>> repo = FileTaskRuntimeRepository(output_dir=OutputDir("./tasks"))
+        >>> manager = TaskManager(runtime_repo=repo)
         >>>
-        >>> # Create a task
+        >>> # Create a task with monitoring
         >>> plan = schemas.TaskTeam(specialists=[...])
-        >>> swarm = manager.create_task(plan=plan)
+        >>> swarm = manager.create_task(
+        ...     plan=plan,
+        ...     tools_retriever=tools.default_retriever
+        ... )
         >>>
-        >>> # Execute task
+        >>> # Execute task (automatically tracked and persisted)
         >>> result = await swarm.invoke_async("Your query")
         >>>
         >>> # View all tasks
-        >>> tasks = manager.list_tasks()
+        >>> tasks = manager.list_tasks()  # Returns list of TaskRuntime
         >>>
-        >>> # Save to disk
-        >>> manager.save()
+        >>> # Get specific task with monitor
+        >>> task_monitor = manager.get_task(task_id)
+        >>> steps = task_monitor.list_steps()
+        >>>
+        >>> # Delete a task
+        >>> manager.delete_task(task_id)
+
+    Default repository:
+        If no repository is provided, TaskManager creates a default
+        FileTaskRuntimeRepository with output_dir="./data".
     """
 
-    def __init__(
-        self, output_dir: Optional[OutputDir] = None, auto_save: bool = False, **kwargs
-    ):
-        """
-        Initialize TaskManager.
-
-        Args:
-            output_dir: Optional OutputDir for persisting task data
-            auto_save: If True, automatically save after each task event
-        """
-        self.tracers: Dict[str, TaskTracer] = {}
-        self.output_dir = output_dir or OutputDir().subdir("tasks")
-        self.auto_save = auto_save
-
-        # Auto-load existing tracers
-        self.load()
+    def __init__(self, runtime_repo: Optional[TaskRuntimeRepository] = None, **kwargs):
+        self._repo = runtime_repo or FileTaskRuntimeRepository()
 
     def create_task(
         self,
         plan: schemas.TaskTeam,
         tools_retriever: Optional[tools.ToolsRetriever] = None,
-        on_event: Optional[Callable[[TaskEvent], None]] = None,
+        on_event: Optional[Callable[[TaskRuntimeStep], None]] = None,
         **kwargs: Any,
     ):
         """
-        Create a new task with agent swarm and tracer.
+        Create a new task with agent swarm and monitor.
 
         Args:
             plan: TaskTeam plan containing specialist agents
@@ -81,79 +92,49 @@ class TaskManager(object):
         Returns:
             Agent swarm instance
         """
-        tracer = TaskTracer(on_event=on_event)
-        kwargs["callback_handler"] = tracer
-
+        task_monitor = TaskMonitor(
+            on_event=on_event,
+            runtime_repo=self._repo,
+        )
         task = agents.create_generic_agent_swarm(
             team=plan,
             tools_retriever=tools_retriever,
+            hooks=[task_monitor],
             **kwargs,
         )
-
-        self.tracers[tracer.id] = tracer
-
-        # Auto-save the new tracer
-        if self.auto_save:
-            tracer.save(os.path.join(str(self.output_dir), f"task_{tracer.id}.json"))
-
         return task
 
-    def list_tasks(self) -> List[TaskTracer]:
+    def list_tasks(self) -> List[TaskMonitor]:
         """
-        Get list of all task tracers.
+        Get list of all task monitors.
 
         Returns:
-            List of TaskTracer instances
+            List of TaskMonitor instances
         """
-        return list(self.tracers.values())
+        task_runtimes = self._repo.list_tasks()
+        return [
+            TaskMonitor(runtime=runtime, runtime_repo=self._repo)
+            for runtime in task_runtimes
+        ]
 
-    def get_task(self, tracer_id: str) -> Optional[TaskTracer]:
+    def get_task(
+        self, task_id: str, on_event: Optional[Callable[[TaskRuntimeStep], None]] = None
+    ) -> Optional[TaskMonitor]:
+        task_runtime = self._repo.get_task(task_id)
+        if not task_runtime:
+            return None
+
+        return TaskMonitor(
+            runtime=task_runtime,
+            runtime_repo=self._repo,
+            on_event=on_event,
+        )
+
+    def delete_task(self, task_id: str) -> None:
         """
-        Get a specific task tracer by ID.
+        Delete a task.
 
         Args:
-            tracer_id: Tracer ID to retrieve
-
-        Returns:
-            TaskTracer instance, or None if not found
+            task_id: Task ID to delete
         """
-        return self.tracers.get(tracer_id)
-
-    def delete_task(self, tracer_id: str) -> None:
-        """
-        Delete a task tracer and its file.
-
-        Args:
-            tracer_id: Tracer ID to delete
-        """
-        self.tracers.pop(tracer_id, None)
-
-        # Delete the tracer's file
-        if self.auto_save:
-            filename = os.path.join(str(self.output_dir), f"task_{tracer_id}.json")
-            if os.path.exists(filename):
-                os.unlink(filename)
-
-    def cleanup(self):
-        """Clear all task tracers and their files."""
-        if self.auto_save:
-            self.output_dir.cleanup()
-
-        self.tracers.clear()
-
-    def save(self) -> None:
-        """Save all tracers to individual files in output_dir."""
-        for tracer in self.tracers.values():
-            tracer.save(os.path.join(str(self.output_dir), f"task_{tracer.id}.json"))
-
-    def load(self) -> None:
-        """Load all tracers from output_dir."""
-        self.tracers.clear()
-
-        for filename in self.output_dir.glob("*.json"):
-            try:
-                tracer = TaskTracer.load(filename)
-                self.tracers[tracer.id] = tracer
-            except Exception as e:
-                print(f"Warning: Failed to load {filename}: {e}")
-                continue
+        self._repo.delete_task(task_id)

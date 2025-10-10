@@ -1,0 +1,22 @@
+{
+  "filePath": ".spec-workflow/steering/structure.md",
+  "currentVersion": 2,
+  "snapshots": [
+    {
+      "version": 1,
+      "filename": "snapshot-001.json",
+      "timestamp": "2025-10-10T03:25:26.755Z",
+      "trigger": "initial",
+      "approvalId": "approval_1760066726753_03nc9plux",
+      "approvalTitle": "Structure Steering Document - FivcAdvisor Codebase Organization"
+    },
+    {
+      "version": 2,
+      "filename": "snapshot-002.json",
+      "timestamp": "2025-10-10T03:37:30.388Z",
+      "trigger": "approved",
+      "approvalId": "approval_1760066726753_03nc9plux",
+      "approvalTitle": "Structure Steering Document - FivcAdvisor Codebase Organization"
+    }
+  ]
+}

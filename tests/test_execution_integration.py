@@ -24,8 +24,8 @@ class TestExecutionTaskIntegration:
         assert hasattr(tasks, "run_assessing_task")
         assert hasattr(agents, "create_generic_agent_swarm")
         assert hasattr(schemas, "TaskTeam")
-        assert hasattr(tasks, "TaskTracer")
-        assert hasattr(tasks, "TaskEvent")
+        assert hasattr(tasks, "TaskMonitor")
+        assert hasattr(tasks, "TaskRuntimeStep")
         assert hasattr(tasks, "TaskStatus")
 
     def test_task_team_creation(self):
@@ -50,33 +50,28 @@ class TestExecutionTaskIntegration:
         assert "calculator" in team.specialists[1].tools
 
     def test_task_event_tracking(self):
-        """Test TaskEvent tracking"""
+        """Test TaskRuntimeStep tracking"""
         from datetime import datetime
 
         # Create task event
-        event = tasks.TaskEvent(
-            agent_name="TestAgent", agent_id="test-123", query="Test query"
-        )
+        event = tasks.TaskRuntimeStep(agent_name="TestAgent", agent_id="test-123")
 
-        assert event.query == "Test query"
-        assert event.status == tasks.TaskStatus.IDLE
+        assert event.status == tasks.TaskStatus.PENDING
         assert event.agent_name == "TestAgent"
 
         # Update status
-        event.status = tasks.TaskStatus.RUNNING
+        event.status = tasks.TaskStatus.EXECUTING
         event.started_at = datetime.now()
 
-        assert event.status == tasks.TaskStatus.RUNNING
+        assert event.status == tasks.TaskStatus.EXECUTING
         assert event.started_at is not None
         assert event.is_running
 
         # Complete
         event.status = tasks.TaskStatus.COMPLETED
         event.completed_at = datetime.now()
-        event.result = "Test result"
 
         assert event.status == tasks.TaskStatus.COMPLETED
-        assert event.result == "Test result"
         assert event.is_completed
         assert event.duration is not None
 
@@ -126,17 +121,9 @@ class TestExecutionTaskIntegration:
         assert hasattr(schemas, "TaskTeam")
 
         # Task tracking
-        assert hasattr(tasks, "TaskTracer")
-        assert hasattr(tasks, "TaskEvent")
+        assert hasattr(tasks, "TaskMonitor")
+        assert hasattr(tasks, "TaskRuntimeStep")
         assert hasattr(tasks, "TaskStatus")
-
-    def test_task_state_enum(self):
-        """Test TaskStatus enum"""
-        assert tasks.TaskStatus.IDLE == "idle"
-        assert tasks.TaskStatus.STARTING == "starting"
-        assert tasks.TaskStatus.RUNNING == "running"
-        assert tasks.TaskStatus.COMPLETED == "completed"
-        assert tasks.TaskStatus.FAILED == "failed"
 
     def test_exports(self):
         """Test that functions are properly exported"""
@@ -161,11 +148,8 @@ def run_tests():
     tests = [
         ("Imports", test_suite.test_imports),
         ("TaskTeam Creation", test_suite.test_task_team_creation),
-        ("TaskExecution Tracking", test_suite.test_task_execution_tracking),
-        ("TaskExecution with Team", test_suite.test_task_execution_with_team),
         ("Swarm Creator Signature", test_suite.test_swarm_creator_signature),
         ("Workflow Components", test_suite.test_workflow_components),
-        ("TaskStatus Enum", test_suite.test_task_status_enum),
         ("Exports", test_suite.test_exports),
     ]
 

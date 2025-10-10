@@ -26,14 +26,16 @@ async def main():
 
     # 1. Create TaskManager with persistence
     print("\n1️⃣ Creating TaskManager with persistence...")
-    manager = TaskManager(
-        auto_save=True,  # Automatically save after changes
-    )
-    output_dir = manager.output_dir
+    from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
+
+    output_dir = OutputDir().subdir('tasks')
+    repo = FileTaskRuntimeRepository(output_dir=output_dir)
+    manager = TaskManager(runtime_repo=repo)
+
     print(f"✅ TaskManager created")
     print(f"   Output directory: {output_dir}")
-    print(f"   Auto-save: Enabled")
-    print(f"   Each task will be saved as: task_{{tracer_id}}.json")
+    print(f"   Repository: FileTaskRuntimeRepository")
+    print(f"   Tasks will be saved in: {output_dir}/task_<task_id>/")
 
     # 2. Define a simple task plan
     print("\n2️⃣ Creating task plan...")
@@ -51,20 +53,18 @@ async def main():
     # 3. Create task with event callback
     print("\n3️⃣ Creating task with event tracking...")
 
-    def on_event(event):
-        """Callback function to track task events"""
-        print(f"   📋 Event: {event.agent_name} - {event.status.value}")
-        if event.error:
-            print(f"      ❌ Error: {event.error}")
-        elif event.result:
-            print(f"      ✅ Result: {event.result}")
+    def on_step_update(step):
+        """Callback function to track execution steps"""
+        print(f"   📋 Step: {step.agent_name} - {step.status.value}")
+        if step.error:
+            print(f"      ❌ Error: {step.error}")
 
     swarm = manager.create_task(
         plan=plan,
         tools_retriever=tools.default_retriever,
-        on_event=on_event,
+        on_event=on_step_update,
     )
-    print("✅ Task created")
+    print("✅ Task created with step tracking")
 
     # 4. Execute the task
     print("\n4️⃣ Executing task...")
@@ -80,63 +80,70 @@ async def main():
 
     # 5. Query task information
     print("\n5️⃣ Querying task information...")
-    print(f"   Total tasks: {len(manager.list_tasks())}")
+    tasks = manager.list_tasks()
+    print(f"   Total tasks: {len(tasks)}")
 
-    for tracer in manager.list_tasks():
-        print(f"\n   Task ID: {tracer.id}")
-        events = tracer.list_events()
-        print(f"   Total events: {len(events)}")
+    for task_runtime in tasks:
+        print(f"\n   Task ID: {task_runtime.id}")
 
-        for event in events:
-            print(f"\n   📊 Event Details:")
-            print(f"      Agent: {event.agent_name}")
-            print(f"      Status: {event.status.value}")
-            print(f"      Query: {event.query}")
-            if event.duration:
-                print(f"      Duration: {event.duration:.2f}s")
-            if event.result:
-                print(f"      Result: {event.result}")
+        # Get the task monitor to access steps
+        task_monitor = manager.get_task(task_runtime.id)
+        if task_monitor:
+            steps = task_monitor.list_steps()
+            print(f"   Total steps: {len(steps)}")
+
+            for step in steps:
+                print(f"\n   📊 Step Details:")
+                print(f"      Agent: {step.agent_name}")
+                print(f"      Status: {step.status.value}")
+                if step.duration:
+                    print(f"      Duration: {step.duration:.2f}s")
 
     # 6. Custom statistics
     print("\n6️⃣ Custom statistics...")
-    total_events = 0
+    total_steps = 0
     status_counts = {}
 
-    for tracer in manager.list_tasks():
-        for event in tracer.list_events():
-            total_events += 1
-            status = event.status.value
-            status_counts[status] = status_counts.get(status, 0) + 1
+    for task_runtime in manager.list_tasks():
+        task_monitor = manager.get_task(task_runtime.id)
+        if task_monitor:
+            for step in task_monitor.list_steps():
+                total_steps += 1
+                status = step.status.value
+                status_counts[status] = status_counts.get(status, 0) + 1
 
-    print(f"   Total events: {total_events}")
+    print(f"   Total steps: {total_steps}")
     print(f"   By status:")
     for status, count in status_counts.items():
         print(f"      {status}: {count}")
 
-    # 7. Save task history
-    print("\n7️⃣ Saving task history...")
-    manager.save()
-    print(f"✅ Task history saved")
-    print(f"   Each task saved as: ./data/task_{{tracer_id}}.json")
+    # 7. Task persistence
+    print("\n7️⃣ Task persistence...")
+    print(f"✅ Tasks are automatically persisted to disk")
+    print(f"   Each task saved in: {output_dir}/task_<task_id>/")
 
-    # List saved files
+    # List saved task directories
     import os
-    task_files = [f for f in os.listdir(str(output_dir)) if f.startswith("task_")]
-    print(f"   Found {len(task_files)} task files:")
-    for f in task_files:
-        print(f"      - {f}")
+    task_dirs = [d for d in os.listdir(str(output_dir)) if d.startswith("task_")]
+    print(f"   Found {len(task_dirs)} task directories:")
+    for d in task_dirs[:3]:  # Show first 3
+        print(f"      - {d}")
+    if len(task_dirs) > 3:
+        print(f"      ... and {len(task_dirs) - 3} more")
 
     # 8. Demonstrate loading
-    print("\n8️⃣ Demonstrating load from directory...")
-    new_manager = TaskManager(output_dir=output_dir)
+    print("\n8️⃣ Demonstrating load from repository...")
+    new_repo = FileTaskRuntimeRepository(output_dir=output_dir)
+    new_manager = TaskManager(runtime_repo=new_repo)
     print(f"✅ Automatically loaded {len(new_manager.list_tasks())} tasks")
-    print(f"   Tasks are loaded from all task_*.json files in output_dir")
+    print(f"   Tasks are loaded from repository on demand")
 
     print("\n" + "=" * 60)
     print("Example completed successfully! 🎉")
     print("=" * 60)
-    print("\n💡 Tip: Each task is saved in its own file for easy management")
-    print("💡 Tip: TaskManager automatically loads all tasks on initialization")
+    print("\n💡 Tip: Each task is saved in its own directory with task.json and steps/")
+    print("💡 Tip: TaskManager uses FileTaskRuntimeRepository for persistence")
+    print("💡 Tip: Tasks are automatically persisted when created with a repository")
 
 
 if __name__ == "__main__":

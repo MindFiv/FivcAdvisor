@@ -3,20 +3,24 @@ __all__ = [
     "run_assessing_task",
     "run_planning_task",
     "run_executing_task",
-    "TaskTracer",
-    "TaskEvent",
+    "TaskMonitor",
+    "TaskRuntimeStep",
     "TaskStatus",
     "TaskManager",
+    "default_manager",
 ]
 
 from typing import Optional
 
-from strands.multiagent import SwarmResult
+from strands.multiagent import MultiAgentResult
 
-from fivcadvisor import schemas
-from fivcadvisor import agents
-from fivcadvisor import tools
-from fivcadvisor.tasks.types import TaskTracer, TaskEvent, TaskStatus, TaskManager
+from fivcadvisor import agents, schemas, tools, utils
+from fivcadvisor.tasks.types import (
+    TaskMonitor,
+    TaskRuntimeStep,
+    TaskStatus,
+    TaskManager,
+)
 
 
 async def run_tooling_task(
@@ -85,7 +89,7 @@ async def run_executing_task(
     plan: schemas.TaskTeam,
     tools_retriever: Optional[tools.ToolsRetriever] = None,
     **kwargs,
-) -> SwarmResult:
+) -> MultiAgentResult:
     """Run an execution task using a swarm of agents.
 
     Args:
@@ -107,3 +111,6 @@ async def run_executing_task(
 
     # Execute the query using the swarm
     return await swarm.invoke_async(query)
+
+
+default_manager = utils.create_lazy_value(lambda: TaskManager())

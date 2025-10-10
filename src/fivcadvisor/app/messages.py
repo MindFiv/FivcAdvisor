@@ -4,7 +4,7 @@ from typing import List, Optional
 import streamlit as st
 from strands.types.content import Message
 from strands.types.session import SessionMessage
-from fivcadvisor.app.tools import ToolsRenderer
+from fivcadvisor.app.tools import MessageToolListRenderer
 
 
 def process_think_tags(text: str) -> str:
@@ -91,7 +91,7 @@ def process_think_tags(text: str) -> str:
 class MessagesRenderer(object):
     def __init__(self, messages: List[SessionMessage]):
         self.messages = messages
-        self.tool_traces = ToolsRenderer()
+        self.tool_traces = MessageToolListRenderer()
 
     def render(self):
         for message in self.messages:

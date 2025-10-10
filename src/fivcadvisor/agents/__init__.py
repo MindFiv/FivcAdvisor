@@ -8,11 +8,14 @@ __all__ = [
     "create_evaluating_agent",
     "create_generic_agent_swarm",
     "default_retriever",
+    "default_agent",
     "AgentsRetriever",
     "ToolFilteringConversationManager",
 ]
 
-from typing import cast, List, Optional, Callable
+from typing import cast, List, Optional
+from uuid import uuid4
+# from typing import Callable
 
 from strands.agent import Agent
 from strands.multiagent import Swarm
@@ -71,14 +74,14 @@ def create_default_agent(*args, **kwargs) -> Agent:
 
     agent = Agent(*args, **kwargs)
 
-    if isinstance(agent.callback_handler, Callable):
-        callback = agent.callback_handler
-
-        def _callback_wrapper(**cb_kwargs):
-            cb_kwargs["agent"] = agent
-            callback(**cb_kwargs)
-
-        agent.callback_handler = _callback_wrapper
+    # if isinstance(agent.callback_handler, Callable):
+    #     callback = agent.callback_handler
+    #
+    #     def _callback_wrapper(**cb_kwargs):
+    #         cb_kwargs["agent"] = agent
+    #         callback(**cb_kwargs)
+    #
+    #     agent.callback_handler = _callback_wrapper
 
     return agent
 
@@ -230,6 +233,7 @@ def create_generic_agent_swarm(
         s_tools = [t for t in s_tools if t is not None]
         s_agents.append(
             create_default_agent(
+                agent_id=str(uuid4()),
                 name=s.name,
                 tools=s_tools,
                 system_prompt=s.backstory,
@@ -261,3 +265,4 @@ def _load_retriever() -> AgentsRetriever:
 
 
 default_retriever = utils.create_lazy_value(_load_retriever)
+default_agent = utils.create_lazy_value(lambda: create_companion_agent())

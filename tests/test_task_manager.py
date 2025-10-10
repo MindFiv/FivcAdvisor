@@ -7,7 +7,13 @@ import os
 import tempfile
 from unittest.mock import Mock, patch
 
-from fivcadvisor.tasks.types import TaskManager, TaskTracer, TaskEvent, TaskStatus
+from fivcadvisor.tasks.types import (
+    TaskManager,
+    TaskMonitor,
+    TaskRuntimeStep,
+    TaskStatus,
+)
+from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
 from fivcadvisor import schemas
 from fivcadvisor.utils import OutputDir
 
@@ -17,156 +23,166 @@ class TestTaskManager:
 
     def test_initialization(self):
         """Test TaskManager initialization"""
-        manager = TaskManager()
-
-        assert manager.tracers == {}
-        assert manager.output_dir is not None
-        assert isinstance(manager.output_dir, OutputDir)
-        assert manager.auto_save is False
-
-    def test_initialization_with_output_dir(self):
-        """Test TaskManager initialization with output directory"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            manager = TaskManager(output_dir=output_dir)
-            assert manager.output_dir == output_dir
-            assert str(manager.output_dir) == str(output_dir)
+            repo = FileTaskRuntimeRepository(output_dir=output_dir)
+            manager = TaskManager(runtime_repo=repo)
+
+            # Manager should have a repository
+            assert manager._repo is not None
+            assert isinstance(manager._repo, FileTaskRuntimeRepository)
+
+    def test_initialization_with_default_repo(self):
+        """Test TaskManager initialization with default repository"""
+        manager = TaskManager()
+
+        # Should create a default FileTaskRuntimeRepository
+        assert manager._repo is not None
+        assert isinstance(manager._repo, FileTaskRuntimeRepository)
 
     def test_create_task(self):
         """Test creating a task"""
-        manager = TaskManager()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileTaskRuntimeRepository(output_dir=output_dir)
+            manager = TaskManager(runtime_repo=repo)
 
-        plan = schemas.TaskTeam(
-            specialists=[
-                schemas.TaskTeam.Specialist(
-                    name="TestAgent",
-                    backstory="Test backstory",
-                    tools=["calculator"],
-                )
-            ]
-        )
+            plan = schemas.TaskTeam(
+                specialists=[
+                    schemas.TaskTeam.Specialist(
+                        name="TestAgent",
+                        backstory="Test backstory",
+                        tools=["calculator"],
+                    )
+                ]
+            )
 
-        with patch("fivcadvisor.agents.create_generic_agent_swarm") as mock_create:
-            mock_swarm = Mock()
-            mock_create.return_value = mock_swarm
+            with patch("fivcadvisor.agents.create_generic_agent_swarm") as mock_create:
+                mock_swarm = Mock()
+                mock_create.return_value = mock_swarm
 
-            swarm = manager.create_task(plan=plan)
+                swarm = manager.create_task(plan=plan)
 
-            assert swarm == mock_swarm
-            assert len(manager.tracers) == 1
-            mock_create.assert_called_once()
+                assert swarm == mock_swarm
+                # Verify that create_generic_agent_swarm was called with hooks
+                mock_create.assert_called_once()
+                call_kwargs = mock_create.call_args[1]
+                assert "hooks" in call_kwargs
+                assert len(call_kwargs["hooks"]) == 1
+                assert isinstance(call_kwargs["hooks"][0], TaskMonitor)
 
     def test_list_tasks(self):
         """Test listing tasks"""
-        manager = TaskManager()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileTaskRuntimeRepository(output_dir=output_dir)
+            manager = TaskManager(runtime_repo=repo)
 
-        # Add some tracers manually
-        tracer1 = TaskTracer()
-        tracer2 = TaskTracer()
-        manager.tracers[tracer1.id] = tracer1
-        manager.tracers[tracer2.id] = tracer2
+            # Create some tasks through the repository
+            monitor1 = TaskMonitor(runtime_repo=repo)
+            monitor2 = TaskMonitor(runtime_repo=repo)
 
-        tasks = manager.list_tasks()
-        assert len(tasks) == 2
-        assert tracer1 in tasks
-        assert tracer2 in tasks
+            tasks = manager.list_tasks()
+            assert len(tasks) == 2
+
+            # Verify task IDs are in the list
+            task_ids = {task.id for task in tasks}
+            assert monitor1.id in task_ids
+            assert monitor2.id in task_ids
 
     def test_get_task(self):
         """Test getting a specific task"""
-        manager = TaskManager()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileTaskRuntimeRepository(output_dir=output_dir)
+            manager = TaskManager(runtime_repo=repo)
 
-        tracer = TaskTracer()
-        manager.tracers[tracer.id] = tracer
+            monitor = TaskMonitor(runtime_repo=repo)
 
-        result = manager.get_task(tracer.id)
-        assert result == tracer
+            result = manager.get_task(monitor.id)
+            assert result is not None
+            assert result.id == monitor.id
 
-        result = manager.get_task("nonexistent")
-        assert result is None
+            result = manager.get_task("nonexistent")
+            assert result is None
 
     def test_delete_task(self):
         """Test deleting a task"""
-        manager = TaskManager()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileTaskRuntimeRepository(output_dir=output_dir)
+            manager = TaskManager(runtime_repo=repo)
 
-        tracer = TaskTracer()
-        manager.tracers[tracer.id] = tracer
+            monitor = TaskMonitor(runtime_repo=repo)
 
-        assert len(manager.tracers) == 1
+            assert len(manager.list_tasks()) == 1
 
-        manager.delete_task(tracer.id)
+            manager.delete_task(monitor.id)
 
-        assert len(manager.tracers) == 0
-
-    def test_cleanup(self):
-        """Test cleanup"""
-        manager = TaskManager()
-
-        tracer1 = TaskTracer()
-        tracer2 = TaskTracer()
-        manager.tracers[tracer1.id] = tracer1
-        manager.tracers[tracer2.id] = tracer2
-
-        assert len(manager.tracers) == 2
-
-        manager.cleanup()
-
-        assert len(manager.tracers) == 0
+            assert len(manager.list_tasks()) == 0
 
     def test_save_and_load(self):
-        """Test saving and loading"""
+        """Test saving and loading tasks"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
+            repo = FileTaskRuntimeRepository(output_dir=output_dir)
 
             # Create manager and add data
-            manager1 = TaskManager(output_dir=output_dir)
+            _ = TaskManager(runtime_repo=repo)
 
-            tracer = TaskTracer()
-            event = TaskEvent(
+            monitor = TaskMonitor(runtime_repo=repo)
+            step = TaskRuntimeStep(
+                id="1",
                 agent_name="Agent1",
-                agent_id="1",
-                query="test query",
                 status=TaskStatus.COMPLETED,
             )
-            tracer._events["1"] = event
+            monitor.steps["1"] = step
 
-            manager1.tracers[tracer.id] = tracer
+            # Persist the data
+            monitor.persist()
 
-            # Save - creates task_{tracer.id}.json
-            manager1.save()
+            # Verify task directory was created
+            task_dir = os.path.join(tmpdir, f"task_{monitor.id}")
+            assert os.path.exists(task_dir)
 
-            # Verify file was created
-            expected_file = os.path.join(tmpdir, f"task_{tracer.id}.json")
-            assert os.path.exists(expected_file)
+            # Load in new manager with same repository
+            manager2 = TaskManager(runtime_repo=repo)
 
-            # Load in new manager
-            manager2 = TaskManager(output_dir=output_dir)
+            tasks = manager2.list_tasks()
+            assert len(tasks) == 1
 
-            assert len(manager2.tracers) == 1
-            loaded_tracer = list(manager2.tracers.values())[0]
-            assert len(loaded_tracer.list_events()) == 1
-            loaded_event = loaded_tracer.list_events()[0]
-            assert loaded_event.agent_name == "Agent1"
-            assert loaded_event.query == "test query"
+            # Load the task runtime
+            loaded_task = manager2.get_task(monitor.id)
+            assert loaded_task is not None
 
-    def test_auto_save(self):
-        """Test auto-save functionality"""
+            # Load steps through the loaded task monitor
+            loaded_steps = loaded_task.list_steps()
+            assert len(loaded_steps) == 1
+            assert loaded_steps[0].agent_name == "Agent1"
+
+    def test_list_steps(self):
+        """Test listing steps for a task"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
-            manager = TaskManager(output_dir=output_dir, auto_save=True)
+            repo = FileTaskRuntimeRepository(output_dir=output_dir)
+            manager = TaskManager(runtime_repo=repo)
 
-            tracer = TaskTracer()
-            tracer_id = tracer.id
-            manager.tracers[tracer_id] = tracer
+            monitor = TaskMonitor(runtime_repo=repo)
 
-            # Manually save to create file
-            tracer.save(os.path.join(tmpdir, f"task_{tracer_id}.json"))
+            # Add some steps
+            step1 = TaskRuntimeStep(id="1", agent_name="Agent1")
+            step2 = TaskRuntimeStep(id="2", agent_name="Agent2")
+            monitor.steps["1"] = step1
+            monitor.steps["2"] = step2
+            monitor.persist()
 
-            # Verify file was created
-            expected_file = os.path.join(tmpdir, f"task_{tracer_id}.json")
-            assert os.path.exists(expected_file)
+            # Get task and list steps through the monitor
+            task = manager.get_task(monitor.id)
+            assert task is not None
 
-            # Trigger auto-save by deleting
-            manager.delete_task(tracer_id)
+            steps = task.list_steps()
+            assert len(steps) == 2
 
-            # Verify file was deleted
-            assert not os.path.exists(expected_file)
+            step_ids = {step.id for step in steps}
+            assert "1" in step_ids
+            assert "2" in step_ids

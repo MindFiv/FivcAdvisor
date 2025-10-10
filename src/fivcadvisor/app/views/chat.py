@@ -8,7 +8,7 @@ import streamlit as st
 import asyncio
 
 from fivcadvisor.app.messages import MessageCallback, MessagesRenderer
-from fivcadvisor.app.tools import ToolCallback
+from fivcadvisor.app.tools import MessageToolCallback
 
 
 def render():
@@ -38,7 +38,7 @@ def render_simple_response(query: str, chat_session):
     """Render simple streaming response"""
 
     tool_placeholder = st.empty()
-    tool_callback = ToolCallback(tool_placeholder)
+    tool_callback = MessageToolCallback(tool_placeholder)
 
     with st.chat_message("assistant"):
         stream_placeholder = st.empty()

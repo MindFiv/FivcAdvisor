@@ -112,10 +112,6 @@ class ChatSession(object):
                 if self.on_stream and isinstance(chunk, str):
                     self.on_stream(chunk)
 
-            # elif "messageStop" in event:
-            #     if self.on_stream:
-            #         self.on_stream("")
-
         elif "message" in kwargs:
             message = cast(Message, kwargs["message"])
             for content in message.get("content"):

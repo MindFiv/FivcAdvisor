@@ -1,38 +1,36 @@
 #!/usr/bin/env python3
 """
-Tests for TaskTracer functionality.
+Tests for TaskMonitor functionality.
 """
 
 from unittest.mock import Mock
 from datetime import datetime
 
-from fivcadvisor.tasks.types import TaskTracer, TaskEvent, TaskStatus
+from fivcadvisor.tasks.types import TaskMonitor, TaskRuntimeStep, TaskStatus
 
 
-class TestTaskEvent:
-    """Tests for TaskEvent class"""
+class TestTaskTrace:
+    """Tests for TaskRuntimeStep class"""
 
     def test_initialization(self):
-        """Test TaskEvent initialization"""
-        event = TaskEvent(
+        """Test TaskRuntimeStep initialization"""
+        event = TaskRuntimeStep(
+            id="test-123",
             agent_name="TestAgent",
-            agent_id="test-123",
-            query="test query",
         )
 
         assert event.agent_name == "TestAgent"
-        assert event.agent_id == "test-123"
-        assert event.query == "test query"
-        assert event.status == TaskStatus.IDLE
+        assert event.id == "test-123"
+        assert event.agent_id == "test-123"  # computed field
+        assert event.status == TaskStatus.PENDING
         assert event.started_at is None
         assert event.completed_at is None
         assert event.messages == []
         assert event.error is None
-        assert event.result is None
 
     def test_duration_calculation(self):
         """Test duration calculation"""
-        event = TaskEvent(agent_name="TestAgent")
+        event = TaskRuntimeStep(agent_name="TestAgent")
 
         # No duration when not started
         assert event.duration is None
@@ -46,11 +44,11 @@ class TestTaskEvent:
 
     def test_is_running(self):
         """Test is_running property"""
-        event = TaskEvent(agent_name="TestAgent")
+        event = TaskRuntimeStep(agent_name="TestAgent")
 
         assert not event.is_running
 
-        event.status = TaskStatus.RUNNING
+        event.status = TaskStatus.EXECUTING
         assert event.is_running
 
         event.status = TaskStatus.COMPLETED
@@ -58,11 +56,11 @@ class TestTaskEvent:
 
     def test_is_completed(self):
         """Test is_completed property"""
-        event = TaskEvent(agent_name="TestAgent")
+        event = TaskRuntimeStep(agent_name="TestAgent")
 
         assert not event.is_completed
 
-        event.status = TaskStatus.RUNNING
+        event.status = TaskStatus.EXECUTING
         assert not event.is_completed
 
         event.status = TaskStatus.COMPLETED
@@ -73,77 +71,77 @@ class TestTaskEvent:
 
     def test_model_dump(self):
         """Test Pydantic model_dump"""
-        event = TaskEvent(
+        event = TaskRuntimeStep(
+            id="test-123",
             agent_name="TestAgent",
-            agent_id="test-123",
-            query="test query",
         )
-        event.status = TaskStatus.RUNNING
+        event.status = TaskStatus.EXECUTING
         event.started_at = datetime(2024, 1, 1, 12, 0, 0)
-        event.messages.append({"role": "user", "content": "test"})
+        from strands.types.content import Message
+
+        event.messages.append(Message(role="user", content="test"))
 
         # Test with messages included (default)
         result = event.model_dump(mode="json")
 
         assert result["agent_name"] == "TestAgent"
-        assert result["agent_id"] == "test-123"
-        assert result["query"] == "test query"
-        assert result["status"] == "running"
+        assert result["id"] == "test-123"
+        assert result["agent_id"] == "test-123"  # computed field
+        assert result["status"] == "executing"  # TaskStatus.EXECUTING value
         assert result["started_at"] == "2024-01-01T12:00:00"
         assert "messages" in result
         assert len(result["messages"]) == 1
-        assert "result" in result
 
         # Test without messages (compact mode)
         result_compact = event.model_dump(mode="json", exclude={"messages"})
         assert "messages" not in result_compact
 
 
-class TestTaskTracer:
-    """Tests for TaskTracer class"""
+class TestTaskMonitor:
+    """Tests for TaskMonitor class"""
 
     def test_initialization(self):
-        """Test TaskTracer initialization"""
-        tracer = TaskTracer()
+        """Test TaskMonitor initialization"""
+        monitor = TaskMonitor()
 
-        assert tracer.on_event is None
-        assert tracer.list_events() == []
+        assert monitor._on_event is None
+        assert monitor.list_steps() == []
 
     def test_initialization_with_callbacks(self):
-        """Test TaskTracer initialization with callbacks"""
+        """Test TaskMonitor initialization with callbacks"""
         on_event = Mock()
 
-        tracer = TaskTracer(on_event=on_event)
+        monitor = TaskMonitor(on_event=on_event)
 
-        assert tracer.on_event == on_event
+        assert monitor._on_event == on_event
 
     def test_callback_handler(self):
-        """Test callback handler is callable"""
-        tracer = TaskTracer()
+        """Test callback handler is callable (deprecated)"""
+        monitor = TaskMonitor()
 
-        # Tracer should be callable
-        assert callable(tracer)
+        # Monitor should be callable (deprecated but still works)
+        assert callable(monitor)
 
     def test_agent_start(self):
         """Test agent start event handling"""
         on_event = Mock()
-        tracer = TaskTracer(on_event=on_event)
+        monitor = TaskMonitor(on_event=on_event)
 
         # Create mock agent
         mock_agent = Mock()
         mock_agent.name = "TestAgent"
         mock_agent.agent_id = "test-123"
+        mock_agent.messages = []
 
-        # Trigger start event
-        tracer(mock_agent, query="test query")
+        # Trigger start event using deprecated __call__ method
+        monitor(mock_agent)
 
         # Verify event was created
-        event = tracer.get_event("test-123")
+        event = monitor.get_step("test-123")
         assert event is not None
         assert event.agent_name == "TestAgent"
         assert event.agent_id == "test-123"
-        assert event.query == "test query"
-        assert event.status == TaskStatus.RUNNING
+        assert event.status == TaskStatus.EXECUTING
         assert event.started_at is not None
 
         # Verify callback was called
@@ -152,80 +150,85 @@ class TestTaskTracer:
     def test_completion_success(self):
         """Test completion event handling (success)"""
         on_event = Mock()
-        tracer = TaskTracer(on_event=on_event)
+        monitor = TaskMonitor(on_event=on_event)
 
         # Setup: create an event first
         mock_agent = Mock()
         mock_agent.name = "TestAgent"
         mock_agent.agent_id = "test-123"
+        mock_agent.messages = []
 
-        tracer(mock_agent, query="test query")
+        monitor(mock_agent)
 
-        # Trigger completion event
-        tracer(mock_agent, result="test result")
+        # Trigger completion event using deprecated __call__ method
+        monitor(mock_agent, result="test result")
 
         # Verify event was updated
-        event = tracer.get_event("test-123")
+        event = monitor.get_step("test-123")
         assert event.status == TaskStatus.COMPLETED
         assert event.completed_at is not None
-        assert event.result == "test result"
         assert event.error is None
 
     def test_completion_failure(self):
         """Test completion event handling (failure)"""
-        tracer = TaskTracer()
+        monitor = TaskMonitor()
 
         # Setup: create an event first
         mock_agent = Mock()
         mock_agent.name = "TestAgent"
         mock_agent.agent_id = "test-123"
+        mock_agent.messages = []
 
-        tracer(mock_agent, query="test query")
+        monitor(mock_agent)
 
-        # Trigger completion event with error
-        tracer(mock_agent, error=Exception("Test error"))
+        # Trigger completion event with error using deprecated __call__ method
+        monitor(mock_agent, error=Exception("Test error"))
 
         # Verify event was updated
-        event = tracer.get_event("test-123")
+        event = monitor.get_step("test-123")
         assert event.status == TaskStatus.FAILED
         assert event.error == "Test error"
 
     def test_message_added(self):
         """Test message added event handling"""
-        tracer = TaskTracer()
+        monitor = TaskMonitor()
 
         # Setup: create an event first
         mock_agent = Mock()
         mock_agent.name = "TestAgent"
         mock_agent.agent_id = "test-123"
+        mock_agent.messages = []
 
-        tracer(mock_agent, query="test query")
+        monitor(mock_agent)
 
         # Create message event
-        message = {"role": "user", "content": [{"text": "test"}]}
+        from strands.types.content import Message
 
-        # Trigger message event
-        tracer(mock_agent, message=message)
+        message = Message(role="user", content="test")
+
+        # Trigger message event using deprecated __call__ method
+        monitor(mock_agent, message=message)
 
         # Verify message was stored
-        event = tracer.get_event("test-123")
+        event = monitor.get_step("test-123")
         assert len(event.messages) == 1
         assert event.messages[0] == message
 
     def test_list_events(self):
         """Test listing events"""
-        tracer = TaskTracer()
+        monitor = TaskMonitor()
 
-        # Create multiple events
+        # Create multiple events using deprecated __call__ method
         for i in range(3):
             mock_agent = Mock()
             mock_agent.name = f"Agent{i}"
             mock_agent.agent_id = f"id-{i}"
+            mock_agent.messages = []
 
-            tracer(mock_agent, query=f"query {i}")
+            monitor(mock_agent)
 
         # Get all events
-        events = tracer.list_events()
+        events = monitor.list_steps()
         assert len(events) == 3
 
         # Verify all agents are present
@@ -234,60 +237,64 @@ class TestTaskTracer:
 
     def test_get_event_by_agent_id(self):
         """Test getting event by agent_id"""
-        tracer = TaskTracer()
+        monitor = TaskMonitor()
 
-        # Create multiple events
+        # Create multiple events using deprecated __call__ method
         for i in range(3):
             mock_agent = Mock()
             mock_agent.name = f"Agent{i}"
             mock_agent.agent_id = f"id-{i}"
+            mock_agent.messages = []
 
-            tracer(mock_agent, query=f"query {i}")
+            monitor(mock_agent)
 
         # Get specific event
-        event = tracer.get_event("id-1")
+        event = monitor.get_step("id-1")
         assert event is not None
         assert event.agent_name == "Agent1"
         assert event.agent_id == "id-1"
 
         # Non-existent ID
-        event = tracer.get_event("non-existent")
+        event = monitor.get_step("non-existent")
         assert event is None
 
     def test_cleanup(self):
         """Test cleanup events"""
-        tracer = TaskTracer()
+        monitor = TaskMonitor()
 
-        # Create some events
+        # Create some events using deprecated __call__ method
         mock_agent = Mock()
         mock_agent.name = "TestAgent"
         mock_agent.agent_id = "test-123"
+        mock_agent.messages = []
 
-        tracer(mock_agent, query="test query")
+        monitor(mock_agent)
 
-        assert len(tracer.list_events()) == 1
+        assert len(monitor.list_steps()) == 1
 
         # Clear events
-        tracer.cleanup()
+        monitor.cleanup()
 
-        assert len(tracer.list_events()) == 0
+        assert len(monitor.list_steps()) == 0
 
         # Test clearing specific agent
         mock_agent1 = Mock()
         mock_agent1.name = "Agent1"
         mock_agent1.agent_id = "id-1"
+        mock_agent1.messages = []
 
         mock_agent2 = Mock()
         mock_agent2.name = "Agent2"
         mock_agent2.agent_id = "id-2"
+        mock_agent2.messages = []
 
-        tracer(mock_agent1, query="query 1")
-        tracer(mock_agent2, query="query 2")
+        monitor(mock_agent1)
+        monitor(mock_agent2)
 
-        assert len(tracer.list_events()) == 2
+        assert len(monitor.list_steps()) == 2
 
         # Clear only one agent
-        tracer.cleanup(agent_id="id-1")
-        assert len(tracer.list_events()) == 1
-        assert tracer.get_event("id-1") is None
-        assert tracer.get_event("id-2") is not None
+        monitor.cleanup(step_id="id-1")
+        assert len(monitor.list_steps()) == 1
+        assert monitor.get_step("id-1") is None
+        assert monitor.get_step("id-2") is not None

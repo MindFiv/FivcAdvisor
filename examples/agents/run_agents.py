@@ -4,7 +4,7 @@ from typing import Any
 
 import dotenv
 from strands.hooks import HookProvider, HookRegistry, BeforeInvocationEvent, AfterInvocationEvent, MessageAddedEvent
-from strands.handlers.callback_handler import PrintingCallbackHandler
+# from strands.handlers.callback_handler import PrintingCallbackHandler
 
 from fivcadvisor import agents
 

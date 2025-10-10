@@ -16,40 +16,40 @@ from datetime import datetime
 from collections import defaultdict
 from fivcadvisor import schemas, tools
 from fivcadvisor.tasks.types import TaskManager, TaskStatus
+from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
 from fivcadvisor.utils import OutputDir
 
 dotenv.load_dotenv()
 
 
-class TaskMonitor:
-    """Custom task monitor with advanced tracking"""
+class StepTracker:
+    """Custom step tracker with advanced tracking"""
 
     def __init__(self):
-        self.events = []
+        self.steps = []
         self.start_time = datetime.now()
 
-    def on_event(self, event):
-        """Track all events"""
-        self.events.append({
+    def on_step_update(self, step):
+        """Track all execution steps"""
+        self.steps.append({
             "timestamp": datetime.now(),
-            "agent": event.agent_name,
-            "status": event.status.value,
-            "query": event.query,
+            "agent": step.agent_name,
+            "status": step.status.value,
         })
         print(f"   [{datetime.now().strftime('%H:%M:%S')}] "
-              f"{event.agent_name}: {event.status.value}")
+              f"{step.agent_name}: {step.status.value}")
 
     def get_summary(self):
         """Generate custom summary"""
         duration = (datetime.now() - self.start_time).total_seconds()
         return {
-            "total_events": len(self.events),
+            "total_steps": len(self.steps),
             "duration": duration,
-            "events_per_second": len(self.events) / duration if duration > 0 else 0,
+            "steps_per_second": len(self.steps) / duration if duration > 0 else 0,
         }
 
 
-async def create_and_run_task(manager, task_name, query, monitor):
+async def create_and_run_task(manager, task_name, query, step_tracker):
     """Helper function to create and run a task"""
     print(f"\n🚀 Starting task: {task_name}")
     print(f"   Query: {query}")
@@ -66,14 +66,14 @@ async def create_and_run_task(manager, task_name, query, monitor):
     )
 
     # Create and execute task
-    task = manager.create_task(
+    swarm = manager.create_task(
         plan=plan,
         tools_retriever=tools.default_retriever,
-        on_event=monitor.on_event,
+        on_event=step_tracker.on_step_update,
     )
 
     try:
-        result = await task.invoke_async(query)
+        result = await swarm.invoke_async(query)
         print(f"✅ {task_name} completed: {result}")
         return result
     except Exception as e:
@@ -87,13 +87,15 @@ async def main():
     print("=" * 70)
 
     # Initialize
-    manager = TaskManager(
-        auto_save=True,
-    )
-    output_dir = manager.output_dir
+    output_dir = OutputDir().subdir('tasks')
+    repo = FileTaskRuntimeRepository(output_dir=output_dir)
+    manager = TaskManager(runtime_repo=repo)
+
     print(f"Output directory: {output_dir}")
-    print(f"Auto-save: Enabled (each task saved as task_{{tracer_id}}.json)")
-    monitor = TaskMonitor()
+    print(f"Repository: FileTaskRuntimeRepository")
+    print(f"Tasks will be saved in: {output_dir}/task_<task_id>/")
+
+    step_tracker = StepTracker()
 
     # Define multiple tasks
     tasks = [
@@ -106,7 +108,7 @@ async def main():
     print("\n📋 Executing multiple tasks...")
     results = []
     for task_name, query in tasks:
-        result = await create_and_run_task(manager, task_name, query, monitor)
+        result = await create_and_run_task(manager, task_name, query, step_tracker)
         results.append((task_name, result))
         await asyncio.sleep(0.5)  # Small delay between tasks
 
@@ -123,36 +125,46 @@ async def main():
     print("📈 Detailed Task Analysis")
     print("=" * 70)
 
-    print(f"\n1️⃣ Total Tasks: {len(manager.list_tasks())}")
+    task_runtimes = manager.list_tasks()
+    print(f"\n1️⃣ Total Tasks: {len(task_runtimes)}")
 
     # Analyze each task
-    for i, tracer in enumerate(manager.list_tasks(), 1):
-        print(f"\n   Task {i}: {tracer.id}")
-        events = tracer.list_events()
-        print(f"   Events: {len(events)}")
+    for i, task_runtime in enumerate(task_runtimes, 1):
+        print(f"\n   Task {i}: {task_runtime.id}")
 
-        for event in events:
-            if event.status == TaskStatus.COMPLETED:
-                print(f"      ✅ Completed in {event.duration:.2f}s")
-            elif event.status == TaskStatus.FAILED:
-                print(f"      ❌ Failed: {event.error}")
-            elif event.status == TaskStatus.RUNNING:
-                print(f"      🔄 Running...")
+        # Get task monitor to access steps
+        task_monitor = manager.get_task(task_runtime.id)
+        if task_monitor:
+            steps = task_monitor.list_steps()
+            print(f"   Steps: {len(steps)}")
+
+            for step in steps:
+                if step.status == TaskStatus.COMPLETED:
+                    if step.duration:
+                        print(f"      ✅ Completed in {step.duration:.2f}s")
+                    else:
+                        print(f"      ✅ Completed")
+                elif step.status == TaskStatus.FAILED:
+                    print(f"      ❌ Failed: {step.error}")
+                elif step.status == TaskStatus.EXECUTING:
+                    print(f"      🔄 Running...")
 
     # Custom statistics
     print("\n2️⃣ Custom Statistics:")
-    
+
     # Count by status
     status_counts = defaultdict(int)
     total_duration = 0
     completed_count = 0
 
-    for tracer in manager.list_tasks():
-        for event in tracer.list_events():
-            status_counts[event.status.value] += 1
-            if event.status == TaskStatus.COMPLETED and event.duration:
-                total_duration += event.duration
-                completed_count += 1
+    for task_runtime in manager.list_tasks():
+        task_monitor = manager.get_task(task_runtime.id)
+        if task_monitor:
+            for step in task_monitor.list_steps():
+                status_counts[step.status.value] += 1
+                if step.status == TaskStatus.COMPLETED and step.duration:
+                    total_duration += step.duration
+                    completed_count += 1
 
     print(f"\n   Status Distribution:")
     for status, count in status_counts.items():
@@ -164,76 +176,81 @@ async def main():
         print(f"      Average duration: {avg_duration:.2f}s")
         print(f"      Total duration: {total_duration:.2f}s")
 
-    # Monitor summary
-    print("\n3️⃣ Monitor Summary:")
-    summary = monitor.get_summary()
-    print(f"   Total events tracked: {summary['total_events']}")
+    # Step tracker summary
+    print("\n3️⃣ Step Tracker Summary:")
+    summary = step_tracker.get_summary()
+    print(f"   Total steps tracked: {summary['total_steps']}")
     print(f"   Total time: {summary['duration']:.2f}s")
-    print(f"   Events/second: {summary['events_per_second']:.2f}")
+    print(f"   Steps/second: {summary['steps_per_second']:.2f}")
 
-    # Filter events by status
-    print("\n4️⃣ Event Filtering:")
-    
-    completed_events = []
-    failed_events = []
-    
-    for tracer in manager.list_tasks():
-        for event in tracer.list_events():
-            if event.status == TaskStatus.COMPLETED:
-                completed_events.append(event)
-            elif event.status == TaskStatus.FAILED:
-                failed_events.append(event)
+    # Filter steps by status
+    print("\n4️⃣ Step Filtering:")
 
-    print(f"   Completed events: {len(completed_events)}")
-    print(f"   Failed events: {len(failed_events)}")
+    completed_steps = []
+    failed_steps = []
+
+    for task_runtime in manager.list_tasks():
+        task_monitor = manager.get_task(task_runtime.id)
+        if task_monitor:
+            for step in task_monitor.list_steps():
+                if step.status == TaskStatus.COMPLETED:
+                    completed_steps.append(step)
+                elif step.status == TaskStatus.FAILED:
+                    failed_steps.append(step)
+
+    print(f"   Completed steps: {len(completed_steps)}")
+    print(f"   Failed steps: {len(failed_steps)}")
 
     # Task cleanup demonstration
     print("\n5️⃣ Task Management:")
-    print(f"   Current tasks: {len(manager.list_tasks())}")
-    
+    task_list = manager.list_tasks()
+    print(f"   Current tasks: {len(task_list)}")
+
     # Get first task ID
-    if manager.list_tasks():
-        first_task_id = manager.list_tasks()[0].id
+    if task_list:
+        first_task_id = task_list[0].id
         print(f"   Deleting task: {first_task_id}")
         manager.delete_task(first_task_id)
         print(f"   Remaining tasks: {len(manager.list_tasks())}")
 
-    # Save final state
-    print("\n6️⃣ Saving task history...")
-    manager.save()
-    print(f"   ✅ Saved all tasks")
+    # Task persistence
+    print("\n6️⃣ Task persistence...")
+    print(f"   ✅ Tasks are automatically persisted to disk")
 
-    # List saved files
+    # List saved task directories
     import os
-    task_files = [f for f in os.listdir(str(output_dir)) if f.startswith("task_")]
-    print(f"   Found {len(task_files)} task files:")
-    for f in task_files[:3]:  # Show first 3
-        print(f"      - {f}")
-    if len(task_files) > 3:
-        print(f"      ... and {len(task_files) - 3} more")
+    task_dirs = [d for d in os.listdir(str(output_dir)) if d.startswith("task_")]
+    print(f"   Found {len(task_dirs)} task directories:")
+    for d in task_dirs[:3]:  # Show first 3
+        print(f"      - {d}")
+    if len(task_dirs) > 3:
+        print(f"      ... and {len(task_dirs) - 3} more")
 
     # Demonstrate loading and querying
     print("\n7️⃣ Loading and querying saved data...")
-    loaded_manager = TaskManager(output_dir=output_dir)
+    loaded_repo = FileTaskRuntimeRepository(output_dir=output_dir)
+    loaded_manager = TaskManager(runtime_repo=loaded_repo)
 
-    print(f"   Automatically loaded {len(loaded_manager.list_tasks())} tasks")
+    loaded_tasks = loaded_manager.list_tasks()
+    print(f"   Automatically loaded {len(loaded_tasks)} tasks")
 
     # Query specific task
-    if loaded_manager.list_tasks():
-        task_id = loaded_manager.list_tasks()[0].id
+    if loaded_tasks:
+        task_id = loaded_tasks[0].id
         task = loaded_manager.get_task(task_id)
         if task:
             print(f"   Retrieved task: {task_id}")
-            print(f"   Events in task: {len(task.list_events())}")
+            print(f"   Steps in task: {len(task.list_steps())}")
 
     print("\n" + "=" * 70)
     print("Advanced example completed successfully! 🎉")
     print("=" * 70)
 
     # Cleanup option
-    print("\n💡 Tip: Use manager.cleanup() to clear all tasks and files")
-    print("💡 Tip: Each task is saved in its own file for easy management")
-    print(f"💡 Tip: Check {output_dir} directory for all task files")
+    print("\n💡 Tip: Use manager.delete_task(task_id) to delete specific tasks")
+    print("💡 Tip: Each task is saved in its own directory with task.json and steps/")
+    print(f"💡 Tip: Check {output_dir} directory for all task directories")
+    print("💡 Tip: TaskManager uses FileTaskRuntimeRepository for persistence")
 
 
 if __name__ == "__main__":

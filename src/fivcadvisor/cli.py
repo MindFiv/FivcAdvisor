@@ -2,7 +2,7 @@
 """
 FivcAdvisor CLI
 
-Command-line interface for running FivcAdvisor agents and tools.
+Command-line interface for runtime FivcAdvisor agents and tools.
 """
 
 import subprocess
@@ -93,7 +93,7 @@ def run(
             agent(query)
             console.print("[green]✅ Agent completed successfully![/green]")
         except Exception as e:
-            console.print(f"[red]❌ Error running agent: {e}[/red]")
+            console.print(f"[red]❌ Error runtime agent: {e}[/red]")
             raise typer.Exit(1)
 
 
