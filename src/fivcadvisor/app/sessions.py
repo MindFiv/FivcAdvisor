@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional, Callable, List, cast
+from typing import Optional, Callable, List
 
 import streamlit as st
 from strands.agent import (
@@ -7,11 +7,11 @@ from strands.agent import (
     SlidingWindowConversationManager,
     # SummarizingConversationManager,
 )
-from strands.types.session import Message, SessionMessage
-from strands.types.streaming import StreamEvent
+from strands.types.session import SessionMessage
 from strands.session import FileSessionManager
 
 from fivcadvisor import agents, tools, settings, utils
+from fivcadvisor.agents.types import AgentsMonitor
 
 
 class ChatSession(object):
@@ -30,8 +30,7 @@ class ChatSession(object):
             self.session_id,
             str(utils.OutputDir().subdir("sessions")),
         )
-        self.on_tool: Optional[Callable] = None
-        self.on_stream: Optional[Callable] = None
+        self.monitor = AgentsMonitor()
         self.agent_is_running = False
 
         # 使用组合模式：工具过滤 + 滑动窗口管理
@@ -40,7 +39,7 @@ class ChatSession(object):
                 SlidingWindowConversationManager()
             ),
             session_manager=self.session_manager,
-            callback_handler=self._on_callback,
+            callback_handler=self.monitor,
         )
 
     @property
@@ -66,13 +65,15 @@ class ChatSession(object):
             session_id,
             str(utils.OutputDir().subdir("sessions")),
         )
+        # Clean up monitor state for new session
+        self.monitor.cleanup()
         # 使用组合模式：工具过滤 + 滑动窗口管理
         self.agent = agents.create_companion_agent(
             conversation_manager=agents.ToolFilteringConversationManager(
                 SlidingWindowConversationManager()
             ),
             session_manager=self.session_manager,
-            callback_handler=self._on_callback,
+            callback_handler=self.monitor,
         )
 
     @property
@@ -88,33 +89,33 @@ class ChatSession(object):
     async def run(
         self,
         query: str,
-        on_tool: Optional[Callable] = None,
-        on_stream: Optional[Callable] = None,
+        on_event: Optional[Callable] = None,
         **kwargs,
     ) -> AgentResult:
+        """
+        Execute agent query with optional event callback.
+
+        Args:
+            query: User query to process
+            on_event: Optional callback receiving AgentsRuntime after each event.
+                      Provides access to streaming_text, tool_calls, and other
+                      execution state.
+            **kwargs: Additional arguments passed to agent
+
+        Returns:
+            AgentResult from the agent execution
+
+        Raises:
+            ValueError: If agent is already running
+        """
         if self.agent_is_running:
             raise ValueError("Previous query not answered")
 
         try:
-            self.on_tool = on_tool
-            self.on_stream = on_stream
+            # Clean up monitor for new execution and set callback
+            self.monitor.cleanup(on_event=on_event)
+
             self.agent_is_running = True
             return await self.agent.invoke_async(query)
         finally:
             self.agent_is_running = False
-
-    def _on_callback(self, **kwargs):
-        if "event" in kwargs:
-            event = cast(StreamEvent, kwargs["event"])
-            if "contentBlockDelta" in event:
-                chunk = event["contentBlockDelta"].get("delta", {})
-                chunk = chunk and chunk.get("text")
-                if self.on_stream and isinstance(chunk, str):
-                    self.on_stream(chunk)
-
-        elif "message" in kwargs:
-            message = cast(Message, kwargs["message"])
-            for content in message.get("content"):
-                if "toolUse" in content or "toolResult" in content:
-                    if self.on_tool:
-                        self.on_tool(content)

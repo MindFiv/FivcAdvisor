@@ -42,7 +42,7 @@ class TaskRuntimeStep(BaseModel):
 
     @computed_field
     @property
-    def agent_id(self) -> str:  # same as step_id
+    def agent_id(self) -> str:  # same as id
         return self.id
 
     agent_name: str = Field(description="Name of the agent")
@@ -100,6 +100,12 @@ class TaskRuntime(BaseModel):
     id: str = Field(
         default_factory=lambda: str(uuid.uuid4()), description="Unique task ID"
     )
+
+    @computed_field
+    @property
+    def task_id(self) -> str:  # same as id
+        return self.id
+
     status: TaskStatus = Field(
         default=TaskStatus.PENDING, description="Current execution status"
     )

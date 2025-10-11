@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Advanced example demonstrating TaskManager with multiple tasks.
+Advanced example demonstrating TaskMonitorManager with multiple tasks.
 
 This example shows:
 1. Managing multiple concurrent tasks
@@ -15,7 +15,7 @@ import dotenv
 from datetime import datetime
 from collections import defaultdict
 from fivcadvisor import schemas, tools
-from fivcadvisor.tasks.types import TaskManager, TaskStatus
+from fivcadvisor.tasks.types import TaskMonitorManager, TaskStatus
 from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
 from fivcadvisor.utils import OutputDir
 
@@ -83,13 +83,13 @@ async def create_and_run_task(manager, task_name, query, step_tracker):
 
 async def main():
     print("=" * 70)
-    print("TaskManager Advanced Example - Multiple Tasks")
+    print("TaskMonitorManager Advanced Example - Multiple Tasks")
     print("=" * 70)
 
     # Initialize
     output_dir = OutputDir().subdir('tasks')
     repo = FileTaskRuntimeRepository(output_dir=output_dir)
-    manager = TaskManager(runtime_repo=repo)
+    manager = TaskMonitorManager(runtime_repo=repo)
 
     print(f"Output directory: {output_dir}")
     print(f"Repository: FileTaskRuntimeRepository")
@@ -229,7 +229,7 @@ async def main():
     # Demonstrate loading and querying
     print("\n7️⃣ Loading and querying saved data...")
     loaded_repo = FileTaskRuntimeRepository(output_dir=output_dir)
-    loaded_manager = TaskManager(runtime_repo=loaded_repo)
+    loaded_manager = TaskMonitorManager(runtime_repo=loaded_repo)
 
     loaded_tasks = loaded_manager.list_tasks()
     print(f"   Automatically loaded {len(loaded_tasks)} tasks")
@@ -250,7 +250,7 @@ async def main():
     print("\n💡 Tip: Use manager.delete_task(task_id) to delete specific tasks")
     print("💡 Tip: Each task is saved in its own directory with task.json and steps/")
     print(f"💡 Tip: Check {output_dir} directory for all task directories")
-    print("💡 Tip: TaskManager uses FileTaskRuntimeRepository for persistence")
+    print("💡 Tip: TaskMonitorManager uses FileTaskRuntimeRepository for persistence")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for TaskManager functionality.
+Tests for TaskMonitorManager functionality.
 """
 
 import os
@@ -8,7 +8,7 @@ import tempfile
 from unittest.mock import Mock, patch
 
 from fivcadvisor.tasks.types import (
-    TaskManager,
+    TaskMonitorManager,
     TaskMonitor,
     TaskRuntimeStep,
     TaskStatus,
@@ -18,23 +18,23 @@ from fivcadvisor import schemas
 from fivcadvisor.utils import OutputDir
 
 
-class TestTaskManager:
-    """Tests for TaskManager class"""
+class TestTaskMonitorManager:
+    """Tests for TaskMonitorManager class"""
 
     def test_initialization(self):
-        """Test TaskManager initialization"""
+        """Test TaskMonitorManager initialization"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileTaskRuntimeRepository(output_dir=output_dir)
-            manager = TaskManager(runtime_repo=repo)
+            manager = TaskMonitorManager(runtime_repo=repo)
 
             # Manager should have a repository
             assert manager._repo is not None
             assert isinstance(manager._repo, FileTaskRuntimeRepository)
 
     def test_initialization_with_default_repo(self):
-        """Test TaskManager initialization with default repository"""
-        manager = TaskManager()
+        """Test TaskMonitorManager initialization with default repository"""
+        manager = TaskMonitorManager()
 
         # Should create a default FileTaskRuntimeRepository
         assert manager._repo is not None
@@ -45,7 +45,7 @@ class TestTaskManager:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileTaskRuntimeRepository(output_dir=output_dir)
-            manager = TaskManager(runtime_repo=repo)
+            manager = TaskMonitorManager(runtime_repo=repo)
 
             plan = schemas.TaskTeam(
                 specialists=[
@@ -76,7 +76,7 @@ class TestTaskManager:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileTaskRuntimeRepository(output_dir=output_dir)
-            manager = TaskManager(runtime_repo=repo)
+            manager = TaskMonitorManager(runtime_repo=repo)
 
             # Create some tasks through the repository
             monitor1 = TaskMonitor(runtime_repo=repo)
@@ -95,7 +95,7 @@ class TestTaskManager:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileTaskRuntimeRepository(output_dir=output_dir)
-            manager = TaskManager(runtime_repo=repo)
+            manager = TaskMonitorManager(runtime_repo=repo)
 
             monitor = TaskMonitor(runtime_repo=repo)
 
@@ -111,7 +111,7 @@ class TestTaskManager:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileTaskRuntimeRepository(output_dir=output_dir)
-            manager = TaskManager(runtime_repo=repo)
+            manager = TaskMonitorManager(runtime_repo=repo)
 
             monitor = TaskMonitor(runtime_repo=repo)
 
@@ -128,7 +128,7 @@ class TestTaskManager:
             repo = FileTaskRuntimeRepository(output_dir=output_dir)
 
             # Create manager and add data
-            _ = TaskManager(runtime_repo=repo)
+            _ = TaskMonitorManager(runtime_repo=repo)
 
             monitor = TaskMonitor(runtime_repo=repo)
             step = TaskRuntimeStep(
@@ -146,7 +146,7 @@ class TestTaskManager:
             assert os.path.exists(task_dir)
 
             # Load in new manager with same repository
-            manager2 = TaskManager(runtime_repo=repo)
+            manager2 = TaskMonitorManager(runtime_repo=repo)
 
             tasks = manager2.list_tasks()
             assert len(tasks) == 1
@@ -165,7 +165,7 @@ class TestTaskManager:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileTaskRuntimeRepository(output_dir=output_dir)
-            manager = TaskManager(runtime_repo=repo)
+            manager = TaskMonitorManager(runtime_repo=repo)
 
             monitor = TaskMonitor(runtime_repo=repo)
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Simple example demonstrating TaskManager usage.
+Simple example demonstrating TaskMonitorManager usage.
 
 This example shows how to:
-1. Create a TaskManager with persistence
+1. Create a TaskMonitorManager with persistence
 2. Create and execute tasks
 3. Query task status and events
 4. Save and load task history
@@ -13,7 +13,7 @@ import asyncio
 import dotenv
 
 from fivcadvisor import schemas, tools
-from fivcadvisor.tasks.types import TaskManager
+from fivcadvisor.tasks.types import TaskMonitorManager
 from fivcadvisor.utils import OutputDir
 
 dotenv.load_dotenv()
@@ -21,18 +21,18 @@ dotenv.load_dotenv()
 
 async def main():
     print("=" * 60)
-    print("TaskManager Simple Example")
+    print("TaskMonitorManager Simple Example")
     print("=" * 60)
 
-    # 1. Create TaskManager with persistence
-    print("\n1️⃣ Creating TaskManager with persistence...")
+    # 1. Create TaskMonitorManager with persistence
+    print("\n1️⃣ Creating TaskMonitorManager with persistence...")
     from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
 
     output_dir = OutputDir().subdir('tasks')
     repo = FileTaskRuntimeRepository(output_dir=output_dir)
-    manager = TaskManager(runtime_repo=repo)
+    manager = TaskMonitorManager(runtime_repo=repo)
 
-    print(f"✅ TaskManager created")
+    print(f"✅ TaskMonitorManager created")
     print(f"   Output directory: {output_dir}")
     print(f"   Repository: FileTaskRuntimeRepository")
     print(f"   Tasks will be saved in: {output_dir}/task_<task_id>/")
@@ -134,7 +134,7 @@ async def main():
     # 8. Demonstrate loading
     print("\n8️⃣ Demonstrating load from repository...")
     new_repo = FileTaskRuntimeRepository(output_dir=output_dir)
-    new_manager = TaskManager(runtime_repo=new_repo)
+    new_manager = TaskMonitorManager(runtime_repo=new_repo)
     print(f"✅ Automatically loaded {len(new_manager.list_tasks())} tasks")
     print(f"   Tasks are loaded from repository on demand")
 
@@ -142,7 +142,7 @@ async def main():
     print("Example completed successfully! 🎉")
     print("=" * 60)
     print("\n💡 Tip: Each task is saved in its own directory with task.json and steps/")
-    print("💡 Tip: TaskManager uses FileTaskRuntimeRepository for persistence")
+    print("💡 Tip: TaskMonitorManager uses FileTaskRuntimeRepository for persistence")
     print("💡 Tip: Tasks are automatically persisted when created with a repository")
 
 

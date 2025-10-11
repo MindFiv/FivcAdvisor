@@ -5,42 +5,23 @@ This module provides TaskMonitor class for tracking Agent and MultiAgent executi
 through Strands' hook system. TaskMonitor can optionally persist execution data through
 a TaskRuntimeRepository.
 
+This module also provides TaskMonitorManager class for managing and monitoring multiple tasks
+across different agent swarms. TaskMonitorManager uses TaskRuntimeRepository for persistence
+and TaskMonitor for tracking individual task execution.
+
 Key Features:
     - Hook-based execution tracking (recommended)
     - Optional persistence through repository pattern
     - Real-time step updates via callbacks
     - Automatic task and step lifecycle management
     - Backward compatibility with deprecated callback interface
+    - Centralized task lifecycle management through TaskMonitorManager
 """
 
 from functools import cached_property
 from typing import Any, Optional, List, Callable
 from datetime import datetime
 
-try:
-    from warnings import deprecated
-except ImportError:
-    # Python < 3.13 doesn't have deprecated in warnings
-    def deprecated(msg):
-        """Fallback deprecated decorator for Python < 3.13"""
-
-        def decorator(func):
-            import warnings
-
-            def wrapper(*args, **kwargs):
-                warnings.warn(
-                    f"{func.__name__} is deprecated: {msg}",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                return func(*args, **kwargs)
-
-            return wrapper
-
-        return decorator
-
-
-from strands import Agent
 from strands.hooks import (
     HookRegistry,
     HookEvent,
@@ -50,12 +31,13 @@ from strands.hooks import (
     MessageAddedEvent,
 )
 
-from .base import (
+from fivcadvisor import schemas, tools
+from fivcadvisor.tasks.types.base import (
     TaskStatus,
     TaskRuntime,
     TaskRuntimeStep,
 )
-from .repositories import TaskRuntimeRepository
+from fivcadvisor.tasks.types.repositories import TaskRuntimeRepository
 
 
 class TaskMonitor(object):
@@ -174,68 +156,6 @@ class TaskMonitor(object):
         if self._on_event:
             self._on_event(step)
 
-    @deprecated("Use register_hooks instead")
-    def __call__(self, agent: Optional[Agent] = None, **kwargs: Any) -> None:
-        """
-        Callback handler for agent events.
-
-        This method is called by the agent with various event types:
-        - agent: Agent instance (provided as keyword argument by wrapper)
-        - message: Message added during execution
-        - result: Final result of execution
-        - error: Error if execution failed
-
-        Args:
-            agent: Agent instance (optional for compatibility with Strands)
-            **kwargs: Event data from the agent
-        """
-        # Agent must be provided
-        if agent is None:
-            return
-
-        # Get agent_id directly from agent
-        agent_id = agent.agent_id
-        if not agent_id:
-            return
-
-        event = self.steps.get(agent_id)
-        if not event:
-            # ensure event exists
-            event = TaskRuntimeStep(
-                id=agent_id,
-                agent_name=agent.name,
-                status=TaskStatus.EXECUTING,
-                messages=[*agent.messages],
-                started_at=datetime.now(),
-            )
-            self.steps[agent_id] = event
-
-        # Handle message events (store messages but don't trigger callback)
-        if "message" in kwargs:
-            event.messages.append(kwargs["message"])
-
-        # Handle result
-        elif "result" in kwargs:
-            event.completed_at = datetime.now()
-            event.status = TaskStatus.COMPLETED
-
-            if self._on_event:
-                self._on_event(event)
-
-        # Handle error
-        elif "error" in kwargs:
-            event.completed_at = datetime.now()
-            event.status = TaskStatus.FAILED
-            event.error = str(kwargs["error"])
-
-            if self._on_event:
-                self._on_event(event)
-
-        else:
-            # Unknown event, trigger callback
-            if self._on_event:
-                self._on_event(event)
-
     def get_step(self, agent_id: str) -> Optional[TaskRuntimeStep]:
         """
         Get execution step for a specific agent.
@@ -292,3 +212,125 @@ class TaskMonitor(object):
 
             for step in self.steps.values():
                 self._repo.update_step(self.id, step)
+
+
+class TaskMonitorManager(object):
+    """
+    Centralized task monitor manager for monitoring and managing task execution.
+
+    TaskMonitorManager provides a unified interface to:
+    - Create and track tasks with agent swarms
+    - Monitor task execution status through TaskMonitor
+    - Persist task history through TaskRuntimeRepository
+
+    Usage:
+        >>> from fivcadvisor.tasks.types.monitors import TaskMonitorManager
+        >>> from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
+        >>> from fivcadvisor import schemas, tools
+        >>> from fivcadvisor.utils import OutputDir
+        >>>
+        >>> # Create manager with file-based persistence
+        >>> repo = FileTaskRuntimeRepository(output_dir=OutputDir("./tasks"))
+        >>> manager = TaskMonitorManager(runtime_repo=repo)
+        >>>
+        >>> # Create a task with monitoring
+        >>> plan = schemas.TaskTeam(specialists=[...])
+        >>> swarm = manager.create_task(
+        ...     plan=plan,
+        ...     tools_retriever=tools.default_retriever
+        ... )
+        >>>
+        >>> # Execute task (automatically tracked and persisted)
+        >>> result = await swarm.invoke_async("Your query")
+        >>>
+        >>> # View all tasks
+        >>> tasks = manager.list_tasks()  # Returns list of TaskRuntime
+        >>>
+        >>> # Get specific task with monitor
+        >>> task_monitor = manager.get_task(task_id)
+        >>> steps = task_monitor.list_steps()
+        >>>
+        >>> # Delete a task
+        >>> manager.delete_task(task_id)
+
+    Default repository:
+        If no repository is provided, TaskMonitorManager creates a default
+        FileTaskRuntimeRepository with output_dir="./data".
+    """
+
+    def __init__(
+        self, runtime_repo: Optional["TaskRuntimeRepository"] = None, **kwargs
+    ):
+        from fivcadvisor.tasks.types.repositories.files import (
+            FileTaskRuntimeRepository,
+        )
+
+        self._repo = runtime_repo or FileTaskRuntimeRepository()
+
+    def create_task(
+        self,
+        plan: "schemas.TaskTeam",
+        tools_retriever: Optional["tools.ToolsRetriever"] = None,
+        on_event: Optional[Callable[[TaskRuntimeStep], None]] = None,
+        **kwargs: Any,
+    ):
+        """
+        Create a new task with agent swarm and monitor.
+
+        Args:
+            plan: TaskTeam plan containing specialist agents
+            tools_retriever: Optional tools retriever for agent tools
+            on_event: Optional callback for task events
+            **kwargs: Additional arguments to pass to the swarm
+
+        Returns:
+            Agent swarm instance
+        """
+        from fivcadvisor import agents
+
+        task_monitor = TaskMonitor(
+            on_event=on_event,
+            runtime_repo=self._repo,
+        )
+        task = agents.create_generic_agent_swarm(
+            team=plan,
+            tools_retriever=tools_retriever,
+            hooks=[task_monitor],
+            **kwargs,
+        )
+        return task
+
+    def list_tasks(self) -> List[TaskMonitor]:
+        """
+        Get list of all task monitors.
+
+        Returns:
+            List of TaskMonitor instances
+        """
+        task_runtimes = self._repo.list_tasks()
+        return [
+            TaskMonitor(runtime=runtime, runtime_repo=self._repo)
+            for runtime in task_runtimes
+        ]
+
+    def get_task(
+        self, task_id: str, on_event: Optional[Callable[[TaskRuntimeStep], None]] = None
+    ) -> Optional[TaskMonitor]:
+        task_runtime = self._repo.get_task(task_id)
+        if not task_runtime:
+            return None
+
+        return TaskMonitor(
+            runtime=task_runtime,
+            runtime_repo=self._repo,
+            on_event=on_event,
+        )
+
+    def delete_task(self, task_id: str) -> None:
+        """
+        Delete a task.
+
+        Args:
+            task_id: Task ID to delete
+        """
+        self._repo.delete_task(task_id)

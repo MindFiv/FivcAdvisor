@@ -6,7 +6,7 @@ __all__ = [
     "TaskMonitor",
     "TaskRuntimeStep",
     "TaskStatus",
-    "TaskManager",
+    "TaskMonitorManager",
     "default_manager",
 ]
 
@@ -19,7 +19,7 @@ from fivcadvisor.tasks.types import (
     TaskMonitor,
     TaskRuntimeStep,
     TaskStatus,
-    TaskManager,
+    TaskMonitorManager,
 )
 
 
@@ -113,4 +113,4 @@ async def run_executing_task(
     return await swarm.invoke_async(query)
 
 
-default_manager = utils.create_lazy_value(lambda: TaskManager())
+default_manager = utils.create_lazy_value(lambda: TaskMonitorManager())
