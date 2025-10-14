@@ -5,16 +5,17 @@ Tests for TaskMonitorManager functionality.
 
 import os
 import tempfile
+import pytest
 from unittest.mock import Mock, patch
 
 from fivcadvisor.tasks.types import (
+    TaskTeam,
     TaskMonitorManager,
     TaskMonitor,
     TaskRuntimeStep,
     TaskStatus,
 )
 from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
-from fivcadvisor import schemas
 from fivcadvisor.utils import OutputDir
 
 
@@ -32,24 +33,17 @@ class TestTaskMonitorManager:
             assert manager._repo is not None
             assert isinstance(manager._repo, FileTaskRuntimeRepository)
 
-    def test_initialization_with_default_repo(self):
-        """Test TaskMonitorManager initialization with default repository"""
-        manager = TaskMonitorManager()
-
-        # Should create a default FileTaskRuntimeRepository
-        assert manager._repo is not None
-        assert isinstance(manager._repo, FileTaskRuntimeRepository)
-
-    def test_create_task(self):
+    @pytest.mark.asyncio
+    async def test_create_task(self):
         """Test creating a task"""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = OutputDir(tmpdir)
             repo = FileTaskRuntimeRepository(output_dir=output_dir)
             manager = TaskMonitorManager(runtime_repo=repo)
 
-            plan = schemas.TaskTeam(
+            plan = TaskTeam(
                 specialists=[
-                    schemas.TaskTeam.Specialist(
+                    TaskTeam.Specialist(
                         name="TestAgent",
                         backstory="Test backstory",
                         tools=["calculator"],
@@ -57,19 +51,26 @@ class TestTaskMonitorManager:
                 ]
             )
 
-            with patch("fivcadvisor.agents.create_generic_agent_swarm") as mock_create:
-                mock_swarm = Mock()
-                mock_create.return_value = mock_swarm
+            # Mock both planning and swarm creation
+            with patch("fivcadvisor.tasks.run_planning_task") as mock_planning:
+                with patch(
+                    "fivcadvisor.agents.create_generic_agent_swarm"
+                ) as mock_create:
+                    mock_planning.return_value = plan
+                    mock_swarm = Mock()
+                    mock_create.return_value = mock_swarm
 
-                swarm = manager.create_task(plan=plan)
+                    swarm = await manager.create_task(query="Test query")
 
-                assert swarm == mock_swarm
-                # Verify that create_generic_agent_swarm was called with hooks
-                mock_create.assert_called_once()
-                call_kwargs = mock_create.call_args[1]
-                assert "hooks" in call_kwargs
-                assert len(call_kwargs["hooks"]) == 1
-                assert isinstance(call_kwargs["hooks"][0], TaskMonitor)
+                    assert swarm == mock_swarm
+                    # Verify that planning was called
+                    mock_planning.assert_called_once()
+                    # Verify that create_generic_agent_swarm was called with hooks
+                    mock_create.assert_called_once()
+                    call_kwargs = mock_create.call_args[1]
+                    assert "hooks" in call_kwargs
+                    assert len(call_kwargs["hooks"]) == 1
+                    assert isinstance(call_kwargs["hooks"][0], TaskMonitor)
 
     def test_list_tasks(self):
         """Test listing tasks"""

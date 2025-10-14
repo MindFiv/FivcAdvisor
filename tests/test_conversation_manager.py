@@ -215,6 +215,102 @@ class TestToolFilteringConversationManager:
         # Verify delegation
         wrapped_manager.reduce_context.assert_called_once_with(agent, exception)
 
+    def test_apply_management_removes_tool_only_messages(self):
+        """Test that messages containing only tool blocks are completely removed.
+
+        This prevents creating invalid OpenAI message sequences where assistant
+        messages with tool_calls have no corresponding tool response messages.
+        """
+        wrapped_manager = SlidingWindowConversationManager(window_size=40)
+        manager = ToolFilteringConversationManager(conversation_manager=wrapped_manager)
+
+        # Create a mock agent with messages
+        agent = Mock(spec=Agent)
+        agent.messages = [
+            {
+                "role": "user",
+                "content": [{"text": "Calculate 2+2"}],
+            },
+            {
+                "role": "assistant",
+                "content": [
+                    {"text": "Let me calculate that"},
+                    {
+                        "toolUse": {
+                            "toolUseId": "123",
+                            "name": "calculator",
+                            "input": {"expr": "2+2"},
+                        }
+                    },
+                ],
+            },
+            {
+                # This message only contains toolResult, should be completely removed
+                "role": "assistant",
+                "content": [
+                    {
+                        "toolResult": {
+                            "toolUseId": "123",
+                            "content": [{"text": "4"}],
+                            "status": "success",
+                        }
+                    },
+                ],
+            },
+            {
+                "role": "assistant",
+                "content": [{"text": "The answer is 4"}],
+            },
+        ]
+
+        manager.apply_management(agent, max_tokens=1000)
+
+        # Check results
+        assert len(agent.messages) == 3  # Fourth message removed (tool-only)
+
+        # First message unchanged
+        assert agent.messages[0]["role"] == "user"
+        assert len(agent.messages[0]["content"]) == 1
+        assert agent.messages[0]["content"][0]["text"] == "Calculate 2+2"
+
+        # Second message has toolUse filtered out, only text remains
+        assert agent.messages[1]["role"] == "assistant"
+        assert len(agent.messages[1]["content"]) == 1
+        assert agent.messages[1]["content"][0]["text"] == "Let me calculate that"
+
+        # Third message (was fourth) unchanged
+        assert agent.messages[2]["role"] == "assistant"
+        assert len(agent.messages[2]["content"]) == 1
+        assert agent.messages[2]["content"][0]["text"] == "The answer is 4"
+
+        # Verify removed_message_count is updated correctly
+        assert manager.removed_message_count == 1
+
+    def test_apply_management_preserves_mixed_content_messages(self):
+        """Test that messages with both text and tool content keep the text."""
+        wrapped_manager = SlidingWindowConversationManager(window_size=40)
+        manager = ToolFilteringConversationManager(conversation_manager=wrapped_manager)
+
+        agent = Mock(spec=Agent)
+        agent.messages = [
+            {
+                "role": "assistant",
+                "content": [
+                    {"text": "I'll use a tool"},
+                    {"toolUse": {"toolUseId": "456", "name": "search"}},
+                    {"text": "to find that"},
+                ],
+            },
+        ]
+
+        manager.apply_management(agent, max_tokens=1000)
+
+        # Message should be kept with text content only
+        assert len(agent.messages) == 1
+        assert len(agent.messages[0]["content"]) == 2
+        assert agent.messages[0]["content"][0]["text"] == "I'll use a tool"
+        assert agent.messages[0]["content"][1]["text"] == "to find that"
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

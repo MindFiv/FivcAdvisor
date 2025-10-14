@@ -1,39 +1,14 @@
-from typing import List
-from pydantic import BaseModel, Field
+"""
+Schemas module.
 
+This module previously contained task-related schemas but they have been moved
+to better organize the codebase:
 
-class TaskAssessment(BaseModel):
-    """Description for an assessment result for a task."""
+- TaskAssessment -> fivcadvisor.tasks.types.base
+- TaskRequirement -> fivcadvisor.tasks.types.base
+- TaskTeam -> fivcadvisor.tasks.types.base
 
-    model_config = {"populate_by_name": True}
+For backward compatibility, you can import these from fivcadvisor.tasks instead.
+"""
 
-    require_planning: bool = Field(
-        description="Whether a planning agent is required to break down the task",
-        alias="requires_planning_agent",
-    )
-    require_tools: List[str] = Field(
-        description="List of tools needed for the task, if we can't answer directly",
-        alias="required_tools",
-    )
-    reasoning: str = Field(default="", description="Reasoning for the assessment")
-
-
-class TaskRequirement(BaseModel):
-    """Description for a requirement for a task."""
-
-    tools: List[str] = Field(description="List of tools needed for the task")
-
-
-class TaskTeam(BaseModel):
-    """Description for a plan for a task."""
-
-    class Specialist(BaseModel):
-        """Description for a planning task."""
-
-        name: str = Field(description="Name of the agent for this task")
-        backstory: str = Field(description="Backstory for the agent")
-        tools: List[str] = Field(description="List of tools needed for the agent")
-
-    specialists: List[Specialist] = Field(
-        description="List of agents needed for the task"
-    )
+__all__ = []

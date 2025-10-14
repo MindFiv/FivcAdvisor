@@ -203,7 +203,7 @@ class TestAgentsMonitorToolEvents:
         tool_calls = monitor.tool_calls
         assert len(tool_calls) == 1
         assert tool_calls[0].tool_use_id == "123"
-        assert tool_calls[0].status == "completed"
+        assert tool_calls[0].status == "success"
         assert tool_calls[0].tool_result == [{"text": "4"}]
 
     def test_handle_tool_result_failure(self):
@@ -237,7 +237,7 @@ class TestAgentsMonitorToolEvents:
 
         tool_calls = monitor.tool_calls
         assert len(tool_calls) == 1
-        assert tool_calls[0].status == "failed"
+        assert tool_calls[0].status == "error"
 
     def test_tool_callback_invoked_with_runtime(self):
         """Test that on_event callback is invoked with runtime."""

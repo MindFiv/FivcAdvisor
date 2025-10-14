@@ -113,25 +113,57 @@ class TestAgentsRuntime:
             agent_name="TestAgent",
         )
 
-        assert runtime.id == "agent-123"  # id is computed from agent_id
+        assert runtime.id == runtime.agent_run_id  # id is computed from agent_run_id
         assert runtime.agent_id == "agent-123"
         assert runtime.agent_name == "TestAgent"
         assert runtime.status == AgentsStatus.PENDING
-        assert runtime.messages == []
+        assert runtime.message is None
         assert runtime.tool_calls == {}
         assert runtime.streaming_text == ""
         assert runtime.error is None
 
     def test_runtime_id_computed_field(self):
-        """Test that id is a computed field that returns agent_id."""
+        """Test that id is a computed field that returns agent_run_id."""
         runtime = AgentsRuntime(
             agent_id="custom-agent-id",
             agent_name="TestAgent",
         )
 
-        # id should always equal agent_id
-        assert runtime.id == runtime.agent_id
-        assert runtime.id == "custom-agent-id"
+        # id should always equal agent_run_id
+        assert runtime.id == runtime.agent_run_id
+        assert runtime.agent_id == "custom-agent-id"
+
+    def test_agent_run_id_is_timestamp(self):
+        """Test that agent_run_id is a timestamp string for chronological ordering."""
+        import time
+
+        # Create first runtime
+        runtime1 = AgentsRuntime(
+            agent_id="agent-123",
+            agent_name="TestAgent",
+        )
+
+        # Longer delay to ensure different timestamps
+        time.sleep(0.1)
+
+        # Create second runtime
+        runtime2 = AgentsRuntime(
+            agent_id="agent-123",
+            agent_name="TestAgent",
+        )
+
+        # Both should have timestamp-based agent_run_id
+        # Verify they are numeric strings (timestamps)
+        assert runtime1.agent_run_id.replace(".", "").isdigit()
+        assert runtime2.agent_run_id.replace(".", "").isdigit()
+
+        # Verify they can be compared chronologically
+        # runtime2 should have a larger timestamp than runtime1
+        assert float(runtime2.agent_run_id) > float(runtime1.agent_run_id)
+
+        # Verify id is computed from agent_run_id
+        assert runtime1.id == runtime1.agent_run_id
+        assert runtime2.id == runtime2.agent_run_id
 
     def test_runtime_status_transitions(self):
         """Test runtime status transitions."""
@@ -233,7 +265,7 @@ class TestAgentsRuntime:
         assert data["agent_name"] == "TestAgent"
         assert data["status"] == "completed"
         assert "id" in data
-        assert data["id"] == "agent-123"  # id should equal agent_id
+        assert data["id"] == runtime.agent_run_id  # id should equal agent_run_id
         assert "duration" in data
         assert "is_running" in data
         assert "is_completed" in data

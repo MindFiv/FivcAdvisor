@@ -3,10 +3,13 @@
 Tests for TaskMonitor functionality.
 """
 
+import tempfile
 from unittest.mock import Mock
 from datetime import datetime
 
 from fivcadvisor.tasks.types import TaskMonitor, TaskRuntimeStep, TaskStatus
+from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
+from fivcadvisor.utils import OutputDir
 
 
 class TestTaskTrace:
@@ -102,15 +105,21 @@ class TestTaskMonitor:
 
     def test_initialization(self):
         """Test TaskMonitor initialization"""
-        monitor = TaskMonitor()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileTaskRuntimeRepository(output_dir=output_dir)
+            monitor = TaskMonitor(runtime_repo=repo)
 
-        assert monitor._on_event is None
-        assert monitor.list_steps() == []
+            assert monitor._on_event is None
+            assert monitor.list_steps() == []
 
     def test_initialization_with_callbacks(self):
         """Test TaskMonitor initialization with callbacks"""
-        on_event = Mock()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileTaskRuntimeRepository(output_dir=output_dir)
+            on_event = Mock()
 
-        monitor = TaskMonitor(on_event=on_event)
+            monitor = TaskMonitor(on_event=on_event, runtime_repo=repo)
 
-        assert monitor._on_event == on_event
+            assert monitor._on_event == on_event

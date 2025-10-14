@@ -7,47 +7,52 @@ Simple conversation mode with streaming responses.
 import streamlit as st
 import asyncio
 
-from fivcadvisor.app.messages import MessageCallback, MessagesRenderer
-from fivcadvisor.app.tools import MessageToolCallback
+from fivcadvisor import tools
+from fivcadvisor.agents.types import AgentsRuntime
+from fivcadvisor.app.managers import ChatManager
+from fivcadvisor.app.components import chat_message
 
 
 def render():
-    """Render chat page"""
+    """
+    Render the chat page with conversation history and input.
 
-    st.title("💬 对话")
+    This function creates a Streamlit chat interface that:
+    1. Initializes a ChatManager with the default tools retriever
+    2. Displays the page title
+    3. Renders all completed agent runtimes from history
+    4. Provides a chat input for new queries
+    5. Streams responses in real-time using callbacks
 
-    # Get shared session
-    chat_session = st.session_state.chat_session
+    The chat interface uses AgentsRuntime objects to track both
+    completed messages (from history) and streaming responses
+    (during active agent execution).
+    """
+    chat = ChatManager(tools_retriever=tools.default_retriever)
+
+    st.title("💬 Chat with FivcAdvisor")
 
     # Display history messages
-    messages_renderer = MessagesRenderer(chat_session.list_messages())
-    messages_renderer.render()
+    c = st.container()
+    for i in chat.list_history():
+        chat_message.render(c, i)
 
     # User input
     if user_query := st.chat_input("Ask me anything..."):
-        with st.chat_message("user"):
-            st.write(user_query)
+        chat_placeholder = st.empty()
 
-        # Streaming response
-        render_simple_response(user_query, chat_session)
+        def _on_event(rt: AgentsRuntime):
+            """
+            Callback for streaming agent events.
 
-        st.rerun()
+            Updates the chat placeholder with the current runtime state,
+            allowing real-time display of streaming responses.
 
+            Args:
+                rt: AgentsRuntime with streaming_text and other state
+            """
+            container = chat_placeholder.container()
+            chat_message.render(container, rt)
 
-def render_simple_response(query: str, chat_session):
-    """Render simple streaming response"""
-
-    tool_placeholder = st.empty()
-    tool_callback = MessageToolCallback(tool_placeholder)
-
-    with st.chat_message("assistant"):
-        stream_placeholder = st.empty()
-        stream_callback = MessageCallback(stream_placeholder)
-
-    asyncio.run(
-        chat_session.run(
-            query,
-            on_stream=stream_callback,
-            on_tool=tool_callback,
-        )
-    )
+        asyncio.run(chat.ask(user_query, on_event=_on_event))
+        # st.rerun()

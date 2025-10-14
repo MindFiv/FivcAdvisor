@@ -38,14 +38,14 @@ class TestFileTaskRuntimeRepository:
             )
 
             # Save task
-            repo.update_task(task)
+            repo.update_task_runtime(task)
 
             # Verify task file exists
             task_file = repo._get_task_file("test-task-123")
             assert task_file.exists()
 
             # Retrieve task
-            retrieved_task = repo.get_task("test-task-123")
+            retrieved_task = repo.get_task_runtime("test-task-123")
             assert retrieved_task is not None
             assert retrieved_task.id == "test-task-123"
             assert retrieved_task.status == TaskStatus.EXECUTING
@@ -58,7 +58,7 @@ class TestFileTaskRuntimeRepository:
             repo = FileTaskRuntimeRepository(output_dir=output_dir)
 
             # Try to get non-existent task
-            task = repo.get_task("nonexistent-task")
+            task = repo.get_task_runtime("nonexistent-task")
             assert task is None
 
     def test_delete_task(self):
@@ -69,16 +69,16 @@ class TestFileTaskRuntimeRepository:
 
             # Create a task
             task = TaskRuntime(id="test-task-456")
-            repo.update_task(task)
+            repo.update_task_runtime(task)
 
             # Verify task exists
-            assert repo.get_task("test-task-456") is not None
+            assert repo.get_task_runtime("test-task-456") is not None
 
             # Delete task
-            repo.delete_task("test-task-456")
+            repo.delete_task_runtime("test-task-456")
 
             # Verify task is deleted
-            assert repo.get_task("test-task-456") is None
+            assert repo.get_task_runtime("test-task-456") is None
             assert not repo._get_task_dir("test-task-456").exists()
 
     def test_list_tasks(self):
@@ -92,12 +92,12 @@ class TestFileTaskRuntimeRepository:
             task2 = TaskRuntime(id="task-2", status=TaskStatus.EXECUTING)
             task3 = TaskRuntime(id="task-3", status=TaskStatus.COMPLETED)
 
-            repo.update_task(task1)
-            repo.update_task(task2)
-            repo.update_task(task3)
+            repo.update_task_runtime(task1)
+            repo.update_task_runtime(task2)
+            repo.update_task_runtime(task3)
 
             # List tasks
-            tasks = repo.list_tasks()
+            tasks = repo.list_task_runtimes()
             assert len(tasks) == 3
 
             task_ids = {task.id for task in tasks}
@@ -113,7 +113,7 @@ class TestFileTaskRuntimeRepository:
 
             # Create a task first
             task = TaskRuntime(id="test-task-789")
-            repo.update_task(task)
+            repo.update_task_runtime(task)
 
             # Create a step
             step = TaskRuntimeStep(
@@ -124,14 +124,14 @@ class TestFileTaskRuntimeRepository:
             )
 
             # Save step
-            repo.update_step("test-task-789", step)
+            repo.update_task_runtime_step("test-task-789", step)
 
             # Verify step file exists
             step_file = repo._get_step_file("test-task-789", "step-1")
             assert step_file.exists()
 
             # Retrieve step
-            retrieved_step = repo.get_step("test-task-789", "step-1")
+            retrieved_step = repo.get_task_runtime_step("test-task-789", "step-1")
             assert retrieved_step is not None
             assert retrieved_step.id == "step-1"
             assert retrieved_step.agent_name == "TestAgent"
@@ -144,7 +144,7 @@ class TestFileTaskRuntimeRepository:
             repo = FileTaskRuntimeRepository(output_dir=output_dir)
 
             # Try to get non-existent step
-            step = repo.get_step("test-task-789", "nonexistent-step")
+            step = repo.get_task_runtime_step("test-task-789", "nonexistent-step")
             assert step is None
 
     def test_list_steps(self):
@@ -155,7 +155,7 @@ class TestFileTaskRuntimeRepository:
 
             # Create a task
             task = TaskRuntime(id="test-task-999")
-            repo.update_task(task)
+            repo.update_task_runtime(task)
 
             # Create multiple steps
             step1 = TaskRuntimeStep(
@@ -174,12 +174,12 @@ class TestFileTaskRuntimeRepository:
                 status=TaskStatus.COMPLETED,
             )
 
-            repo.update_step("test-task-999", step1)
-            repo.update_step("test-task-999", step2)
-            repo.update_step("test-task-999", step3)
+            repo.update_task_runtime_step("test-task-999", step1)
+            repo.update_task_runtime_step("test-task-999", step2)
+            repo.update_task_runtime_step("test-task-999", step3)
 
             # List steps
-            steps = repo.list_steps("test-task-999")
+            steps = repo.list_task_runtime_steps("test-task-999")
             assert len(steps) == 3
 
             step_ids = {step.id for step in steps}
@@ -194,7 +194,7 @@ class TestFileTaskRuntimeRepository:
             repo = FileTaskRuntimeRepository(output_dir=output_dir)
 
             # List steps for non-existent task
-            steps = repo.list_steps("nonexistent-task")
+            steps = repo.list_task_runtime_steps("nonexistent-task")
             assert steps == []
 
     def test_update_existing_task(self):
@@ -208,15 +208,15 @@ class TestFileTaskRuntimeRepository:
                 id="test-task-update",
                 status=TaskStatus.PENDING,
             )
-            repo.update_task(task)
+            repo.update_task_runtime(task)
 
             # Update task status
             task.status = TaskStatus.COMPLETED
             task.completed_at = datetime(2024, 1, 1, 13, 0, 0)
-            repo.update_task(task)
+            repo.update_task_runtime(task)
 
             # Retrieve and verify
-            retrieved_task = repo.get_task("test-task-update")
+            retrieved_task = repo.get_task_runtime("test-task-update")
             assert retrieved_task.status == TaskStatus.COMPLETED
             assert retrieved_task.completed_at == datetime(2024, 1, 1, 13, 0, 0)
 
@@ -228,7 +228,7 @@ class TestFileTaskRuntimeRepository:
 
             # Create a task
             task = TaskRuntime(id="test-task-step-update")
-            repo.update_task(task)
+            repo.update_task_runtime(task)
 
             # Create a step
             step = TaskRuntimeStep(
@@ -236,15 +236,17 @@ class TestFileTaskRuntimeRepository:
                 agent_name="TestAgent",
                 status=TaskStatus.EXECUTING,
             )
-            repo.update_step("test-task-step-update", step)
+            repo.update_task_runtime_step("test-task-step-update", step)
 
             # Update step
             step.status = TaskStatus.COMPLETED
             step.completed_at = datetime(2024, 1, 1, 14, 0, 0)
-            repo.update_step("test-task-step-update", step)
+            repo.update_task_runtime_step("test-task-step-update", step)
 
             # Retrieve and verify
-            retrieved_step = repo.get_step("test-task-step-update", "step-update")
+            retrieved_step = repo.get_task_runtime_step(
+                "test-task-step-update", "step-update"
+            )
             assert retrieved_step.status == TaskStatus.COMPLETED
             assert retrieved_step.completed_at == datetime(2024, 1, 1, 14, 0, 0)
 
@@ -256,23 +258,23 @@ class TestFileTaskRuntimeRepository:
 
             # Create a task with steps
             task = TaskRuntime(id="test-task-with-steps")
-            repo.update_task(task)
+            repo.update_task_runtime(task)
 
             step1 = TaskRuntimeStep(id="step-1", agent_name="Agent1")
             step2 = TaskRuntimeStep(id="step-2", agent_name="Agent2")
-            repo.update_step("test-task-with-steps", step1)
-            repo.update_step("test-task-with-steps", step2)
+            repo.update_task_runtime_step("test-task-with-steps", step1)
+            repo.update_task_runtime_step("test-task-with-steps", step2)
 
             # Verify task and steps exist
-            assert repo.get_task("test-task-with-steps") is not None
-            assert len(repo.list_steps("test-task-with-steps")) == 2
+            assert repo.get_task_runtime("test-task-with-steps") is not None
+            assert len(repo.list_task_runtime_steps("test-task-with-steps")) == 2
 
             # Delete task
-            repo.delete_task("test-task-with-steps")
+            repo.delete_task_runtime("test-task-with-steps")
 
             # Verify task and steps are deleted
-            assert repo.get_task("test-task-with-steps") is None
-            assert len(repo.list_steps("test-task-with-steps")) == 0
+            assert repo.get_task_runtime("test-task-with-steps") is None
+            assert len(repo.list_task_runtime_steps("test-task-with-steps")) == 0
 
     def test_storage_structure(self):
         """Test that the storage structure matches the expected format"""
@@ -282,10 +284,10 @@ class TestFileTaskRuntimeRepository:
 
             # Create a task with steps
             task = TaskRuntime(id="structure-test")
-            repo.update_task(task)
+            repo.update_task_runtime(task)
 
             step = TaskRuntimeStep(id="step-1", agent_name="Agent1")
-            repo.update_step("structure-test", step)
+            repo.update_task_runtime_step("structure-test", step)
 
             # Verify directory structure
             task_dir = repo._get_task_dir("structure-test")

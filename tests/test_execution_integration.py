@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Integration tests for run_executing_task
+Integration tests for task workflow
 
 Tests the complete workflow integration without requiring actual LLM calls.
 """
@@ -9,7 +9,7 @@ import sys
 import pytest
 import dotenv
 
-from fivcadvisor import schemas, tasks, agents
+from fivcadvisor import tasks, agents
 
 dotenv.load_dotenv()
 
@@ -19,25 +19,24 @@ class TestExecutionTaskIntegration:
 
     def test_imports(self):
         """Test that all required imports work"""
-        assert hasattr(tasks, "run_executing_task")
         assert hasattr(tasks, "run_planning_task")
         assert hasattr(tasks, "run_assessing_task")
         assert hasattr(agents, "create_generic_agent_swarm")
-        assert hasattr(schemas, "TaskTeam")
+        assert hasattr(tasks, "TaskTeam")
         assert hasattr(tasks, "TaskMonitor")
         assert hasattr(tasks, "TaskRuntimeStep")
         assert hasattr(tasks, "TaskStatus")
 
     def test_task_team_creation(self):
         """Test creating a TaskTeam"""
-        team = schemas.TaskTeam(
+        team = tasks.TaskTeam(
             specialists=[
-                schemas.TaskTeam.Specialist(
+                tasks.TaskTeam.Specialist(
                     name="Researcher",
                     backstory="Expert researcher",
                     tools=["web_search"],
                 ),
-                schemas.TaskTeam.Specialist(
+                tasks.TaskTeam.Specialist(
                     name="Analyst", backstory="Expert analyst", tools=["calculator"]
                 ),
             ]
@@ -76,20 +75,19 @@ class TestExecutionTaskIntegration:
         assert event.duration is not None
 
     @pytest.mark.asyncio
-    async def test_run_executing_task_signature(self):
-        """Test run_executing_task function signature"""
+    async def test_run_planning_task_signature(self):
+        """Test run_planning_task function signature"""
         import inspect
 
-        sig = inspect.signature(tasks.run_executing_task)
+        sig = inspect.signature(tasks.run_planning_task)
         params = list(sig.parameters.keys())
 
         assert "query" in params
-        assert "plan" in params
         assert "tools_retriever" in params
         assert "kwargs" in params
 
         # Check it's async
-        assert inspect.iscoroutinefunction(tasks.run_executing_task)
+        assert inspect.iscoroutinefunction(tasks.run_planning_task)
 
     def test_swarm_creator_signature(self):
         """Test create_generic_agent_swarm signature"""
@@ -112,13 +110,14 @@ class TestExecutionTaskIntegration:
         assert hasattr(tasks, "run_planning_task")
         assert callable(tasks.run_planning_task)
 
-        # Execution
-        assert hasattr(tasks, "run_executing_task")
-        assert callable(tasks.run_executing_task)
+        # Task execution through TaskMonitorManager
+        assert hasattr(tasks, "TaskMonitorManager")
+        assert callable(tasks.TaskMonitorManager)
 
-        # Schemas
-        assert hasattr(schemas, "TaskAssessment")
-        assert hasattr(schemas, "TaskTeam")
+        # Task schemas
+        assert hasattr(tasks, "TaskAssessment")
+        assert hasattr(tasks, "TaskRequirement")
+        assert hasattr(tasks, "TaskTeam")
 
         # Task tracking
         assert hasattr(tasks, "TaskMonitor")
@@ -128,9 +127,9 @@ class TestExecutionTaskIntegration:
     def test_exports(self):
         """Test that functions are properly exported"""
         # Tasks module
-        assert "run_executing_task" in tasks.__all__
         assert "run_planning_task" in tasks.__all__
         assert "run_assessing_task" in tasks.__all__
+        assert "TaskMonitorManager" in tasks.__all__
 
         # Agents module
         assert "create_generic_agent_swarm" in agents.__all__

@@ -62,19 +62,19 @@ def example_reload_from_disk(task_id, output_dir):
     print("\n" + "=" * 60)
     print("Example 2: Reload from Disk")
     print("=" * 60)
-    
+
     # Create a new repository instance
     repo = FileTaskRuntimeRepository(output_dir=output_dir)
-    
+
     # Load the task from disk
-    task_runtime = repo.get_task(task_id)
+    task_runtime = repo.get_task_runtime(task_id)
     if task_runtime:
         print(f"Loaded task: {task_runtime.id}")
         print(f"  Status: {task_runtime.status}")
-        
+
         # Create a new monitor with the loaded runtime
         monitor = TaskMonitor(runtime=task_runtime, runtime_repo=repo)
-        
+
         # List all steps
         steps = monitor.list_steps()
         print(f"  Steps: {len(steps)}")
@@ -107,13 +107,13 @@ def example_list_all_tasks():
     
     # List all tasks
     print("\nAll tasks in repository:")
-    tasks = repo.list_tasks()
+    tasks = repo.list_task_runtimes()
     for i, task in enumerate(tasks, 1):
         print(f"  {i}. Task {task.id}")
         print(f"     Status: {task.status}")
-        
+
         # List steps for this task
-        steps = repo.list_steps(task.id)
+        steps = repo.list_task_runtime_steps(task.id)
         print(f"     Steps: {len(steps)}")
 
 
@@ -122,33 +122,33 @@ def example_cleanup():
     print("\n" + "=" * 60)
     print("Example 4: Cleanup")
     print("=" * 60)
-    
+
     output_dir = OutputDir().subdir('tasks')
     repo = FileTaskRuntimeRepository(output_dir=output_dir)
-    
+
     # List tasks before cleanup
-    tasks_before = repo.list_tasks()
+    tasks_before = repo.list_task_runtimes()
     print(f"Tasks before cleanup: {len(tasks_before)}")
-    
+
     # Delete the first task
     if tasks_before:
         task_to_delete = tasks_before[0]
         print(f"Deleting task: {task_to_delete.id}")
-        repo.delete_task(task_to_delete.id)
-    
+        repo.delete_task_runtime(task_to_delete.id)
+
     # List tasks after cleanup
-    tasks_after = repo.list_tasks()
+    tasks_after = repo.list_task_runtimes()
     print(f"Tasks after cleanup: {len(tasks_after)}")
-    
+
     # Clean up all remaining tasks
     print("\nCleaning up all remaining tasks...")
     for task in tasks_after:
-        repo.delete_task(task.id)
-    
+        repo.delete_task_runtime(task.id)
+
     # Verify cleanup
-    final_tasks = repo.list_tasks()
+    final_tasks = repo.list_task_runtimes()
     print(f"Final task count: {len(final_tasks)}")
-    
+
     # Clean up the output directory
     output_dir.cleanup()
     print(f"Removed output directory: {output_dir}")

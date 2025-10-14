@@ -3,7 +3,7 @@ import asyncio
 from typing import Any
 
 import dotenv
-from strands.hooks import HookProvider, HookRegistry, BeforeInvocationEvent, AfterInvocationEvent, MessageAddedEvent
+from strands.hooks import HookRegistry, BeforeInvocationEvent, AfterInvocationEvent, MessageAddedEvent
 # from strands.handlers.callback_handler import PrintingCallbackHandler
 
 from fivcadvisor import agents
@@ -11,7 +11,7 @@ from fivcadvisor import agents
 dotenv.load_dotenv()
 
 
-class LoggingHook(HookProvider):
+class LoggingHook(object):
     def register_hooks(self, registry: HookRegistry, **kwargs: Any) -> None:
         registry.add_callback(BeforeInvocationEvent, self.log_start)
         registry.add_callback(AfterInvocationEvent, self.log_end)

@@ -23,9 +23,9 @@ from strands.multiagent import Swarm
 from fivcadvisor import (
     models,
     tools,
-    schemas,
     utils,
 )
+from fivcadvisor.tasks.types import TaskTeam
 from fivcadvisor.agents.types import (
     agent_creator,
     AgentsRetriever,
@@ -65,6 +65,9 @@ def create_default_agent(*args, **kwargs) -> Agent:
 
     # Set default role if not provided
     kwargs.setdefault("name", "Generic")
+
+    if "agent_id" not in kwargs:
+        kwargs["agent_id"] = str(uuid4())
 
     if "tools" not in kwargs:
         kwargs["tools"] = tools.default_retriever.get_all()
@@ -216,7 +219,7 @@ def create_evaluating_agent(*args, **kwargs) -> Agent:
 @agent_creator(name="Generic Swarm")
 def create_generic_agent_swarm(
     *args,
-    team: Optional[schemas.TaskTeam] = None,
+    team: Optional[TaskTeam] = None,
     tools_retriever: Optional[tools.ToolsRetriever] = None,
     **kwargs,
 ) -> Swarm:
@@ -233,7 +236,6 @@ def create_generic_agent_swarm(
         s_tools = [t for t in s_tools if t is not None]
         s_agents.append(
             create_default_agent(
-                agent_id=str(uuid4()),
                 name=s.name,
                 tools=s_tools,
                 system_prompt=s.backstory,

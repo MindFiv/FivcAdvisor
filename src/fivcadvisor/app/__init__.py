@@ -11,8 +11,6 @@ __all__ = [
 
 import streamlit as st
 
-from fivcadvisor import agents, tools
-from fivcadvisor.app.sessions import ChatSession
 from fivcadvisor.app.views import chat, settings
 
 
@@ -26,13 +24,6 @@ def main():
         layout="wide",
         initial_sidebar_state="expanded",
     )
-
-    # Initialize global session (shared across all views)
-    if "chat_session" not in st.session_state:
-        st.session_state.chat_session = ChatSession(
-            agents_retriever=agents.default_retriever,
-            tools_retriever=tools.default_retriever,
-        )
 
     # Define views with unique url_path
     pages = {

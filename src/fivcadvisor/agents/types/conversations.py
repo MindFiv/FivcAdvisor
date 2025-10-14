@@ -52,18 +52,20 @@ class ToolFilteringConversationManager(ConversationManager):
                 if "toolUse" not in block and "toolResult" not in block
             ]
 
-            # If there's still content after filtering, update the message
-            # If there's no content after filtering, keep the original message (avoid completely empty messages)
+            # Only keep messages that have non-tool content
+            # This prevents creating invalid message sequences where assistant messages
+            # with tool_calls have no corresponding tool response messages
             if filtered_content:
                 m["content"] = filtered_content
                 filtered_messages.append(m)
+            # else: skip messages that only contain tool-related content
 
         messages[:] = filtered_messages[:]
 
         self.conversation_manager.apply_management(agent, **kwargs)
 
         message_count_after = len(agent.messages)
-        self.removed_message_count += message_count_after - message_count_before
+        self.removed_message_count += message_count_before - message_count_after
 
     def reduce_context(
         self, agent: "Agent", e: Optional[Exception] = None, **kwargs: Any
@@ -71,7 +73,7 @@ class ToolFilteringConversationManager(ConversationManager):
         message_count_before = len(agent.messages)
         self.conversation_manager.reduce_context(agent, e, **kwargs)
         message_count_after = len(agent.messages)
-        self.removed_message_count += message_count_after - message_count_before
+        self.removed_message_count += message_count_before - message_count_after
 
     def get_state(self) -> dict[str, Any]:
         """Get the current state of the ToolFilteringConversationManager.

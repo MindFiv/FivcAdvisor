@@ -1,5 +1,6 @@
 __all__ = [
     "AgentsMonitor",
+    "AgentsMonitorManager",
     "AgentsRuntime",
     "AgentsRuntimeToolCall",
     "AgentsStatus",
@@ -17,6 +18,7 @@ from .base import (
 )
 from .monitors import (
     AgentsMonitor,
+    AgentsMonitorManager,
 )
 from .retrievers import (
     AgentsRetriever,

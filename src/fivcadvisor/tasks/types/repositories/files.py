@@ -67,7 +67,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
         """Get the file path for a step."""
         return self._get_steps_dir(task_id) / f"step_{step_id}.json"
 
-    def update_task(self, task: TaskRuntime) -> None:
+    def update_task_runtime(self, task: TaskRuntime) -> None:
         """
         Create or update a task.
 
@@ -85,7 +85,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
         with open(task_file, "w", encoding="utf-8") as f:
             json.dump(task_data, f, indent=2, ensure_ascii=False)
 
-    def get_task(self, task_id: str) -> Optional[TaskRuntime]:
+    def get_task_runtime(self, task_id: str) -> Optional[TaskRuntime]:
         """
         Retrieve a task by ID.
 
@@ -105,14 +105,14 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
                 task_data = json.load(f)
 
             # Reconstruct TaskRuntime from JSON
-            # Note: steps are loaded separately via list_steps
+            # Note: steps are loaded separately via list_task_runtime_steps
             return TaskRuntime.model_validate(task_data)
         except (json.JSONDecodeError, ValueError) as e:
             # Log error and return None if file is corrupted
             print(f"Error loading task {task_id}: {e}")
             return None
 
-    def delete_task(self, task_id: str) -> None:
+    def delete_task_runtime(self, task_id: str) -> None:
         """
         Delete a task and all its steps.
 
@@ -124,7 +124,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
         if task_dir.exists():
             shutil.rmtree(task_dir)
 
-    def list_tasks(self) -> List[TaskRuntime]:
+    def list_task_runtimes(self) -> List[TaskRuntime]:
         """
         List all tasks.
 
@@ -142,13 +142,15 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
             task_id = task_dir.name.replace("task_", "")
 
             # Load task
-            task = self.get_task(task_id)
+            task = self.get_task_runtime(task_id)
             if task:
                 tasks.append(task)
 
         return tasks
 
-    def get_step(self, task_id: str, step_id: str) -> Optional[TaskRuntimeStep]:
+    def get_task_runtime_step(
+        self, task_id: str, step_id: str
+    ) -> Optional[TaskRuntimeStep]:
         """
         Retrieve a step by task ID and step ID.
 
@@ -175,7 +177,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
             print(f"Error loading step {step_id} for task {task_id}: {e}")
             return None
 
-    def update_step(self, task_id: str, step: TaskRuntimeStep) -> None:
+    def update_task_runtime_step(self, task_id: str, step: TaskRuntimeStep) -> None:
         """
         Create or update a step.
 
@@ -194,7 +196,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
         with open(step_file, "w", encoding="utf-8") as f:
             json.dump(step_data, f, indent=2, ensure_ascii=False)
 
-    def list_steps(self, task_id: str) -> List[TaskRuntimeStep]:
+    def list_task_runtime_steps(self, task_id: str) -> List[TaskRuntimeStep]:
         """
         List all steps for a task.
 
@@ -219,7 +221,7 @@ class FileTaskRuntimeRepository(TaskRuntimeRepository):
             step_id = step_file.stem.replace("step_", "")
 
             # Load step
-            step = self.get_step(task_id, step_id)
+            step = self.get_task_runtime_step(task_id, step_id)
             if step:
                 steps.append(step)
 

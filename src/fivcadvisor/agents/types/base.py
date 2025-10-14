@@ -4,15 +4,15 @@ Agent runtime data models.
 This module defines the core data models for single-agent execution tracking:
     - AgentsRuntimeToolCall: Individual tool call record
     - AgentsRuntime: Overall agent execution state
-    - AgentsStatus: Execution status enumeration (imported from Strands)
+    - AgentsStatus: Execution status enumeration
 
 These models use Pydantic for validation and serialization, making them
 suitable for persistence and API communication.
 """
 
-from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
+from typing import Optional, Dict, Any
 
 from pydantic import BaseModel, Field, computed_field
 from strands.types.content import Message
@@ -87,16 +87,17 @@ class AgentsRuntime(BaseModel):
     Agent execution state and metadata.
 
     Represents the overall state of a single agent execution, including its status,
-    timing, messages, and tool calls.
+    timing, message, and tool calls.
 
     Attributes:
-        id: Unique execution identifier (UUID)
+        id: Unique execution identifier (timestamp-based, computed from agent_run_id)
+        agent_run_id: Unique run identifier (timestamp string for chronological ordering)
         agent_id: ID of the agent being executed
         agent_name: Name of the agent
         status: Current execution status (PENDING, EXECUTING, COMPLETED, FAILED)
         started_at: When the execution started
         completed_at: When the execution finished
-        messages: List of messages exchanged during execution
+        message: Current message being processed
         tool_calls: Dictionary mapping tool_use_id to AgentsRuntimeToolCall instances
         streaming_text: Accumulated streaming text from the agent
         error: Error message if execution failed
@@ -107,8 +108,12 @@ class AgentsRuntime(BaseModel):
     @computed_field
     @property
     def id(self) -> str:  # same as agent id
-        return self.agent_id
+        return self.agent_run_id
 
+    agent_run_id: str = Field(
+        default_factory=lambda: str(datetime.now().timestamp()),
+        description="Agent run identifier",
+    )
     agent_id: Optional[str] = Field(default=None, description="Agent identifier")
     agent_name: Optional[str] = Field(default=None, description="Agent name")
     status: AgentsStatus = Field(
@@ -120,11 +125,14 @@ class AgentsRuntime(BaseModel):
     completed_at: Optional[datetime] = Field(
         default=None, description="Execution completion timestamp"
     )
-    messages: List[Message] = Field(
-        default_factory=list, description="Messages during execution"
+    query: Optional[str] = Field(
+        default=None, description="User query for this agent run"
     )
     tool_calls: Dict[str, AgentsRuntimeToolCall] = Field(
         default_factory=dict, description="Tool calls made during execution"
+    )
+    message: Optional[Message] = Field(
+        default=None, description="Current message being processed"
     )
     streaming_text: str = Field(default="", description="Accumulated streaming text")
     error: Optional[str] = Field(default=None, description="Error message if failed")

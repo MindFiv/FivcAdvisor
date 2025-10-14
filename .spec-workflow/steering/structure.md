@@ -35,8 +35,12 @@ FivcAdvisor/
 │   ├── tasks/                # Task execution and orchestration
 │   │   ├── __init__.py       # Task execution functions
 │   │   └── types/            # Task-related types
+│   │       ├── base.py       # TaskRuntime and TaskRuntimeStep models
 │   │       ├── managers.py   # TaskManager for task lifecycle
-│   │       └── tracers.py    # TaskTracer for event tracking
+│   │       ├── monitors.py   # TaskMonitor for hook-based execution tracking
+│   │       └── repositories/ # Task runtime persistence
+│   │           ├── __init__.py       # Repository base classes
+│   │           └── files.py          # FileTaskRuntimeRepository implementation
 │   │
 │   ├── tools/                # Tool management and retrieval
 │   │   ├── __init__.py       # Tool registration and exports
@@ -59,10 +63,12 @@ FivcAdvisor/
 │   ├── test_conversation_manager.py
 │   ├── test_embeddings.py
 │   ├── test_execution_integration.py
+│   ├── test_file_task_runtime_repository.py
+│   ├── test_repository_integration.py
 │   ├── test_schemas.py
 │   ├── test_settings.py
 │   ├── test_task_manager.py
-│   ├── test_task_tracer.py
+│   ├── test_task_monitor.py
 │   ├── test_tools_config.py
 │   ├── test_tools_retriever.py
 │   └── test_utils.py
@@ -121,6 +127,9 @@ FivcAdvisor/
 - **Lazy Values**: `<name>_config` for lazy-loaded configurations
 - **Retrievers**: `<name>_retriever` for retrieval classes
 - **Managers**: `<Name>Manager` for lifecycle management classes
+- **Monitors**: `<Name>Monitor` for execution tracking classes
+- **Repositories**: `<Name>Repository` for data persistence abstractions
+- **Base Models**: `base.py` for core data models in a module
 
 ## Import Patterns
 
@@ -307,16 +316,24 @@ def example_function(
    - Automatic registration in retrievers
    - Type-safe factory functions
 
+6. **Repository Pattern**: Abstraction for data persistence
+   - Abstract base classes define interfaces (e.g., `TaskRuntimeRepository`)
+   - Concrete implementations in subdirectories (e.g., `repositories/files.py`)
+   - Dependency injection for flexibility and testability
+   - Clear separation between domain models and persistence
+
 ## Module Boundaries
 
 ### Core vs Extensions
-- **Core**: `agents/`, `tools/`, `models.py`, `schemas.py`, `settings/`
+- **Core**: `agents/`, `tools/`, `tasks/types/base.py`, `models.py`, `schemas.py`, `settings/`
   - Stable, well-tested, minimal dependencies
   - Changes require careful consideration
-  
-- **Extensions**: `app/`, `tasks/`, `embeddings/`
+  - Includes core data models and abstractions
+
+- **Extensions**: `app/`, `tasks/types/repositories/`, `embeddings/`
   - Can evolve independently
   - Optional features that depend on core
+  - Concrete implementations of core abstractions
 
 ### Public API vs Internal
 - **Public API**: Exported via `__all__` in `__init__.py`
@@ -375,6 +392,68 @@ def example_function(
 - **Maximum**: 3 levels of nesting
 - **Prefer**: Early returns and guard clauses
 - **Extract**: Complex nested logic into helper functions
+
+## Task Execution Architecture
+
+### Task Runtime Components
+The task execution system is built on four main components:
+
+1. **Data Models** (`tasks/types/base.py`)
+   - `TaskRuntime`: Overall task execution state with computed fields (task_id, duration, is_completed)
+   - `TaskRuntimeStep`: Individual agent execution step with computed fields (agent_id, duration, is_running, is_completed)
+   - `TaskStatus`: Execution status enumeration (from Strands)
+   - Synchronization methods: `sync()`, `sync_status()`, `sync_started_at()`, `sync_completed_at()`
+
+2. **Monitoring** (`tasks/types/monitors.py`)
+   - `TaskMonitor`: Hook-based execution tracking (requires runtime_repo)
+   - `TaskMonitorManager`: Centralized task lifecycle management
+   - Integrates with Strands' hook system
+   - Required persistence through repository pattern
+   - Real-time step updates via callbacks
+
+3. **Persistence** (`tasks/types/repositories/`)
+   - `TaskRuntimeRepository`: Abstract base class
+   - `FileTaskRuntimeRepository`: File-based implementation
+   - Hierarchical directory structure with JSON files
+   - Human-readable and version-control friendly
+
+4. **Management** (`tasks/types/monitors.py`)
+   - `TaskMonitorManager`: Manages multiple tasks with centralized monitoring
+   - Automatic task creation with planning integration
+   - Task querying and filtering by status
+   - Unified persistence through repository
+
+### Task Execution Flow
+```
+User Request
+    ↓
+TaskMonitorManager.create_task()
+    ↓
+Planning Task (if needed)
+    ↓
+TaskMonitor (hooks into Strands)
+    ↓
+Agent/MultiAgent Execution
+    ↓
+TaskRuntimeRepository (required persistence)
+    ↓
+Task Results
+```
+
+### Repository Pattern Implementation
+```
+tasks/types/repositories/
+├── __init__.py           # Abstract TaskRuntimeRepository base class
+└── files.py              # FileTaskRuntimeRepository implementation
+
+Storage Structure:
+/<output_dir>/
+└── task_<task_id>/
+    ├── task.json         # Task metadata
+    └── steps/
+        ├── step_<step_id>.json
+        └── step_<step_id>.json
+```
 
 ## Web Interface Structure
 

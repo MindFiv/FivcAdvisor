@@ -37,39 +37,34 @@ async def main():
     print(f"   Repository: FileTaskRuntimeRepository")
     print(f"   Tasks will be saved in: {output_dir}/task_<task_id>/")
 
-    # 2. Define a simple task plan
-    print("\n2️⃣ Creating task plan...")
-    plan = schemas.TaskTeam(
-        specialists=[
-            schemas.TaskTeam.Specialist(
-                name="Calculator",
-                backstory="Expert at mathematical calculations",
-                tools=["calculator"],
-            ),
-        ]
-    )
-    print("✅ Task plan created with 1 specialist")
+    # 2. Define the query
+    print("\n2️⃣ Defining task query...")
+    query = "Calculate 123 * 456"
+    print(f"   Query: {query}")
 
     # 3. Create task with event callback
     print("\n3️⃣ Creating task with event tracking...")
 
-    def on_step_update(step):
-        """Callback function to track execution steps"""
-        print(f"   📋 Step: {step.agent_name} - {step.status.value}")
-        if step.error:
-            print(f"      ❌ Error: {step.error}")
+    def on_runtime_update(runtime):
+        """Callback function to track task runtime updates"""
+        print(f"   📋 Task {runtime.id[:8]}: {runtime.status.value}")
+        # Access latest steps from runtime
+        if runtime.steps:
+            latest_step = list(runtime.steps.values())[-1]
+            print(f"      Latest step: {latest_step.agent_name} - {latest_step.status.value}")
+            if latest_step.error:
+                print(f"      ❌ Error: {latest_step.error}")
 
-    swarm = manager.create_task(
-        plan=plan,
+    swarm = await manager.create_task(
+        query=query,
         tools_retriever=tools.default_retriever,
-        on_event=on_step_update,
+        on_event=on_runtime_update,
     )
     print("✅ Task created with step tracking")
+    print("   (Planning was automatically executed)")
 
     # 4. Execute the task
     print("\n4️⃣ Executing task...")
-    query = "Calculate 123 * 456"
-    print(f"   Query: {query}")
 
     try:
         result = await swarm.invoke_async(query)

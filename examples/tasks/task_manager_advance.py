@@ -22,54 +22,47 @@ from fivcadvisor.utils import OutputDir
 dotenv.load_dotenv()
 
 
-class StepTracker:
-    """Custom step tracker with advanced tracking"""
+class RuntimeTracker:
+    """Custom runtime tracker with advanced tracking"""
 
     def __init__(self):
-        self.steps = []
+        self.events = []
         self.start_time = datetime.now()
 
-    def on_step_update(self, step):
-        """Track all execution steps"""
-        self.steps.append({
+    def on_runtime_update(self, runtime):
+        """Track all runtime updates"""
+        self.events.append({
             "timestamp": datetime.now(),
-            "agent": step.agent_name,
-            "status": step.status.value,
+            "task_id": runtime.id,
+            "status": runtime.status.value,
+            "step_count": len(runtime.steps) if runtime.steps else 0,
         })
-        print(f"   [{datetime.now().strftime('%H:%M:%S')}] "
-              f"{step.agent_name}: {step.status.value}")
+        # Print latest step info if available
+        if runtime.steps:
+            latest_step = list(runtime.steps.values())[-1]
+            print(f"   [{datetime.now().strftime('%H:%M:%S')}] "
+                  f"{latest_step.agent_name}: {latest_step.status.value}")
 
     def get_summary(self):
         """Generate custom summary"""
         duration = (datetime.now() - self.start_time).total_seconds()
         return {
-            "total_steps": len(self.steps),
+            "total_events": len(self.events),
             "duration": duration,
-            "steps_per_second": len(self.steps) / duration if duration > 0 else 0,
+            "events_per_second": len(self.events) / duration if duration > 0 else 0,
         }
 
 
-async def create_and_run_task(manager, task_name, query, step_tracker):
+async def create_and_run_task(manager, task_name, query, runtime_tracker):
     """Helper function to create and run a task"""
     print(f"\n🚀 Starting task: {task_name}")
     print(f"   Query: {query}")
 
-    # Create task plan
-    plan = schemas.TaskTeam(
-        specialists=[
-            schemas.TaskTeam.Specialist(
-                name=task_name,
-                backstory=f"Expert at {task_name.lower()}",
-                tools=["calculator"],
-            ),
-        ]
-    )
-
-    # Create and execute task
-    swarm = manager.create_task(
-        plan=plan,
+    # Create and execute task (planning is done automatically)
+    swarm = await manager.create_task(
+        query=query,
         tools_retriever=tools.default_retriever,
-        on_event=step_tracker.on_step_update,
+        on_event=runtime_tracker.on_runtime_update,
     )
 
     try:
@@ -95,7 +88,7 @@ async def main():
     print(f"Repository: FileTaskRuntimeRepository")
     print(f"Tasks will be saved in: {output_dir}/task_<task_id>/")
 
-    step_tracker = StepTracker()
+    runtime_tracker = RuntimeTracker()
 
     # Define multiple tasks
     tasks = [
@@ -108,7 +101,7 @@ async def main():
     print("\n📋 Executing multiple tasks...")
     results = []
     for task_name, query in tasks:
-        result = await create_and_run_task(manager, task_name, query, step_tracker)
+        result = await create_and_run_task(manager, task_name, query, runtime_tracker)
         results.append((task_name, result))
         await asyncio.sleep(0.5)  # Small delay between tasks
 
@@ -176,12 +169,12 @@ async def main():
         print(f"      Average duration: {avg_duration:.2f}s")
         print(f"      Total duration: {total_duration:.2f}s")
 
-    # Step tracker summary
-    print("\n3️⃣ Step Tracker Summary:")
-    summary = step_tracker.get_summary()
-    print(f"   Total steps tracked: {summary['total_steps']}")
+    # Runtime tracker summary
+    print("\n3️⃣ Runtime Tracker Summary:")
+    summary = runtime_tracker.get_summary()
+    print(f"   Total events tracked: {summary['total_events']}")
     print(f"   Total time: {summary['duration']:.2f}s")
-    print(f"   Steps/second: {summary['steps_per_second']:.2f}")
+    print(f"   Events/second: {summary['events_per_second']:.2f}")
 
     # Filter steps by status
     print("\n4️⃣ Step Filtering:")

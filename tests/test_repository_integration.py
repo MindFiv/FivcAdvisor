@@ -30,7 +30,7 @@ class TestRepositoryIntegration:
 
             # Verify task is persisted
             task_id = monitor.id
-            persisted_task = repo.get_task(task_id)
+            persisted_task = repo.get_task_runtime(task_id)
             assert persisted_task is not None
             assert persisted_task.id == task_id
 
@@ -54,10 +54,10 @@ class TestRepositoryIntegration:
             monitor.steps[step.id] = step
 
             # Persist the step
-            repo.update_step(task_id, step)
+            repo.update_task_runtime_step(task_id, step)
 
             # Verify step is persisted
-            persisted_step = repo.get_step(task_id, "agent-1")
+            persisted_step = repo.get_task_runtime_step(task_id, "agent-1")
             assert persisted_step is not None
             assert persisted_step.id == "agent-1"
             assert persisted_step.agent_name == "TestAgent"
@@ -74,7 +74,7 @@ class TestRepositoryIntegration:
                 status=TaskStatus.EXECUTING,
                 started_at=datetime.now(),
             )
-            repo.update_task(task)
+            repo.update_task_runtime(task)
 
             step1 = TaskRuntimeStep(
                 id="agent-1",
@@ -86,11 +86,11 @@ class TestRepositoryIntegration:
                 agent_name="Agent2",
                 status=TaskStatus.EXECUTING,
             )
-            repo.update_step("test-task-reload", step1)
-            repo.update_step("test-task-reload", step2)
+            repo.update_task_runtime_step("test-task-reload", step1)
+            repo.update_task_runtime_step("test-task-reload", step2)
 
             # Create a new TaskMonitor with the persisted runtime
-            persisted_task = repo.get_task("test-task-reload")
+            persisted_task = repo.get_task_runtime("test-task-reload")
             monitor = TaskMonitor(runtime=persisted_task, runtime_repo=repo)
 
             # Verify steps are loaded
@@ -117,18 +117,18 @@ class TestRepositoryIntegration:
                 agent_name="TestAgent",
             )
             monitor.steps[step.id] = step
-            repo.update_step(task_id, step)
+            repo.update_task_runtime_step(task_id, step)
 
             # Verify task and step exist
-            assert repo.get_task(task_id) is not None
-            assert repo.get_step(task_id, "agent-1") is not None
+            assert repo.get_task_runtime(task_id) is not None
+            assert repo.get_task_runtime_step(task_id, "agent-1") is not None
 
             # Cleanup
             monitor.cleanup()
 
             # Verify task and steps are deleted
-            assert repo.get_task(task_id) is None
-            assert repo.get_step(task_id, "agent-1") is None
+            assert repo.get_task_runtime(task_id) is None
+            assert repo.get_task_runtime_step(task_id, "agent-1") is None
 
     def test_multiple_tasks_in_repository(self):
         """Test managing multiple tasks in repository"""
@@ -142,7 +142,7 @@ class TestRepositoryIntegration:
             monitor3 = TaskMonitor(runtime_repo=repo)
 
             # List all tasks
-            tasks = repo.list_tasks()
+            tasks = repo.list_task_runtimes()
             assert len(tasks) == 3
 
             task_ids = {task.id for task in tasks}
@@ -178,10 +178,10 @@ class TestRepositoryIntegration:
             monitor.persist()
 
             # Verify all data is persisted
-            persisted_task = repo.get_task(task_id)
+            persisted_task = repo.get_task_runtime(task_id)
             assert persisted_task is not None
 
-            persisted_steps = repo.list_steps(task_id)
+            persisted_steps = repo.list_task_runtime_steps(task_id)
             assert len(persisted_steps) == 2
 
             step_ids = {step.id for step in persisted_steps}

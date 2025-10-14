@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
-Tests for the schemas module.
+Tests for task schemas.
+
+Note: All task schemas have been moved to fivcadvisor.tasks.types.base
+Tests remain here but import from new location.
 """
 
 import pytest
 from pydantic import ValidationError
 
-from fivcadvisor.schemas import (
+from fivcadvisor.tasks.types import (
     TaskAssessment,
     TaskRequirement,
     TaskTeam,
