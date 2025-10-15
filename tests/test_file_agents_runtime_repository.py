@@ -6,7 +6,12 @@ Tests for FileAgentsRuntimeRepository functionality.
 import tempfile
 from datetime import datetime
 
-from fivcadvisor.agents.types import AgentsRuntime, AgentsRuntimeToolCall, AgentsStatus
+from fivcadvisor.agents.types import (
+    AgentsRuntime,
+    AgentsRuntimeMeta,
+    AgentsRuntimeToolCall,
+    AgentsStatus,
+)
 from fivcadvisor.agents.types.repositories.files import FileAgentsRuntimeRepository
 from fivcadvisor.utils import OutputDir
 
@@ -507,3 +512,297 @@ class TestFileAgentsRuntimeRepository:
             # Verify the order is maintained
             for i in range(len(runtimes) - 1):
                 assert runtimes[i].agent_run_id < runtimes[i + 1].agent_run_id
+
+    def test_update_and_get_agent_meta(self):
+        """Test creating and retrieving agent metadata"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+
+            # Create agent metadata
+            agent_meta = AgentsRuntimeMeta(
+                agent_id="test-agent-meta-123",
+                agent_name="TestAgent",
+                system_prompt="You are a helpful assistant",
+                description="A test agent for testing purposes",
+            )
+
+            # Save agent metadata
+            repo.update_agent(agent_meta)
+
+            # Verify agent file exists
+            agent_file = repo._get_agent_file("test-agent-meta-123")
+            assert agent_file.exists()
+
+            # Retrieve agent metadata
+            retrieved_agent = repo.get_agent("test-agent-meta-123")
+            assert retrieved_agent is not None
+            assert retrieved_agent.agent_id == "test-agent-meta-123"
+            assert retrieved_agent.agent_name == "TestAgent"
+            assert retrieved_agent.system_prompt == "You are a helpful assistant"
+            assert retrieved_agent.description == "A test agent for testing purposes"
+
+    def test_get_nonexistent_agent_meta(self):
+        """Test retrieving agent metadata that doesn't exist"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+
+            # Try to get non-existent agent
+            agent = repo.get_agent("nonexistent-agent-meta")
+            assert agent is None
+
+    def test_update_existing_agent_meta(self):
+        """Test updating existing agent metadata"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+
+            # Create agent metadata
+            agent_meta = AgentsRuntimeMeta(
+                agent_id="test-agent-update-meta",
+                agent_name="TestAgent",
+                system_prompt="Initial prompt",
+            )
+            repo.update_agent(agent_meta)
+
+            # Update agent metadata
+            agent_meta.agent_name = "UpdatedAgent"
+            agent_meta.system_prompt = "Updated prompt"
+            agent_meta.description = "Now with description"
+            repo.update_agent(agent_meta)
+
+            # Retrieve and verify
+            retrieved_agent = repo.get_agent("test-agent-update-meta")
+            assert retrieved_agent.agent_name == "UpdatedAgent"
+            assert retrieved_agent.system_prompt == "Updated prompt"
+            assert retrieved_agent.description == "Now with description"
+
+    def test_list_agents_empty(self):
+        """Test listing agents when repository is empty"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+
+            # List agents in empty repository
+            agents = repo.list_agents()
+            assert agents == []
+
+    def test_list_agents_multiple(self):
+        """Test listing multiple agents"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+
+            # Create multiple agents
+            agent1 = AgentsRuntimeMeta(
+                agent_id="agent-001",
+                agent_name="Agent1",
+            )
+            agent2 = AgentsRuntimeMeta(
+                agent_id="agent-002",
+                agent_name="Agent2",
+            )
+            agent3 = AgentsRuntimeMeta(
+                agent_id="agent-003",
+                agent_name="Agent3",
+            )
+
+            # Save in random order
+            repo.update_agent(agent2)
+            repo.update_agent(agent1)
+            repo.update_agent(agent3)
+
+            # List agents
+            agents = repo.list_agents()
+
+            # Verify we got all 3
+            assert len(agents) == 3
+
+            # Verify they are sorted by agent_id
+            assert agents[0].agent_id == "agent-001"
+            assert agents[1].agent_id == "agent-002"
+            assert agents[2].agent_id == "agent-003"
+
+            # Verify names
+            assert agents[0].agent_name == "Agent1"
+            assert agents[1].agent_name == "Agent2"
+            assert agents[2].agent_name == "Agent3"
+
+    def test_delete_agent_meta(self):
+        """Test deleting an agent and all its runtimes"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+
+            agent_id = "test-agent-delete"
+
+            # Create agent metadata
+            agent_meta = AgentsRuntimeMeta(
+                agent_id=agent_id,
+                agent_name="TestAgent",
+            )
+            repo.update_agent(agent_meta)
+
+            # Create multiple runtimes for this agent
+            runtime1 = AgentsRuntime(
+                agent_id=agent_id,
+                agent_name="TestAgent",
+                agent_run_id="1000.0",
+            )
+            runtime2 = AgentsRuntime(
+                agent_id=agent_id,
+                agent_name="TestAgent",
+                agent_run_id="2000.0",
+            )
+            repo.update_agent_runtime(agent_id, runtime1)
+            repo.update_agent_runtime(agent_id, runtime2)
+
+            # Verify agent and runtimes exist
+            assert repo.get_agent(agent_id) is not None
+            assert len(repo.list_agent_runtimes(agent_id)) == 2
+
+            # Delete agent
+            repo.delete_agent(agent_id)
+
+            # Verify agent and all runtimes are deleted
+            assert repo.get_agent(agent_id) is None
+            assert len(repo.list_agent_runtimes(agent_id)) == 0
+            assert not repo._get_agent_dir(agent_id).exists()
+
+    def test_delete_nonexistent_agent_meta(self):
+        """Test deleting an agent that doesn't exist (should not raise error)"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+
+            # Delete non-existent agent (should not raise error)
+            repo.delete_agent("nonexistent-agent-meta")
+
+            # Verify nothing broke
+            assert repo.get_agent("nonexistent-agent-meta") is None
+
+    def test_agent_meta_with_minimal_fields(self):
+        """Test agent metadata with only required fields"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+
+            # Create agent metadata with only agent_id
+            agent_meta = AgentsRuntimeMeta(agent_id="minimal-agent")
+            repo.update_agent(agent_meta)
+
+            # Retrieve and verify
+            retrieved_agent = repo.get_agent("minimal-agent")
+            assert retrieved_agent is not None
+            assert retrieved_agent.agent_id == "minimal-agent"
+            assert retrieved_agent.agent_name is None
+            assert retrieved_agent.system_prompt is None
+            assert retrieved_agent.description is None
+
+    def test_agent_storage_structure(self):
+        """Test that agent metadata storage structure matches expected format"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+
+            # Create agent metadata
+            agent_meta = AgentsRuntimeMeta(
+                agent_id="structure-test-agent",
+                agent_name="StructureTestAgent",
+            )
+            repo.update_agent(agent_meta)
+
+            # Verify directory structure
+            agent_dir = repo._get_agent_dir("structure-test-agent")
+            assert agent_dir.exists()
+            assert (agent_dir / "agent.json").exists()
+
+            # Verify agent.json is valid JSON
+            import json
+
+            with open(agent_dir / "agent.json", "r") as f:
+                data = json.load(f)
+                assert data["agent_id"] == "structure-test-agent"
+                assert data["agent_name"] == "StructureTestAgent"
+
+    def test_delete_agent_with_tool_calls_in_runtimes(self):
+        """Test deleting an agent that has runtimes with tool calls"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+
+            agent_id = "agent-with-complex-data"
+
+            # Create agent metadata
+            agent_meta = AgentsRuntimeMeta(
+                agent_id=agent_id,
+                agent_name="ComplexAgent",
+            )
+            repo.update_agent(agent_meta)
+
+            # Create runtime with tool calls
+            runtime = AgentsRuntime(
+                agent_id=agent_id,
+                agent_name="ComplexAgent",
+            )
+            repo.update_agent_runtime(agent_id, runtime)
+
+            # Add tool calls
+            tool_call1 = AgentsRuntimeToolCall(tool_use_id="tool-1", tool_name="Tool1")
+            tool_call2 = AgentsRuntimeToolCall(tool_use_id="tool-2", tool_name="Tool2")
+            repo.update_agent_runtime_tool_call(
+                agent_id, runtime.agent_run_id, tool_call1
+            )
+            repo.update_agent_runtime_tool_call(
+                agent_id, runtime.agent_run_id, tool_call2
+            )
+
+            # Verify everything exists
+            assert repo.get_agent(agent_id) is not None
+            assert repo.get_agent_runtime(agent_id, runtime.agent_run_id) is not None
+            assert (
+                len(repo.list_agent_runtime_tool_calls(agent_id, runtime.agent_run_id))
+                == 2
+            )
+
+            # Delete agent (should delete everything)
+            repo.delete_agent(agent_id)
+
+            # Verify everything is deleted
+            assert repo.get_agent(agent_id) is None
+            assert repo.get_agent_runtime(agent_id, runtime.agent_run_id) is None
+            assert (
+                len(repo.list_agent_runtime_tool_calls(agent_id, runtime.agent_run_id))
+                == 0
+            )
+            assert not repo._get_agent_dir(agent_id).exists()
+
+    def test_list_agents_after_deletion(self):
+        """Test that deleted agents don't appear in list"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = OutputDir(tmpdir)
+            repo = FileAgentsRuntimeRepository(output_dir=output_dir)
+
+            # Create multiple agents
+            agent1 = AgentsRuntimeMeta(agent_id="agent-keep-1")
+            agent2 = AgentsRuntimeMeta(agent_id="agent-delete")
+            agent3 = AgentsRuntimeMeta(agent_id="agent-keep-2")
+
+            repo.update_agent(agent1)
+            repo.update_agent(agent2)
+            repo.update_agent(agent3)
+
+            # Verify all 3 exist
+            assert len(repo.list_agents()) == 3
+
+            # Delete one agent
+            repo.delete_agent("agent-delete")
+
+            # Verify only 2 remain
+            agents = repo.list_agents()
+            assert len(agents) == 2
+            agent_ids = {a.agent_id for a in agents}
+            assert "agent-keep-1" in agent_ids
+            assert "agent-keep-2" in agent_ids
+            assert "agent-delete" not in agent_ids

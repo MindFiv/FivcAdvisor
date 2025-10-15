@@ -12,7 +12,7 @@ This example shows how to:
 import asyncio
 import dotenv
 
-from fivcadvisor import schemas, tools
+from fivcadvisor import tools
 from fivcadvisor.tasks.types import TaskMonitorManager
 from fivcadvisor.utils import OutputDir
 

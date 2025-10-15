@@ -5,8 +5,8 @@ Multi-page application modules.
 """
 
 __all__ = [
-    "chat",
+    "chats",
     "settings",
 ]
 
-from . import chat, settings
+from . import chats, settings

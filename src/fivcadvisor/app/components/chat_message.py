@@ -7,7 +7,7 @@ from streamlit.delta_generator import DeltaGenerator
 from fivcadvisor.agents.types import AgentsRuntime
 
 
-def render(placeholder: Optional[DeltaGenerator], runtime: AgentsRuntime):
+def render(runtime: AgentsRuntime, placeholder: DeltaGenerator):
     """
     Render a chat message from an AgentsRuntime.
 
@@ -24,18 +24,20 @@ def render(placeholder: Optional[DeltaGenerator], runtime: AgentsRuntime):
     - Completed message: Rendered with full message content
     - Streaming: Rendered with animated loading indicator
     """
+    placeholder = placeholder.container()
+
     if runtime.query:
         c = placeholder.chat_message("user")
         c.text(runtime.query)
 
     c = placeholder.chat_message("assistant")
-    if runtime.message:
-        _render_message(c, runtime.message)
+    if runtime.reply:
+        message_render(runtime.reply, c)
     else:
-        _render_stream(c, runtime.streaming_text)
+        streaming_render(runtime.streaming_text, c)
 
 
-def _render_message(placeholder: Optional[DeltaGenerator], message: Message):
+def message_render(message: Message, placeholder: Optional[DeltaGenerator]):
     """
     Render a completed message with formatted content.
 
@@ -55,11 +57,58 @@ def _render_message(placeholder: Optional[DeltaGenerator], message: Message):
     for msg_block in msg_content:
         if "text" in msg_block:
             msg_block_text = msg_block["text"]
-            msg_block_text = _parse_think_tags(msg_block_text)
+            msg_block_text = thinking_prettify(msg_block_text)
             placeholder.markdown(msg_block_text, unsafe_allow_html=True)
 
 
-def _render_stream(placeholder: Optional[DeltaGenerator], streaming_text: str):
+streaming_indicator = """
+<style>
+@keyframes dots {
+    0%, 20% {
+        content: '●';
+    }
+    40% {
+        content: '●●';
+    }
+    60%, 100% {
+        content: '●●●';
+    }
+}
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.15);
+    }
+}
+@keyframes glow {
+    0%, 100% {
+        text-shadow: 0 0 5px #3498db, 0 0 10px #3498db;
+    }
+    50% {
+        text-shadow: 0 0 10px #3498db, 0 0 20px #3498db, 0 0 30px #5dade2;
+    }
+}
+.loading-dots {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 1.0em;
+    font-weight: bold;
+    color: #3498db;
+    animation: pulse 1.5s ease-in-out infinite, glow 2s ease-in-out infinite;
+}
+.loading-dots::after {
+    content: '●●●';
+    animation: dots 1.2s infinite;
+}
+</style>
+"""
+
+
+def streaming_render(streaming_text: str, placeholder: DeltaGenerator):
     """
     Render streaming text with animated loading indicator.
 
@@ -73,59 +122,82 @@ def _render_stream(placeholder: Optional[DeltaGenerator], streaming_text: str):
     The loading indicator uses CSS animations for a smooth visual effect.
     Think tags in streaming text are also processed for consistent styling.
     """
-    loading_indicator = """
-    <style>
-    @keyframes dots {
-        0%, 20% {
-            content: '●';
-        }
-        40% {
-            content: '●●';
-        }
-        60%, 100% {
-            content: '●●●';
-        }
-    }
-    @keyframes pulse {
-        0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-        }
-        50% {
-            opacity: 0.7;
-            transform: scale(1.15);
-        }
-    }
-    @keyframes glow {
-        0%, 100% {
-            text-shadow: 0 0 5px #3498db, 0 0 10px #3498db;
-        }
-        50% {
-            text-shadow: 0 0 10px #3498db, 0 0 20px #3498db, 0 0 30px #5dade2;
-        }
-    }
-    .loading-dots {
-        display: inline-block;
-        margin-left: 6px;
-        font-size: 1.0em;
-        font-weight: bold;
-        color: #3498db;
-        animation: pulse 1.5s ease-in-out infinite, glow 2s ease-in-out infinite;
-    }
-    .loading-dots::after {
-        content: '●●●';
-        animation: dots 1.2s infinite;
-    }
-    </style>
-    """
-    streaming_text = _parse_think_tags(streaming_text)
+    streaming_text = thinking_prettify(streaming_text)
     streaming_text = (
-        f"{loading_indicator}{streaming_text}<span class='loading-dots'></span>"
+        f"{streaming_indicator}{streaming_text}<span class='loading-dots'></span>"
     )
     placeholder.markdown(streaming_text, unsafe_allow_html=True)
 
 
-def _parse_think_tags(message_text: str) -> str:
+# CSS styles for think blocks
+thinking_style = """
+<style>
+.think-container {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+    border-left: 4px solid #667eea;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+}
+.think-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 10px;
+    font-size: 0.95em;
+    letter-spacing: 0.5px;
+}
+.think-icon {
+    font-size: 1.2em;
+    animation: pulse-think 2s ease-in-out infinite;
+}
+.think-content {
+    color: #4a5568;
+    line-height: 1.6;
+    font-size: 0.9em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+@keyframes pulse-think {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+</style>
+"""
+
+
+def thinking_replace(message_text):
+    # Pattern to match <think>...</think> tags (including multiline content)
+    def _replace(match):
+        content = match.group(1).strip()
+        return f"""
+            <div class="think-container">
+                <div class="think-header">
+                    <span class="think-icon">🤔</span>
+                    <span>Thinking...</span>
+                </div>
+                <div class="think-content">{content}</div>
+            </div>
+            """
+
+    # Replace all think tags with styled HTML
+    message_text = re.sub(
+        r"<think>(.*?)</think>", _replace, message_text, flags=re.DOTALL
+    )
+    return thinking_style + message_text
+
+
+def thinking_prettify(message_text: str) -> str:
     """
     Process <think></think> tags in the text and apply styling.
 
@@ -135,72 +207,9 @@ def _parse_think_tags(message_text: str) -> str:
     Returns:
         Processed text with styled think sections
     """
-    # CSS styles for think blocks
-    think_style = """
-    <style>
-    .think-container {
-        background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
-        border-left: 4px solid #667eea;
-        border-radius: 8px;
-        padding: 16px 20px;
-        margin: 12px 0;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
-        font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
-    }
-    .think-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 600;
-        color: #667eea;
-        margin-bottom: 10px;
-        font-size: 0.95em;
-        letter-spacing: 0.5px;
-    }
-    .think-icon {
-        font-size: 1.2em;
-        animation: pulse-think 2s ease-in-out infinite;
-    }
-    .think-content {
-        color: #4a5568;
-        line-height: 1.6;
-        font-size: 0.9em;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-    }
-    @keyframes pulse-think {
-        0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-        }
-        50% {
-            opacity: 0.7;
-            transform: scale(1.1);
-        }
-    }
-    </style>
-    """
-
-    # Pattern to match <think>...</think> tags (including multiline content)
-    pattern = r"<think>(.*?)</think>"
-
-    def replace_think(match):
-        content = match.group(1).strip()
-        return f"""
-        <div class="think-container">
-            <div class="think-header">
-                <span class="think-icon">🤔</span>
-                <span>Thinking...</span>
-            </div>
-            <div class="think-content">{content}</div>
-        </div>
-        """
-
-    # Replace all think tags with styled HTML
-    processed_text = re.sub(pattern, replace_think, message_text, flags=re.DOTALL)
 
     # Add the style if we found any think tags
     if "<think>" in message_text:
-        processed_text = think_style + processed_text
+        message_text = thinking_replace(message_text)
 
-    return processed_text
+    return message_text

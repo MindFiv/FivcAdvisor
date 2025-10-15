@@ -117,7 +117,7 @@ class TestAgentsRuntime:
         assert runtime.agent_id == "agent-123"
         assert runtime.agent_name == "TestAgent"
         assert runtime.status == AgentsStatus.PENDING
-        assert runtime.message is None
+        assert runtime.reply is None
         assert runtime.tool_calls == {}
         assert runtime.streaming_text == ""
         assert runtime.error is None

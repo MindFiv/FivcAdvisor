@@ -1,5 +1,6 @@
 __all__ = [
     "run_tooling_task",
+    "run_briefing_task",
     "run_assessing_task",
     "run_planning_task",
     "TaskAssessment",
@@ -36,6 +37,23 @@ async def run_tooling_task(
     agent = agents.create_tooling_agent(**kwargs)
     agent_prompt = f"Retrieve the best tools for the following task: \n" f"{query}"
     return await agent.structured_output_async(TaskRequirement, prompt=agent_prompt)
+
+
+async def run_briefing_task(
+    query: str, tools_retriever: Optional[tools.ToolsRetriever] = None, **kwargs
+) -> str:
+    """Run a summarizing task for an agent."""
+    if "tools" not in kwargs and tools_retriever is not None:
+        kwargs["tools"] = [tools_retriever.to_tool()]
+
+    agent = agents.create_consultant_agent(**kwargs)
+    agent_prompt = (
+        f"Summarize the following task and make it brief, "
+        f"so that it can be set as the title for a task: \n"
+        f"{query}"
+    )
+    agent_result = await agent.invoke_async(agent_prompt)
+    return str(agent_result)
 
 
 async def run_assessing_task(

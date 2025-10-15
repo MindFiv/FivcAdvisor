@@ -14,7 +14,7 @@ import dotenv
 
 from datetime import datetime
 from collections import defaultdict
-from fivcadvisor import schemas, tools
+from fivcadvisor import tools
 from fivcadvisor.tasks.types import TaskMonitorManager, TaskStatus
 from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
 from fivcadvisor.utils import OutputDir

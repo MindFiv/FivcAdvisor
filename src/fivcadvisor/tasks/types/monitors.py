@@ -53,7 +53,7 @@ class TaskMonitor(object):
     Usage with hooks (recommended):
         >>> from fivcadvisor.tasks.types import TaskMonitor
         >>> from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
-        >>> from fivcadvisor import agents, schemas
+        >>> from fivcadvisor import agents
         >>> from fivcadvisor.utils import OutputDir
         >>>
         >>> # Create repository and monitor

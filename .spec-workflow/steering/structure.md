@@ -156,7 +156,7 @@ from strands.agent import Agent
 from strands.multiagent import Swarm
 
 # Local absolute imports
-from fivcadvisor import models, tools, schemas, utils
+from fivcadvisor import models, tools, utils
 
 # Relative imports
 from fivcadvisor.agents.types import (

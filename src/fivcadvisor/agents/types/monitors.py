@@ -42,9 +42,6 @@ from fivcadvisor.agents.types.base import (
     AgentsRuntimeToolCall,
     AgentsStatus,
 )
-from fivcadvisor.agents.types.conversations import (
-    ToolFilteringConversationManager,
-)
 from fivcadvisor.agents.types.repositories import (
     AgentsRuntimeRepository,
 )
@@ -287,7 +284,7 @@ class AgentsMonitor(object):
             result: AgentResult object from Strands containing final output
         """
         # Update runtime state
-        self._runtime.message = result.message
+        self._runtime.reply = result.message
         self._runtime.status = AgentsStatus.COMPLETED
         self._runtime.completed_at = datetime.now()
 
@@ -375,8 +372,6 @@ class AgentsMonitorManager(object):
 
     Note:
         The runtime_repo parameter is required.
-        The manager uses a ToolFilteringConversationManager with a
-        SlidingWindowConversationManager (window_size=30) for all created agents.
         Previous agent messages are automatically loaded from the repository and
         passed to the agent creator for conversation continuity.
     """
@@ -407,9 +402,7 @@ class AgentsMonitorManager(object):
         assert runtime_repo is not None, "runtime_repo is required"
 
         self._repo = runtime_repo
-        self._conversation_manager = ToolFilteringConversationManager(
-            SlidingWindowConversationManager(window_size=30)
-        )
+        self._conversation_manager = SlidingWindowConversationManager(window_size=30)
 
     def create_agent_runtime(
         self,
@@ -489,9 +482,9 @@ class AgentsMonitorManager(object):
         # Sync runtime to agent
         agent_runtimes = self._repo.list_agent_runtimes(agent_id)
         agent_messages = [
-            runtime.message
+            runtime.reply
             for runtime in agent_runtimes
-            if (runtime.is_completed and runtime.message)
+            if (runtime.is_completed and runtime.reply)
         ]
 
         # Create runtime to track execution

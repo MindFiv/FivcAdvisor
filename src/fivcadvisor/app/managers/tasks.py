@@ -5,7 +5,7 @@ This module provides TaskManager class to coordinate task execution
 with UI notifications and state management.
 
 TaskManager wraps TaskMonitorManager from the core tasks module and adds
-UI-specific functionality like notifications to ChatManager. It uses the
+UI-specific functionality like notifications to Chat. It uses the
 new TaskMonitorManager.create_task() API which handles planning internally.
 """
 
@@ -27,7 +27,7 @@ class TaskManager(object):
 
     This is a UI-layer wrapper around TaskMonitorManager that adds:
     - Automatic task execution in background
-    - Completion notifications to ChatManager
+    - Completion notifications to Chat
     - Simplified task creation API for UI
 
     The underlying TaskMonitorManager.create_task() handles:
@@ -49,7 +49,7 @@ class TaskManager(object):
 
         Args:
             monitor_manager: Core TaskMonitorManager instance
-            chat_manager: ChatManager instance for notifications
+            on_task_complete: Optional callback for task completion notifications
         """
         self.monitor_manager = monitor_manager
         self.on_task_complete = on_task_complete

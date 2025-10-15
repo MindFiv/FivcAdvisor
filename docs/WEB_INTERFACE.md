@@ -106,8 +106,9 @@ The web interface consists of:
 
 **Main Components:**
 - `src/fivcadvisor/app/__init__.py` - Main Streamlit application
-- `src/fivcadvisor/app/sessions.py` - Session management
-- `src/fivcadvisor/app/tools.py` - Tool tracking and visualization
+- `src/fivcadvisor/app/managers/chats.py` - Chat management (Chat)
+- `src/fivcadvisor/app/views/` - Page views (chat, tasks, settings)
+- `src/fivcadvisor/app/components/` - Reusable UI components
 
 **Key Features:**
 - Async agent execution for responsive UI
@@ -120,7 +121,7 @@ The web interface consists of:
 
 You can customize the interface by modifying:
 
-1. **Agent Configuration** (`app/sessions.py`):
+1. **Chat Configuration** (`app/managers/chats.py`):
    - Change the default agent type
    - Modify system prompts
    - Configure conversation management

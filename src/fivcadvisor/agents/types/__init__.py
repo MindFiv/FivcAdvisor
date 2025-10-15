@@ -1,6 +1,7 @@
 __all__ = [
     "AgentsMonitor",
     "AgentsMonitorManager",
+    "AgentsRuntimeMeta",
     "AgentsRuntime",
     "AgentsRuntimeToolCall",
     "AgentsStatus",
@@ -8,10 +9,10 @@ __all__ = [
     "AgentsRetriever",
     "FunctionAgentCreator",
     "agent_creator",
-    "ToolFilteringConversationManager",
 ]
 
 from .base import (
+    AgentsRuntimeMeta,
     AgentsRuntime,
     AgentsRuntimeToolCall,
     AgentsStatus,
@@ -25,7 +26,4 @@ from .retrievers import (
     AgentsCreatorBase,
     FunctionAgentCreator,
     agent_creator,
-)
-from .conversations import (
-    ToolFilteringConversationManager,
 )
