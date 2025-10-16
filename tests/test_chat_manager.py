@@ -2,7 +2,7 @@
 """
 Tests for Chat functionality.
 
-Tests the chat manager for handling conversation state and agent execution:
+Tests the chat utility for handling conversation state and agent execution:
 - Initialization with tools retriever and repository
 - Agent metadata management
 - History listing
@@ -15,7 +15,7 @@ Tests the chat manager for handling conversation state and agent execution:
 
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
-from fivcadvisor.app.managers import Chat, ChatManager
+from fivcadvisor.app.utils import Chat, ChatManager
 from fivcadvisor.agents.types import AgentsRuntime, AgentsStatus, AgentsRuntimeMeta
 from fivcadvisor.agents.types.repositories import AgentsRuntimeRepository
 from fivcadvisor import tools
@@ -278,7 +278,7 @@ class TestChatAsk:
 
         # Mock run_briefing_task to avoid actual agent creation
         with patch(
-            "fivcadvisor.app.managers.chats.tasks.run_briefing_task"
+            "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
         ) as mock_briefing:
             mock_briefing.return_value = "Agent description"
 
@@ -317,7 +317,7 @@ class TestChatAsk:
 
         # Mock run_briefing_task to avoid actual agent creation
         with patch(
-            "fivcadvisor.app.managers.chats.tasks.run_briefing_task"
+            "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
         ) as mock_briefing:
             mock_briefing.return_value = "Agent description"
 
@@ -348,7 +348,7 @@ class TestChatAsk:
 
         # Mock run_briefing_task to avoid actual agent creation
         with patch(
-            "fivcadvisor.app.managers.chats.tasks.run_briefing_task"
+            "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
         ) as mock_briefing:
             mock_briefing.return_value = "Agent description"
 

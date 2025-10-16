@@ -1,6 +1,6 @@
 # FivcAdvisor Web Interface
 
-FivcAdvisor includes a modern, interactive web interface built with **Streamlit**, providing an intuitive chat-based way to interact with the intelligent agent ecosystem.
+FivcAdvisor includes a modern, interactive web interface built with **Streamlit**, providing an intuitive multi-page application to interact with the intelligent agent ecosystem.
 
 ## 🚀 Quick Start
 
@@ -28,32 +28,40 @@ Once started, open your browser and navigate to:
 
 ## ✨ Features
 
-### 💬 Chat Interface
-- **Natural Conversation**: Chat-based interaction with the Companion agent
+### 💬 Multi-Chat Interface
+- **Multiple Conversations**: Create and manage multiple independent chat sessions
+- **Dynamic Navigation**: Each chat appears as a separate page in the sidebar
+- **Natural Conversation**: Chat-based interaction with AI agents
 - **Multi-turn Dialogue**: Context-aware conversations with full history
 - **Async Execution**: Non-blocking interface that stays responsive
-- **Streaming Responses**: Real-time response generation
-- **Message History**: Persistent conversation history across sessions
+- **Streaming Responses**: Real-time response generation with live updates
+- **Persistent History**: All conversations automatically saved to disk
+- **Chat Descriptions**: Each chat displays a descriptive title in the navigation
 
 ### 🛠️ Tool Integration
 - **Automatic Tool Selection**: Agent automatically chooses appropriate tools
-- **Tool Execution Tracking**: Visual feedback for tool usage
+- **Tool Execution Tracking**: Visual feedback for tool usage with status indicators
 - **Built-in Tools**: Calculator, Python REPL, time utilities
 - **MCP Tools**: Support for external MCP-compatible tools
-- **Tool Results Display**: Clear presentation of tool outputs
+- **Tool Results Display**: Clear presentation of tool inputs and outputs
+- **Tool Call Rendering**: Expandable sections showing tool execution details
 
 ### 📊 User Interface
+- **Multi-Page Navigation**: Organized pages for Chats and Settings
 - **Clean Design**: Modern, intuitive Streamlit interface
 - **Responsive Layout**: Adapts to different screen sizes
-- **Sidebar Information**: System status and configuration
+- **Component-Based**: Reusable UI components for consistency
 - **Message Formatting**: Markdown support for rich text
 - **Error Handling**: Graceful error messages and recovery
+- **Auto-Refresh**: Page automatically updates when new chats are created
 
-### 🔄 Session Management
-- **Persistent Sessions**: Conversations saved across page reloads
-- **Session History**: Access to previous conversations
-- **Conversation Summarization**: Automatic context management
-- **Session Configuration**: Customizable session settings
+### 🔄 Persistence & State Management
+- **File-Based Storage**: All data persisted in `.fivcadvisor/agents/` directory
+- **Agent Runtime Tracking**: Complete execution history with timestamps
+- **Tool Call Persistence**: All tool invocations saved with inputs and results
+- **Hierarchical Storage**: Organized directory structure for easy access
+- **JSON Format**: Human-readable data storage
+- **Automatic Cleanup**: Built-in cleanup commands for managing storage
 
 ## 💡 Example Queries
 
@@ -81,12 +89,33 @@ Try these sample queries to explore FivcAdvisor's capabilities:
 
 ## 🎨 Interface Layout
 
-The web interface features a clean, single-column layout:
+The web interface features a modern multi-page layout with dynamic navigation:
 
-- **Header**: Application title and branding
-- **Chat Area**: Scrollable conversation history with user and agent messages
-- **Input Box**: Text input for user queries at the bottom
-- **Sidebar**: System information and configuration (collapsible)
+### Navigation Structure
+- **Sidebar Navigation**: Dynamic page list organized by category
+  - **Chats Section**:
+    - "New Chat" button to create new conversations
+    - Individual pages for each existing chat (with descriptive titles)
+  - **Settings Section**: Application configuration and preferences
+
+### Page Layouts
+
+#### Chat Pages
+- **Page Title**: "💬 Chat with FivcAdvisor"
+- **Conversation History**: Scrollable list of all messages in chronological order
+- **Message Display**:
+  - User messages with "user" avatar
+  - Agent messages with "assistant" avatar
+  - Tool calls in expandable sections
+  - Streaming text updates in real-time
+- **Input Box**: Chat input field at the bottom ("Ask me anything...")
+- **Auto-Navigation**: Automatically switches to new chat page after creation
+
+#### Settings Page
+- **Model Configuration**: LLM provider and model selection
+- **Task Configuration**: Complexity thresholds and subtask limits
+- **Session Management**: Cleanup and reset options
+- **Settings Persistence**: Save and view current configuration
 
 ## 🔧 Development
 
@@ -102,39 +131,103 @@ uv run streamlit run src/fivcadvisor/app/__init__.py --server.port 8501
 
 ### Architecture
 
-The web interface consists of:
+The web interface uses a modular, component-based architecture:
 
-**Main Components:**
-- `src/fivcadvisor/app/__init__.py` - Main Streamlit application
-- `src/fivcadvisor/app/managers/chats.py` - Chat management (Chat)
-- `src/fivcadvisor/app/views/` - Page views (chat, tasks, settings)
-- `src/fivcadvisor/app/components/` - Reusable UI components
+#### Directory Structure
+```
+src/fivcadvisor/app/
+├── __init__.py              # Main app with st.navigation setup
+├── utils/                   # Utility classes and state management
+│   ├── chats.py            # Chat and ChatManager classes
+│   └── tasks.py            # Task monitoring (future)
+├── views/                   # Page rendering functions
+│   ├── chats.py            # Chat page view
+│   ├── settings.py         # Settings page view
+│   └── tasks.py            # Tasks page view (future)
+└── components/              # Reusable UI components
+    └── chat_message.py     # Message and tool call rendering
+```
 
-**Key Features:**
-- Async agent execution for responsive UI
-- Session persistence with file-based storage
-- Tool usage tracking and display
-- Streaming response support
-- Conversation summarization
+#### Key Components
+
+**1. Main Application (`__init__.py`)**
+- Sets up page configuration
+- Creates ChatManager instance
+- Builds dynamic navigation with st.navigation
+- Manages page routing and state
+
+**2. Chat Utility (`utils/chats.py`)**
+- `Chat` class: Manages individual chat sessions
+  - Agent runtime creation and execution
+  - Conversation history management
+  - Streaming response handling
+  - Persistence via AgentsRuntimeRepository
+- `ChatManager` class: Manages multiple chats
+  - Lists all existing chats
+  - Creates new chat instances
+  - Shares repository and tools across chats
+
+**3. Views (`views/`)**
+- `chats.render(chat)`: Renders chat interface for a specific Chat instance
+- `settings.render()`: Renders settings and configuration page
+- `tasks.render()`: Task monitoring view (future feature)
+
+**4. Components (`components/`)**
+- `chat_message.render(runtime, container)`: Renders a single message
+  - Displays user query
+  - Shows agent response with streaming support
+  - Renders tool calls in expandable sections with status indicators
+  - Handles different message states (pending, executing, completed)
+  - Includes tool call rendering with inputs, outputs, and timing
+  - Applies special formatting for `<think>` tags
+
+**5. Persistence Layer**
+- `FileAgentsRuntimeRepository`: File-based storage
+- Storage location: `.fivcadvisor/agents/`
+- Structure:
+  ```
+  .fivcadvisor/agents/
+  └── agent_<agent_id>/
+      ├── agent.json                    # Agent metadata
+      └── run_<timestamp>/
+          ├── run.json                  # Runtime data
+          └── tool_calls/
+              └── tool_call_<id>.json   # Tool call records
+  ```
 
 ### Customization
 
 You can customize the interface by modifying:
 
-1. **Chat Configuration** (`app/managers/chats.py`):
-   - Change the default agent type
-   - Modify system prompts
-   - Configure conversation management
+**1. Chat Behavior** (`app/utils/chats.py`):
+```python
+# Modify Chat class to change agent behavior
+- Default agent creation logic
+- System prompts and agent configuration
+- Streaming callback handling
+- History filtering and display
+```
 
-2. **UI Styling** (`app/__init__.py`):
-   - Update page configuration
-   - Modify layout and styling
-   - Add custom components
+**2. Page Layout** (`app/__init__.py`):
+```python
+# Customize navigation structure
+- Add new page categories
+- Modify page icons and titles
+- Change default page selection
+- Update page configuration (layout, theme, etc.)
+```
 
-3. **Tool Display** (`app/tools.py`):
-   - Customize tool visualization
-   - Add tool-specific formatting
-   - Enhance tool result display
+**3. Message Rendering** (`app/components/chat_message.py`):
+```python
+# Customize message display
+- Message formatting and styling
+- Tool call visualization with expandable sections
+- Streaming text presentation with animated indicators
+- Error message handling
+- <think> tag styling and formatting
+- Tool execution status indicators
+- Input/output formatting for tool calls
+```
 
 ## 🔍 Troubleshooting
 
@@ -169,6 +262,7 @@ cp .env.example .env
   - Model initialization
   - Tool loading
   - MCP server connections
+  - ChromaDB initialization
 - Subsequent runs will be faster
 
 #### Chat Not Responding
@@ -176,20 +270,36 @@ cp .env.example .env
 2. Verify API keys are configured correctly
 3. Ensure LLM provider is accessible
 4. Check network connectivity
+5. Verify agent runtime repository is writable
 
-#### Session Issues
+#### Navigation Issues
+- If new chats don't appear in sidebar, check:
+  - Agent metadata was saved (check `.fivcadvisor/agents/`)
+  - Page refresh occurred (st.rerun() was called)
+  - No errors in terminal output
+
+#### Storage Issues
 ```bash
-# Clear session data
-rm -rf .fivcadvisor/sessions/*
+# Clear all agent data
+rm -rf .fivcadvisor/agents/*
 
 # Or clean all temporary files
 make clean
+
+# Check storage location
+ls -la .fivcadvisor/agents/
 ```
+
+#### Streaming Not Working
+- Ensure async execution is working properly
+- Check that on_event callback is being called
+- Verify AgentsRuntime is being updated correctly
+- Look for errors in terminal output
 
 ### Getting Help
 
-- **Terminal Output**: Check for detailed error messages
-- **Logs**: Review session logs in `.fivcadvisor/sessions/`
+- **Terminal Output**: Check for detailed error messages and stack traces
+- **Storage Inspection**: Review agent data in `.fivcadvisor/agents/`
 - **Documentation**: Refer to [README.md](../README.md) and [DESIGN.md](DESIGN.md)
 - **Issues**: Report bugs on the project repository
 
@@ -207,18 +317,34 @@ make serve
 ```
 
 ### Agent System
-- Uses the same agent system as CLI
-- Shares tool registry
+- Uses the same agent creation system as CLI
+- Shares AgentsRuntimeRepository for persistence
+- Shares tool registry and retriever
 - Consistent behavior across interfaces
+- Same LLM configuration and models
 
 ### Configuration
-- Respects environment variables
-- Uses same settings files
-- Shares session storage
+- Respects environment variables (.env)
+- Uses same settings files (settings.yaml)
+- Shares agent storage directory
+- Common tool configuration (mcp.yaml)
 
 ### Tool System
 - Access to all registered tools
-- MCP tool support
-- Dynamic tool loading
+- MCP tool support with same configuration
+- Dynamic tool loading and retrieval
+- Shared tool execution environment
 
-This provides a unified experience across command-line and web interfaces.
+### Data Persistence
+- All chats stored in `.fivcadvisor/agents/`
+- Compatible with CLI agent execution
+- Can resume chats created via CLI
+- Shared runtime history
+
+This provides a unified experience across command-line and web interfaces, with all data and configuration shared between them.
+
+---
+
+**Last Updated**: 2025-10-16
+**Version**: 0.1.0
+**Framework**: Streamlit 1.49.1+, Strands (strands-agents 1.9.1+)

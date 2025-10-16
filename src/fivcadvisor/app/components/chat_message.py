@@ -229,8 +229,8 @@ def tool_call_render(tool_call: AgentsRuntimeToolCall, placeholder: DeltaGenerat
     """
     Render a tool call with its result in an expander.
 
-    Based on MessageToolRenderer logic from tools.py, displays tool
-    invocation details and results in a user-friendly expandable format.
+    Displays tool invocation details and results in a user-friendly expandable format,
+    including status indicators, timing information, input parameters, and results.
 
     Args:
         tool_call: AgentsRuntimeToolCall containing tool invocation and result

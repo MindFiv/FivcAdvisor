@@ -64,11 +64,41 @@ FivcAdvisor follows a modular architecture with clear separation of concerns:
 | Component | Description | Location |
 |-----------|-------------|----------|
 | **Agents** | Specialized agents for different tasks | `src/fivcadvisor/agents/` |
+| **Agent Types** | Runtime models, repositories, monitors | `src/fivcadvisor/agents/types/` |
 | **Tools** | Tool management and retrieval system | `src/fivcadvisor/tools/` |
 | **Models** | LLM model factories and configuration | `src/fivcadvisor/models.py` |
-| **Tasks** | Task execution and orchestration | `src/fivcadvisor/tasks.py` |
+| **Tasks** | Task execution and orchestration | `src/fivcadvisor/tasks/` |
 | **App** | Streamlit web interface | `src/fivcadvisor/app/` |
 | **Embeddings** | Vector database for semantic search | `src/fivcadvisor/embeddings/` |
+| **Settings** | Configuration management | `src/fivcadvisor/settings/` |
+| **Utils** | Utility functions and helpers | `src/fivcadvisor/utils/` |
+
+### Agent Runtime System
+
+FivcAdvisor includes a comprehensive runtime tracking system for agent execution:
+
+**Core Models:**
+- `AgentsRuntimeMeta`: Agent configuration and metadata
+- `AgentsRuntime`: Complete execution state and history
+- `AgentsRuntimeToolCall`: Individual tool invocation records
+- `AgentsStatus`: Execution status (PENDING, EXECUTING, COMPLETED, FAILED)
+
+**Repository Pattern:**
+- `AgentsRuntimeRepository`: Abstract interface for persistence
+- `FileAgentsRuntimeRepository`: File-based JSON storage implementation
+- Hierarchical directory structure for organized data storage
+- Automatic persistence of all agent interactions
+
+**Storage Structure:**
+```
+.fivcadvisor/agents/
+└── agent_<agent_id>/
+    ├── agent.json                    # Agent metadata
+    └── run_<timestamp>/
+        ├── run.json                  # Runtime execution data
+        └── tool_calls/
+            └── tool_call_<id>.json   # Tool call records
+```
 
 ---
 
@@ -219,16 +249,28 @@ relevant_tools = tools.default_retriever.retrieve("I need to calculate something
 - Conversation management
 
 ### 4. **Interactive Web Interface**
-- Real-time chat interface
+- Multi-page navigation with Streamlit
+- Multiple concurrent chat sessions
+- Real-time streaming responses
 - Async execution support
 - Tool usage visualization
-- Session management
+- Persistent conversation history
+- Component-based UI architecture
 
-### 5. **Extensible Architecture**
+### 5. **Comprehensive Persistence**
+- File-based agent runtime storage
+- Complete execution history tracking
+- Tool call recording and replay
+- JSON-based human-readable format
+- Hierarchical directory organization
+
+### 6. **Extensible Architecture**
 - Plugin-based tool system
-- Custom agent creation
+- Custom agent creation with decorators
 - Multiple LLM provider support
 - Modular component design
+- Repository pattern for data storage
+- Event-driven monitoring system
 
 ---
 
@@ -291,6 +333,60 @@ relevant_tools = tools.default_retriever.retrieve("I need to calculate something
 
 ---
 
+## 🏗️ Web Application Architecture
+
+### Multi-Page Structure
+
+FivcAdvisor's web interface uses Streamlit's navigation system for a modern multi-page experience:
+
+```
+Web Application
+├── Chats (Dynamic Pages)
+│   ├── New Chat (Create new conversation)
+│   └── Chat Pages (One per existing chat)
+└── Settings
+    └── Configuration & Management
+```
+
+### Component Hierarchy
+
+```
+app/__init__.py (Main Application)
+├── ChatManager (Multi-chat orchestration)
+│   └── Chat Instances (Individual conversations)
+│       ├── AgentsRuntimeRepository (Persistence)
+│       ├── ToolsRetriever (Tool access)
+│       └── Agent Execution (Strands agents)
+├── Views (Page rendering)
+│   ├── chats.render(chat)
+│   ├── settings.render()
+│   └── tasks.render()
+└── Components (Reusable UI)
+    └── chat_message.render(runtime, container)
+```
+
+### Data Flow
+
+```
+User Input
+    ↓
+Chat View (views/chats.py)
+    ↓
+Chat.ask(query, on_event=callback)
+    ↓
+Agent Execution (async)
+    ↓
+Streaming Updates → on_event callback
+    ↓
+Component Rendering (chat_message)
+    ↓
+Repository Persistence (FileAgentsRuntimeRepository)
+    ↓
+UI Update (st.rerun)
+```
+
+---
+
 ## 🚀 Future Enhancements
 
 - **Autonomous Tool Generation**: Automatic creation of composite tools
@@ -298,3 +394,12 @@ relevant_tools = tools.default_retriever.retrieve("I need to calculate something
 - **Enhanced Evaluation**: Comprehensive performance metrics
 - **Pattern Learning**: Workflow pattern recognition and optimization
 - **Human-in-the-Loop**: Interactive validation and feedback
+- **Task Monitoring Dashboard**: Real-time task execution visualization
+- **Multi-Agent Collaboration**: Enhanced swarm coordination
+- **Database Backend**: Optional database repository implementation
+
+---
+
+**Last Updated**: 2025-10-16
+**Version**: 0.1.0
+**Framework**: Strands (strands-agents 1.9.1+)

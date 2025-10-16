@@ -11,14 +11,16 @@ The view handles:
 - Streaming agent responses in real-time
 - Rendering tool calls and thinking processes
 
-The chat uses the Chat manager for state management and the AgentsRuntime
+The chat uses the Chat utility for state management and the AgentsRuntime
 system for tracking execution state and persistence.
 """
+
+import os
 
 import streamlit as st
 import asyncio
 
-from fivcadvisor.app.managers import Chat
+from fivcadvisor.app.utils import Chat, set_current_page_id
 from fivcadvisor.app.components import chat_message
 
 
@@ -29,8 +31,8 @@ def render(chat: Chat):
     Creates a Streamlit chat interface that provides a conversational
     experience with the FivcAdvisor agent. The interface includes:
 
-    1. **Chat Manager Initialization**: Creates a Chat instance with the
-       default tools retriever. The Chat manager handles agent execution,
+    1. **Chat Utility Initialization**: Creates a Chat instance with the
+       default tools retriever. The Chat utility handles agent execution,
        state persistence, and conversation history.
 
     2. **Page Title**: Displays the chat page title with an emoji icon.
@@ -68,31 +70,50 @@ def render(chat: Chat):
     """
 
     # Page title
-    st.title("💬 Chat with FivcAdvisor")
+    st.title("💬 FivcAdvisor At Your Service!")
 
     # Display conversation history
-    chat_placeholder = st.container()
-    for runtime in chat.list_history():
-        chat_message.render(runtime, chat_placeholder)
+    msg_placeholder = st.container()
+
+    runtimes = chat.list_history()
+    for runtime in runtimes:
+        chat_message.render(runtime, msg_placeholder)
+
+    logo_placeholder = st.empty()
+    if not runtimes:
+        app_dir = os.path.dirname(os.path.dirname(__file__))
+        _, logo_col, _ = logo_placeholder.columns(3)
+        logo_col.image(
+            os.path.join(app_dir, "assets", "FivcAdvisor.png"),
+            caption="Give Me Five!",
+        )
 
     # User input field
     if user_query := st.chat_input("Ask me anything..."):
+        # Clear logo
+        logo_placeholder.empty()
+
         # Create placeholder for streaming response
-        chat_placeholder = st.empty()
+        msg_new_placeholder = st.empty()
 
         # Render user query
-        with chat_placeholder.chat_message("user"):
+        with msg_new_placeholder.chat_message("user"):
             st.text(user_query)
 
         # Execute query with streaming callback
+        is_new_chat = chat.id is None
+
         asyncio.run(
             chat.ask(
                 user_query,
-                on_event=lambda rt: chat_message.render(rt, chat_placeholder),
+                on_event=lambda rt: chat_message.render(rt, msg_new_placeholder),
             )
         )
 
-        # Save agent ID in session state for future reference
-        st.session_state.agent_id = chat.id
-        # Rerun to refresh the navigation sidebar with new chat
-        st.rerun()
+        if is_new_chat:
+            # Set the agent_id and rerun to navigate to the new chat
+            set_current_page_id(chat.id)
+            st.rerun()
+        else:
+            # For existing chats, just update the agent_id
+            set_current_page_id(chat.id)

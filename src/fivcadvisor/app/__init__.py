@@ -9,11 +9,12 @@ __all__ = [
     "main",
 ]
 
+import functools
 import streamlit as st
 
 from fivcadvisor.tools import default_retriever
 from fivcadvisor.agents.types.repositories import FileAgentsRuntimeRepository
-from fivcadvisor.app.managers import ChatManager
+from fivcadvisor.app.utils import ChatManager, get_current_page_id
 from fivcadvisor.app.views import chats, settings
 
 
@@ -26,33 +27,27 @@ def main():
         tools_retriever=default_retriever,
     )
 
-    # Get existing chats
-    existing_chats = chat_manager.list_chats()
-
-    agent_id = st.session_state.agent_id if "agent_id" in st.session_state else None
-
-    # Create pages for existing chats
-    chat_pages = [
-        st.Page(
-            lambda c=chat: chats.render(c),
-            title=chat.description or f"Chat {chat.id[:8]}",
-            icon="💬",
-            url_path=f"chat-{chat.id}",
-            default=agent_id == chat.id,
-        )
-        for chat in existing_chats
-    ]
+    page_id = get_current_page_id()
 
     # Add "New Chat" page at the beginning
-    chat_pages.insert(
-        0,
+    chat_pages = [
         st.Page(
             lambda: chats.render(chat_manager.add_chat()),
             title="New Chat",
             icon="➕",
             url_path="chat-new",
-        ),
-    )
+            default=page_id is None,
+        )
+    ]
+    for chat in chat_manager.list_chats():
+        page = st.Page(
+            functools.partial(chats.render, chat),
+            title=chat.description or f"Chat {chat.id[:8]}",
+            icon="💬",
+            url_path=f"{chat.id}",
+            default=page_id == chat.id,
+        )
+        chat_pages.append(page)
 
     # Page configuration
     st.set_page_config(
@@ -62,16 +57,17 @@ def main():
         initial_sidebar_state="expanded",
     )
 
-    # Define views with unique url_path
-    pages = {
-        "Chats": chat_pages,
-        "Settings": [
-            st.Page(settings.render, title="Settings", icon="⚙️", url_path="settings"),
-        ],
-    }
-
     # Create navigation
-    pg = st.navigation(pages)
+    pg = st.navigation(
+        {
+            "Chats": chat_pages,
+            "Settings": [
+                st.Page(
+                    settings.render, title="Settings", icon="⚙️", url_path="settings"
+                ),
+            ],
+        }
+    )
 
     # Run selected page
     pg.run()

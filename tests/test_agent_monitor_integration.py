@@ -12,7 +12,7 @@ Tests the integration of AgentsMonitor with Chat and real agent execution:
 import pytest
 import dotenv
 from unittest.mock import Mock, AsyncMock, patch
-from fivcadvisor.app.managers.chats import Chat
+from fivcadvisor.app.utils.chats import Chat
 from fivcadvisor.agents.types import AgentsMonitor, AgentsRuntime
 from fivcadvisor import tools
 
@@ -68,7 +68,7 @@ class TestChatMonitorIntegration:
         ):
             # Mock run_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.managers.chats.tasks.run_briefing_task"
+                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
             ) as mock_briefing:
                 mock_briefing.return_value = "Agent description"
 
@@ -133,7 +133,7 @@ class TestMonitorWithMockAgent:
         ):
             # Mock run_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.managers.chats.tasks.run_briefing_task"
+                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
             ) as mock_briefing:
                 mock_briefing.return_value = "Agent description"
 
@@ -195,7 +195,7 @@ class TestMonitorWithMockAgent:
         ):
             # Mock run_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.managers.chats.tasks.run_briefing_task"
+                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
             ) as mock_briefing:
                 mock_briefing.return_value = "Agent description"
 
@@ -268,7 +268,7 @@ class TestMonitorWithMockAgent:
         ):
             # Mock run_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.managers.chats.tasks.run_briefing_task"
+                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
             ) as mock_briefing:
                 mock_briefing.return_value = "Agent description"
 
@@ -331,7 +331,7 @@ class TestMonitorErrorHandling:
         ):
             # Mock run_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.managers.chats.tasks.run_briefing_task"
+                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
             ) as mock_briefing:
                 mock_briefing.return_value = "Agent description"
 
@@ -397,7 +397,7 @@ class TestMonitorStateManagement:
         ):
             # Mock run_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.managers.chats.tasks.run_briefing_task"
+                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
             ) as mock_briefing:
                 mock_briefing.return_value = "Agent description"
                 await manager.ask("query 1", on_event=on_event_first)
@@ -408,7 +408,7 @@ class TestMonitorStateManagement:
         ):
             # Mock run_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.managers.chats.tasks.run_briefing_task"
+                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
             ) as mock_briefing:
                 mock_briefing.return_value = "Agent description"
                 await manager.ask("query 2", on_event=on_event_second)

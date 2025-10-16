@@ -1,5 +1,5 @@
 """
-Chat manager for handling conversation state and agent execution.
+Chat utility for handling conversation state and agent execution.
 
 This module provides the Chat class to replace the old ChatSession,
 with a cleaner interface and support for agent runtime persistence.
@@ -11,7 +11,7 @@ The Chat class manages:
 - Agent metadata management
 
 Example:
-    >>> from fivcadvisor.app.managers import Chat
+    >>> from fivcadvisor.app.utils import Chat
     >>> from fivcadvisor import tools
     >>> from fivcadvisor.agents.types.repositories import FileAgentsRuntimeRepository
     >>> from fivcadvisor.utils import OutputDir
@@ -78,7 +78,7 @@ class Chat(object):
         is_running: Whether the agent is currently processing a query
 
     Example:
-        >>> from fivcadvisor.app.managers import Chat
+        >>> from fivcadvisor.app.utils import Chat
         >>> from fivcadvisor import tools
         >>>
         >>> # Create new chat instance
@@ -141,7 +141,7 @@ class Chat(object):
             AssertionError: If tools_retriever is None
 
         Example:
-            >>> from fivcadvisor.app.managers import Chat
+            >>> from fivcadvisor.app.utils import Chat
             >>> from fivcadvisor import tools
             >>>
             >>> # Create new chat with default repository
@@ -346,7 +346,7 @@ class Chat(object):
                        Only one query can be processed at a time per Chat instance.
 
         Example:
-            >>> from fivcadvisor.app.managers import Chat
+            >>> from fivcadvisor.app.utils import Chat
             >>> from fivcadvisor import tools
             >>>
             >>> chat = Chat(tools_retriever=tools.default_retriever)
@@ -478,7 +478,7 @@ class ChatManager(object):
         tools_retriever: Retriever for tool access
 
     Example:
-        >>> from fivcadvisor.app.managers import ChatManager
+        >>> from fivcadvisor.app.utils import ChatManager
         >>> from fivcadvisor import tools
         >>>
         >>> # Create manager with default settings
@@ -530,7 +530,7 @@ class ChatManager(object):
                             defaults to tools.default_retriever.
 
         Example:
-            >>> from fivcadvisor.app.managers import ChatManager
+            >>> from fivcadvisor.app.utils import ChatManager
             >>>
             >>> # Create with defaults
             >>> manager = ChatManager()

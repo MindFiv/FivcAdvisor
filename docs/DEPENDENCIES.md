@@ -74,6 +74,7 @@ pip install -e ".[dev]"
 |---------|---------|---------|
 | pytest | >=8.2.0 | Testing framework |
 | pytest-asyncio | >=0.21.0 | Async testing support |
+| pytest-cov | >=4.1.0 | Test coverage reporting |
 | ruff | >=0.4.0,<0.6 | Linting and formatting |
 
 ## 🔧 Dependency Management
@@ -142,5 +143,28 @@ uv export --format requirements-txt > requirements.txt
 - Always use `uv sync` after pulling changes
 - Keep `uv.lock` in version control for reproducible builds
 - Test in clean environments before releases
+- Use package managers (uv, pip) instead of manually editing pyproject.toml
+- Run `make install` for consistent development setup
+
+## 📝 Dependency Notes
+
+### Strands Framework
+FivcAdvisor is built on the Strands framework:
+- `strands-agents>=1.9.1`: Core agent framework with async support
+- `strands-agents-tools>=0.2.8`: Built-in tools and MCP integration
+
+### Streamlit Version
+- Requires Streamlit 1.49.1+ for `st.navigation` support
+- Multi-page navigation is a core feature requiring this version
+
+### Python Version
+- Minimum: Python 3.10
+- Recommended: Python 3.11 or 3.12
+- Uses modern Python features (type hints, async/await, pattern matching)
 
 This modern dependency management ensures FivcAdvisor remains maintainable and secure.
+
+---
+
+**Last Updated**: 2025-10-16
+**Version**: 0.1.0

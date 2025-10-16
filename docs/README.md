@@ -16,10 +16,12 @@ Welcome to the FivcAdvisor documentation! This directory contains comprehensive 
 
 #### [🌐 WEB_INTERFACE.md](WEB_INTERFACE.md)
 **Web Interface User Guide**
-- Getting started with the Streamlit interface
+- Getting started with the multi-page Streamlit interface
+- Multi-chat management and navigation
 - Feature overview and usage instructions
-- Chat-based interaction guide
+- Component-based architecture guide
 - Development and customization guide
+- Persistence and storage details
 - Troubleshooting and integration
 
 #### [📦 DEPENDENCIES.md](DEPENDENCIES.md)
@@ -136,7 +138,20 @@ Welcome to the FivcAdvisor documentation! This directory contains comprehensive 
 
 ---
 
-**Last Updated**: 2025-09-30
+## 🆕 Recent Updates
+
+### Version 0.1.0 (2025-10-16)
+- **Multi-Page Web Interface**: New navigation system with dynamic chat pages
+- **Chat Management**: ChatManager and Chat classes for multi-conversation support
+- **Agent Runtime System**: Comprehensive persistence with AgentsRuntime models
+- **File-Based Storage**: FileAgentsRuntimeRepository for organized data storage
+- **Component Architecture**: Modular views, components, and managers
+- **Streaming Support**: Real-time response updates with async execution
+- **Tool Call Tracking**: Complete tool invocation history and visualization
+
+---
+
+**Last Updated**: 2025-10-16
 **Version**: 0.1.0
-**Framework**: Strands (strands-agents)
+**Framework**: Strands (strands-agents 1.9.1+)
 **Maintainer**: FivcAdvisor Team
