@@ -4,15 +4,16 @@ Tests for chat_message component functionality.
 
 Tests the chat message rendering functions:
 - render() with different runtime states
-- _render_message() with message content
-- _render_stream() with streaming text
-- _parse_think_tags() with various inputs
+- message_render() with message content
+- streaming_render() with streaming text
+- thinking_prettify() with various inputs
+- tool_call_render() with tool calls
 """
 
 import pytest
 from unittest.mock import Mock
 from fivcadvisor.app.components import chat_message
-from fivcadvisor.agents.types import AgentsRuntime
+from fivcadvisor.agents.types import AgentsRuntime, AgentsRuntimeToolCall
 
 
 class TestRenderFunction:
@@ -178,7 +179,9 @@ class TestRenderMessageFunction:
             "role": "assistant",
             "content": [
                 {"text": "Text content"},
-                {"toolUse": {"name": "test_tool"}},  # Should be ignored
+                {
+                    "toolUse": {"name": "test_tool"}
+                },  # Should be ignored (tools in runtime.tool_calls)
                 {"image": {"url": "test.jpg"}},  # Should be ignored
             ],
         }
@@ -404,6 +407,122 @@ class TestIntegration:
 
         # Verify both text blocks were rendered
         assert mock_assistant_msg.markdown.call_count == 2
+
+
+class TestToolRendering:
+    """Test tool call rendering functionality."""
+
+    def test_render_tool_call_pending(self):
+        """Test rendering tool call without result (pending)."""
+        mock_placeholder = Mock()
+        mock_expander_context = Mock()
+        mock_placeholder.expander.return_value.__enter__ = Mock(
+            return_value=mock_expander_context
+        )
+        mock_placeholder.expander.return_value.__exit__ = Mock(return_value=False)
+
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={"expression": "2+2"},
+            status="pending",
+        )
+
+        chat_message.tool_call_render(tool_call, mock_placeholder)
+
+        # Should create expander with tool name
+        mock_placeholder.expander.assert_called_once()
+        expander_call = mock_placeholder.expander.call_args[0][0]
+        assert "calculator" in expander_call
+        assert "🔧" in expander_call
+
+    def test_render_tool_call_success(self):
+        """Test rendering tool call with successful result."""
+        mock_placeholder = Mock()
+        mock_expander_context = Mock()
+        mock_placeholder.expander.return_value.__enter__ = Mock(
+            return_value=mock_expander_context
+        )
+        mock_placeholder.expander.return_value.__exit__ = Mock(return_value=False)
+
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="123",
+            tool_name="calculator",
+            tool_input={"expression": "2+2"},
+            tool_result="4",
+            status="success",
+        )
+
+        chat_message.tool_call_render(tool_call, mock_placeholder)
+
+        # Should create expander
+        mock_placeholder.expander.assert_called_once()
+
+    def test_render_tool_call_error(self):
+        """Test rendering tool call with error result."""
+        mock_placeholder = Mock()
+        mock_expander_context = Mock()
+        mock_placeholder.expander.return_value.__enter__ = Mock(
+            return_value=mock_expander_context
+        )
+        mock_placeholder.expander.return_value.__exit__ = Mock(return_value=False)
+
+        tool_call = AgentsRuntimeToolCall(
+            tool_use_id="456",
+            tool_name="file_reader",
+            tool_input={"path": "/test"},
+            tool_result="File not found",
+            status="error",
+            error="File not found",
+        )
+
+        chat_message.tool_call_render(tool_call, mock_placeholder)
+
+        # Should create expander
+        mock_placeholder.expander.assert_called_once()
+
+    def test_render_runtime_with_tool_calls(self):
+        """Test rendering runtime with tool calls."""
+        mock_placeholder = Mock()
+        mock_container = Mock()
+        mock_user_msg = Mock()
+        mock_assistant_msg = Mock()
+        mock_expander_context = Mock()
+        mock_placeholder.container.return_value = mock_container
+        mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
+        mock_assistant_msg.expander.return_value.__enter__ = Mock(
+            return_value=mock_expander_context
+        )
+        mock_assistant_msg.expander.return_value.__exit__ = Mock(return_value=False)
+
+        tool_call1 = AgentsRuntimeToolCall(
+            tool_use_id="1",
+            tool_name="tool1",
+            tool_input={},
+            tool_result="result1",
+            status="success",
+        )
+        tool_call2 = AgentsRuntimeToolCall(
+            tool_use_id="2",
+            tool_name="tool2",
+            tool_input={},
+            tool_result="result2",
+            status="success",
+        )
+
+        runtime = AgentsRuntime(
+            agent_id="test-agent",
+            query="Test query",
+            tool_calls={"1": tool_call1, "2": tool_call2},
+            reply={"role": "assistant", "content": [{"text": "Done"}]},
+        )
+
+        chat_message.render(runtime, mock_placeholder)
+
+        # Should create two expanders for tool calls
+        assert mock_assistant_msg.expander.call_count == 2
+        # Should render the message text
+        mock_assistant_msg.markdown.assert_called_once()
 
 
 if __name__ == "__main__":

@@ -72,13 +72,13 @@ class TestChatMonitorIntegration:
             ) as mock_briefing:
                 mock_briefing.return_value = "Agent description"
 
-                # First execution
+                # First execution - should call briefing task to create agent metadata
                 await manager.ask("query 1")
                 assert mock_briefing.call_count == 1
 
-                # Second execution
+                # Second execution - should NOT call briefing task (metadata already exists)
                 await manager.ask("query 2")
-                assert mock_briefing.call_count == 2
+                assert mock_briefing.call_count == 1  # Still 1, not 2
 
 
 class TestMonitorWithMockAgent:

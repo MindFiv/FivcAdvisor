@@ -1,10 +1,11 @@
 import re
 from typing import Optional
 
+import streamlit as st
 from strands.types.content import Message
 from streamlit.delta_generator import DeltaGenerator
 
-from fivcadvisor.agents.types import AgentsRuntime
+from fivcadvisor.agents.types import AgentsRuntime, AgentsRuntimeToolCall
 
 
 def render(runtime: AgentsRuntime, placeholder: DeltaGenerator):
@@ -13,16 +14,17 @@ def render(runtime: AgentsRuntime, placeholder: DeltaGenerator):
 
     Displays both user query and assistant response. The assistant response
     can be either a completed message or streaming text, depending on the
-    runtime state.
+    runtime state. Also renders tool calls from runtime.tool_calls.
 
     Args:
         placeholder: Streamlit container to render into
-        runtime: AgentsRuntime containing query, message, or streaming_text
+        runtime: AgentsRuntime containing query, message, tool_calls, or streaming_text
 
     The function handles three states:
     - User query: Rendered as a user chat message
     - Completed message: Rendered with full message content
     - Streaming: Rendered with animated loading indicator
+    - Tool calls: Rendered in expandable sections
     """
     placeholder = placeholder.container()
 
@@ -31,6 +33,13 @@ def render(runtime: AgentsRuntime, placeholder: DeltaGenerator):
         c.text(runtime.query)
 
     c = placeholder.chat_message("assistant")
+
+    # Render tool calls if any
+    if runtime.tool_calls:
+        for tool_call in runtime.tool_calls.values():
+            tool_call_render(tool_call, c)
+
+    # Render message or streaming text
     if runtime.reply:
         message_render(runtime.reply, c)
     else:
@@ -42,7 +51,7 @@ def message_render(message: Message, placeholder: Optional[DeltaGenerator]):
     Render a completed message with formatted content.
 
     Processes message content blocks and applies special formatting
-    for <think> tags using _parse_think_tags().
+    for <think> tags using thinking_prettify().
 
     Args:
         placeholder: Streamlit container to render into
@@ -54,6 +63,7 @@ def message_render(message: Message, placeholder: Optional[DeltaGenerator]):
     msg = message
     # msg_role = msg["role"]
     msg_content = msg["content"]
+
     for msg_block in msg_content:
         if "text" in msg_block:
             msg_block_text = msg_block["text"]
@@ -213,3 +223,68 @@ def thinking_prettify(message_text: str) -> str:
         message_text = thinking_replace(message_text)
 
     return message_text
+
+
+def tool_call_render(tool_call: AgentsRuntimeToolCall, placeholder: DeltaGenerator):
+    """
+    Render a tool call with its result in an expander.
+
+    Based on MessageToolRenderer logic from tools.py, displays tool
+    invocation details and results in a user-friendly expandable format.
+
+    Args:
+        tool_call: AgentsRuntimeToolCall containing tool invocation and result
+        placeholder: Streamlit container to render into
+    """
+    try:
+        tool_name = tool_call.tool_name
+        tool_id = tool_call.tool_use_id
+        tool_input = tool_call.tool_input
+        tool_result = tool_call.tool_result
+        status = tool_call.status
+
+        # Create an expander with the tool name and a tool icon
+        with placeholder.expander(f"🔧 **{tool_name}**", expanded=False):
+            # Show status
+            is_error = status == "error"
+            if is_error:
+                st.error("Tool executed with error")
+                if tool_call.error:
+                    st.error(f"Error: {tool_call.error}")
+            elif status == "success":
+                st.success("Tool executed successfully")
+            else:
+                st.info("Tool execution pending...")
+
+            # Show tool ID if available
+            if tool_id:
+                st.caption(f"Tool ID: `{tool_id}`")
+
+            # Show timing information if available
+            if tool_call.duration is not None:
+                st.caption(f"Duration: {tool_call.duration:.3f}s")
+
+            # Show tool input parameters
+            if tool_input:
+                st.caption("Parameters:")
+                # Use st.json for nice formatting of the input parameters
+                st.json(tool_input)
+            else:
+                st.info("No parameters provided")
+
+            # Show tool result if available
+            if tool_result is not None:
+                st.caption("Result:")
+
+                if isinstance(tool_result, (dict, list)):
+                    st.json(tool_result)
+                else:
+                    # Display as code block for better formatting
+                    st.code(str(tool_result), language="text")
+            elif status != "pending":
+                st.info("No result content")
+
+    except Exception as e:
+        # Fallback rendering in case of any errors
+        st.error(f"Error rendering tool call: {str(e)}")
+        st.json(tool_call.model_dump())

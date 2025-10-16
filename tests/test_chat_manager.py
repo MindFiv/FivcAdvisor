@@ -125,7 +125,7 @@ class TestChatHistory:
     """Test history listing functionality."""
 
     def test_list_history_returns_completed_runtimes(self):
-        """Test list_history returns only completed agent runtimes."""
+        """Test list_history returns only completed agent runtimes with tool calls loaded."""
         mock_retriever = Mock(spec=tools.ToolsRetriever)
         mock_repo = Mock(spec=AgentsRuntimeRepository)
         meta = AgentsRuntimeMeta(agent_id="test-agent")
@@ -139,16 +139,20 @@ class TestChatHistory:
         # Mock runtime repository
         completed_runtime = AgentsRuntime(
             agent_id="test-agent",
+            agent_run_id="run-123",
             status=AgentsStatus.COMPLETED,
         )
         pending_runtime = AgentsRuntime(
             agent_id="test-agent",
+            agent_run_id="run-456",
             status=AgentsStatus.EXECUTING,
         )
 
         mock_repo.list_agent_runtimes = Mock(
             return_value=[completed_runtime, pending_runtime]
         )
+        # Mock tool calls loading
+        mock_repo.list_agent_runtime_tool_calls = Mock(return_value=[])
 
         history = manager.list_history()
 
@@ -156,6 +160,10 @@ class TestChatHistory:
         assert len(history) == 1
         assert history[0] is completed_runtime
         assert history[0].is_completed is True
+        # Should have loaded tool calls for completed runtime
+        mock_repo.list_agent_runtime_tool_calls.assert_called_once_with(
+            "test-agent", "run-123"
+        )
 
     def test_list_history_empty_when_no_metadata(self):
         """Test list_history returns empty list when no metadata."""
@@ -185,6 +193,66 @@ class TestChatHistory:
         history = manager.list_history()
 
         assert history == []
+
+    def test_list_history_loads_tool_calls_for_completed_runtimes(self):
+        """Test list_history loads and attaches tool calls to completed runtimes."""
+        from fivcadvisor.agents.types import AgentsRuntimeToolCall
+        from datetime import datetime
+
+        mock_retriever = Mock(spec=tools.ToolsRetriever)
+        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        meta = AgentsRuntimeMeta(agent_id="test-agent")
+
+        manager = Chat(
+            agent_runtime_meta=meta,
+            agent_runtime_repo=mock_repo,
+            tools_retriever=mock_retriever,
+        )
+
+        # Create completed runtime
+        completed_runtime = AgentsRuntime(
+            agent_id="test-agent",
+            agent_run_id="run-123",
+            status=AgentsStatus.COMPLETED,
+        )
+
+        # Create mock tool calls
+        tool_call_1 = AgentsRuntimeToolCall(
+            tool_use_id="tc-1",
+            tool_name="calculator",
+            tool_input={"expr": "2+2"},
+            tool_result="4",
+            status="success",
+            started_at=datetime(2024, 1, 1, 10, 0, 0),
+        )
+        tool_call_2 = AgentsRuntimeToolCall(
+            tool_use_id="tc-2",
+            tool_name="search",
+            tool_input={"query": "test"},
+            tool_result="results",
+            status="success",
+            started_at=datetime(2024, 1, 1, 10, 0, 1),
+        )
+
+        mock_repo.list_agent_runtimes = Mock(return_value=[completed_runtime])
+        mock_repo.list_agent_runtime_tool_calls = Mock(
+            return_value=[tool_call_2, tool_call_1]  # Unsorted order
+        )
+
+        history = manager.list_history()
+
+        # Should have loaded and attached tool calls
+        assert len(history) == 1
+        assert len(history[0].tool_calls) == 2
+        assert "tc-1" in history[0].tool_calls
+        assert "tc-2" in history[0].tool_calls
+        assert history[0].tool_calls["tc-1"] is tool_call_1
+        assert history[0].tool_calls["tc-2"] is tool_call_2
+
+        # Tool calls should be sorted by started_at
+        tool_call_list = list(history[0].tool_calls.values())
+        assert tool_call_list[0].tool_use_id == "tc-1"  # Earlier timestamp
+        assert tool_call_list[1].tool_use_id == "tc-2"  # Later timestamp
 
 
 class TestChatAsk:

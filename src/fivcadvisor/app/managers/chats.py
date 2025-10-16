@@ -297,7 +297,20 @@ class Chat(object):
         agent_runtimes = self.runtime_repo.list_agent_runtimes(
             self.runtime_meta.agent_id,
         )
-        return [runtime for runtime in agent_runtimes if runtime.is_completed]
+        # Filter to only completed runtimes
+        completed_agent_runtimes = []
+        for runtime in agent_runtimes:
+            if not runtime.is_completed:
+                continue
+
+            # Load tool calls for completed runtimes
+            runtime_tool_calls = self.runtime_repo.list_agent_runtime_tool_calls(
+                self.runtime_meta.agent_id, runtime.agent_run_id
+            )
+            runtime_tool_calls.sort(key=lambda tc: tc.started_at)
+            runtime.tool_calls = {tc.tool_use_id: tc for tc in runtime_tool_calls}
+            completed_agent_runtimes.append(runtime)
+        return completed_agent_runtimes
 
     async def ask(
         self,
@@ -391,16 +404,15 @@ class Chat(object):
 
             # Execute agent
             agent_coroutine = agent.invoke_async(query)
-            agent_desc_coroutine = tasks.run_briefing_task(
-                query,
-                tools_retriever=self.tools_retriever,
-            )
-            agent_result, agent_desc = await asyncio.gather(
-                agent_coroutine, agent_desc_coroutine
-            )
-
             # Save agent metadata on first query
             if not self.runtime_meta:
+                agent_desc_coroutine = tasks.run_briefing_task(
+                    query,
+                    tools_retriever=self.tools_retriever,
+                )
+                agent_result, agent_desc = await asyncio.gather(
+                    agent_coroutine, agent_desc_coroutine
+                )
                 self.runtime_meta = AgentsRuntimeMeta(
                     agent_id=agent.agent_id,
                     agent_name=agent.name,
@@ -408,6 +420,8 @@ class Chat(object):
                     description=agent_desc,
                 )
                 self.runtime_repo.update_agent(self.runtime_meta)
+            else:
+                agent_result = await agent_coroutine
 
             return agent_result
 
