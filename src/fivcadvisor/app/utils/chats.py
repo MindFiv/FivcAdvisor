@@ -34,6 +34,7 @@ Example:
 """
 
 import asyncio
+import datetime
 from typing import Optional, Callable, List
 
 from strands.agent import AgentResult
@@ -243,6 +244,10 @@ class Chat(object):
         )
 
     @property
+    def started_at(self):
+        return self.runtime_meta.started_at if self.runtime_meta else None
+
+    @property
     def is_running(self):
         """
         Check if the agent is currently processing a query.
@@ -418,6 +423,7 @@ class Chat(object):
                     agent_name=agent.name,
                     system_prompt=agent.system_prompt,
                     description=agent_desc,
+                    started_at=datetime.datetime.now(),
                 )
                 self.runtime_repo.update_agent(self.runtime_meta)
             else:
@@ -588,7 +594,7 @@ class ChatManager(object):
             - The chats are loaded fresh from the repository each time
             - Changes to one chat are persisted and visible to others
         """
-        return [
+        chats = [
             Chat(
                 agent_runtime_repo=self.runtime_repo,
                 tools_retriever=self.tools_retriever,
@@ -596,6 +602,8 @@ class ChatManager(object):
             )
             for runtime_meta in self.runtime_repo.list_agents()
         ]
+        chats.sort(key=lambda chat: chat.started_at, reverse=True)
+        return chats
 
     def add_chat(self) -> Chat:
         """

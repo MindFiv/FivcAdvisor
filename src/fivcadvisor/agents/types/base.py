@@ -146,6 +146,9 @@ class AgentsRuntimeMeta(BaseModel):
     description: Optional[str] = Field(
         default=None, description="Description of agent's purpose and capabilities"
     )
+    started_at: Optional[datetime] = Field(
+        default=None, description="Timestamp when the agent was first created"
+    )
 
 
 class AgentsRuntimeToolCall(BaseModel):
