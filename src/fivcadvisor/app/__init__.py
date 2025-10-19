@@ -14,7 +14,7 @@ import streamlit as st
 
 from fivcadvisor.tools import default_retriever
 from fivcadvisor.agents.types.repositories import FileAgentsRuntimeRepository
-from fivcadvisor.app.utils import ChatManager, get_current_page_id
+from fivcadvisor.app.utils import ChatManager
 from fivcadvisor.app.views import chats, settings
 
 
@@ -27,8 +27,6 @@ def main():
         tools_retriever=default_retriever,
     )
 
-    page_id = get_current_page_id()
-
     # Add "New Chat" page at the beginning
     chat_pages = [
         st.Page(
@@ -36,7 +34,6 @@ def main():
             title="New Chat",
             icon="➕",
             url_path="chat-new",
-            default=page_id is None,
         )
     ]
     for chat in chat_manager.list_chats():
@@ -45,7 +42,6 @@ def main():
             title=chat.description or f"Chat {chat.id[:8]}",
             icon="💬",
             url_path=f"{chat.id}",
-            default=page_id == chat.id,
         )
         chat_pages.append(page)
 
@@ -68,7 +64,6 @@ def main():
             ],
         }
     )
-
     # Run selected page
     pg.run()
 

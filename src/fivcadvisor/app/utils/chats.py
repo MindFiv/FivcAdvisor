@@ -34,7 +34,7 @@ Example:
 """
 
 import asyncio
-import datetime
+from datetime import datetime, timezone
 from typing import Optional, Callable, List
 
 from strands.agent import AgentResult
@@ -423,7 +423,7 @@ class Chat(object):
                     agent_name=agent.name,
                     system_prompt=agent.system_prompt,
                     description=agent_desc,
-                    started_at=datetime.datetime.now(),
+                    started_at=datetime.now(),
                 )
                 self.runtime_repo.update_agent(self.runtime_meta)
             else:
@@ -602,7 +602,12 @@ class ChatManager(object):
             )
             for runtime_meta in self.runtime_repo.list_agents()
         ]
-        chats.sort(key=lambda chat: chat.started_at, reverse=True)
+        # Sort by started_at, treating None as the earliest time (datetime.min)
+        chats.sort(
+            key=lambda chat: chat.started_at
+            or datetime.min.replace(tzinfo=timezone.utc),
+            reverse=True,
+        )
         return chats
 
     def add_chat(self) -> Chat:

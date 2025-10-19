@@ -20,7 +20,7 @@ import os
 import streamlit as st
 import asyncio
 
-from fivcadvisor.app.utils import Chat, set_current_page_id
+from fivcadvisor.app.utils import Chat
 from fivcadvisor.app.components import chat_message
 
 
@@ -69,9 +69,7 @@ def render(chat: Chat):
         - The default tools retriever provides tools based on the query
     """
 
-    # Page title
-    st.title("💬 FivcAdvisor At Your Service!")
-
+    # title_placeholder = st.empty()
     # Display conversation history
     msg_placeholder = st.container()
 
@@ -81,12 +79,12 @@ def render(chat: Chat):
 
     logo_placeholder = st.empty()
     if not runtimes:
-        app_dir = os.path.dirname(os.path.dirname(__file__))
+        # Page title
+        # title_placeholder.title("💬 FivcAdvisor At Your Service!")
+        logo_path = os.path.dirname(os.path.dirname(__file__))
+        logo_path = os.path.join(logo_path, "assets", "FivcAdvisor.png")
         _, logo_col, _ = logo_placeholder.columns(3)
-        logo_col.image(
-            os.path.join(app_dir, "assets", "FivcAdvisor.png"),
-            caption="Give Me Five!",
-        )
+        logo_col.image(logo_path, caption="💬 FivcAdvisor At Your Service!")
 
     # User input field
     if user_query := st.chat_input("Ask me anything..."):
@@ -101,7 +99,7 @@ def render(chat: Chat):
             st.text(user_query)
 
         # Execute query with streaming callback
-        is_new_chat = chat.id is None
+        # is_new_chat = chat.id is None
 
         asyncio.run(
             chat.ask(
@@ -110,10 +108,10 @@ def render(chat: Chat):
             )
         )
 
-        if is_new_chat:
-            # Set the agent_id and rerun to navigate to the new chat
-            set_current_page_id(chat.id)
-            st.rerun()
-        else:
-            # For existing chats, just update the agent_id
-            set_current_page_id(chat.id)
+        # if is_new_chat:
+        #     # Set the agent_id and rerun to navigate to the new chat
+        #     st.session_state.page_id = chat.id
+        #     st.rerun()
+        # else:
+        #     # For existing chats, just update the agent_id
+        #     st.session_state.page_id = chat.id
