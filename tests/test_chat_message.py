@@ -2,22 +2,21 @@
 """
 Tests for chat_message component functionality.
 
-Tests the chat message rendering functions:
+Tests the ChatMessage class and its methods:
 - render() with different runtime states
-- message_render() with message content
-- streaming_render() with streaming text
-- thinking_prettify() with various inputs
-- tool_call_render() with tool calls
+- render_message() with message content
+- render_streaming() with streaming text
+- render_tool_call() with tool calls
 """
 
 import pytest
 from unittest.mock import Mock
-from fivcadvisor.app.components import chat_message
+from fivcadvisor.app.components import ChatMessage
 from fivcadvisor.agents.types import AgentsRuntime, AgentsRuntimeToolCall
 
 
-class TestRenderFunction:
-    """Test the main render() function."""
+class TestChatMessageClass:
+    """Test the ChatMessage class."""
 
     def test_render_with_query_only(self):
         """Test rendering runtime with only query (no response yet)."""
@@ -34,7 +33,8 @@ class TestRenderFunction:
             streaming_text="",
         )
 
-        chat_message.render(runtime, mock_placeholder)
+        chat_msg = ChatMessage(runtime)
+        chat_msg.render(mock_placeholder)
 
         # Should create container first
         mock_placeholder.container.assert_called_once()
@@ -67,7 +67,8 @@ class TestRenderFunction:
             reply=message,
         )
 
-        chat_message.render(runtime, mock_placeholder)
+        chat_msg = ChatMessage(runtime)
+        chat_msg.render(mock_placeholder)
 
         # Should render completed message
         mock_assistant_msg.markdown.assert_called_once()
@@ -89,7 +90,8 @@ class TestRenderFunction:
             streaming_text="Once upon a time...",
         )
 
-        chat_message.render(runtime, mock_placeholder)
+        chat_msg = ChatMessage(runtime)
+        chat_msg.render(mock_placeholder)
 
         # Should render streaming text with loading indicator
         mock_assistant_msg.markdown.assert_called_once()
@@ -110,15 +112,16 @@ class TestRenderFunction:
             streaming_text="Thinking...",
         )
 
-        chat_message.render(runtime, mock_placeholder)
+        chat_msg = ChatMessage(runtime)
+        chat_msg.render(mock_placeholder)
 
         # Should only create assistant message
         mock_container.chat_message.assert_called_once_with("assistant")
         mock_assistant_msg.markdown.assert_called_once()
 
 
-class TestRenderMessageFunction:
-    """Test the _render_message() function."""
+class TestRenderMessageMethod:
+    """Test the render_message() static method."""
 
     def test_render_message_with_single_text_block(self):
         """Test rendering message with single text content block."""
@@ -129,7 +132,7 @@ class TestRenderMessageFunction:
             "content": [{"text": "Hello, world!"}],
         }
 
-        chat_message.message_render(message, mock_placeholder)
+        ChatMessage.render_message(message, mock_placeholder)
 
         mock_placeholder.markdown.assert_called_once()
         call_args = mock_placeholder.markdown.call_args[0][0]
@@ -148,28 +151,10 @@ class TestRenderMessageFunction:
             ],
         }
 
-        chat_message.message_render(message, mock_placeholder)
+        ChatMessage.render_message(message, mock_placeholder)
 
         # Should call markdown for each text block
         assert mock_placeholder.markdown.call_count == 3
-
-    def test_render_message_with_think_tags(self):
-        """Test rendering message with <think> tags."""
-        mock_placeholder = Mock()
-
-        message = {
-            "role": "assistant",
-            "content": [{"text": "<think>Processing...</think>The answer is 42."}],
-        }
-
-        chat_message.message_render(message, mock_placeholder)
-
-        mock_placeholder.markdown.assert_called_once()
-        call_args = mock_placeholder.markdown.call_args[0][0]
-        # Think tags should be processed into styled HTML
-        assert "think-container" in call_args
-        assert "Processing..." in call_args
-        assert "The answer is 42" in call_args
 
     def test_render_message_ignores_non_text_blocks(self):
         """Test rendering message ignores non-text content blocks."""
@@ -186,7 +171,7 @@ class TestRenderMessageFunction:
             ],
         }
 
-        chat_message.message_render(message, mock_placeholder)
+        ChatMessage.render_message(message, mock_placeholder)
 
         # Should only render the text block
         mock_placeholder.markdown.assert_called_once()
@@ -200,21 +185,25 @@ class TestRenderMessageFunction:
             "content": [{"text": "Test"}],
         }
 
-        chat_message.message_render(message, mock_placeholder)
+        ChatMessage.render_message(message, mock_placeholder)
 
         # Verify unsafe_allow_html is True
         call_kwargs = mock_placeholder.markdown.call_args[1]
         assert call_kwargs.get("unsafe_allow_html") is True
 
 
-class TestRenderStreamFunction:
-    """Test the _render_stream() function."""
+class TestRenderStreamingMethod:
+    """Test the render_streaming() method."""
 
     def test_render_stream_with_text(self):
         """Test rendering streaming text."""
         mock_placeholder = Mock()
+        runtime = AgentsRuntime(
+            agent_id="test-agent", streaming_text="Streaming response..."
+        )
 
-        chat_message.streaming_render("Streaming response...", mock_placeholder)
+        chat_msg = ChatMessage(runtime)
+        chat_msg.render_streaming("Streaming response...", mock_placeholder)
 
         mock_placeholder.markdown.assert_called_once()
         call_args = mock_placeholder.markdown.call_args[0][0]
@@ -224,8 +213,10 @@ class TestRenderStreamFunction:
     def test_render_stream_with_empty_text(self):
         """Test rendering with empty streaming text."""
         mock_placeholder = Mock()
+        runtime = AgentsRuntime(agent_id="test-agent", streaming_text="")
 
-        chat_message.streaming_render("", mock_placeholder)
+        chat_msg = ChatMessage(runtime)
+        chat_msg.render_streaming("", mock_placeholder)
 
         mock_placeholder.markdown.assert_called_once()
         call_args = mock_placeholder.markdown.call_args[0][0]
@@ -235,8 +226,10 @@ class TestRenderStreamFunction:
     def test_render_stream_includes_css_animations(self):
         """Test rendering includes CSS for loading animations."""
         mock_placeholder = Mock()
+        runtime = AgentsRuntime(agent_id="test-agent", streaming_text="Test")
 
-        chat_message.streaming_render("Test", mock_placeholder)
+        chat_msg = ChatMessage(runtime)
+        chat_msg.render_streaming("Test", mock_placeholder)
 
         call_args = mock_placeholder.markdown.call_args[0][0]
         # Should include CSS styles
@@ -244,173 +237,9 @@ class TestRenderStreamFunction:
         assert "pulse" in call_args
         assert "glow" in call_args
 
-    def test_render_stream_processes_think_tags(self):
-        """Test rendering processes think tags in streaming text."""
-        mock_placeholder = Mock()
 
-        chat_message.streaming_render(
-            "<think>Analyzing...</think>Result", mock_placeholder
-        )
-
-        call_args = mock_placeholder.markdown.call_args[0][0]
-        # Think tags should be processed
-        assert "think-container" in call_args
-        assert "Analyzing..." in call_args
-
-
-class TestParseThinkTagsFunction:
-    """Test the _parse_think_tags() function."""
-
-    def test_parse_think_tags_with_single_tag(self):
-        """Test parsing single think tag."""
-        text = "Before <think>thinking content</think> after"
-        result = chat_message.thinking_prettify(text)
-
-        assert "think-container" in result
-        assert "thinking content" in result
-        assert "Before" in result
-        assert "after" in result
-
-    def test_parse_think_tags_with_multiple_tags(self):
-        """Test parsing multiple think tags."""
-        text = "<think>First thought</think> middle <think>Second thought</think> end"
-        result = chat_message.thinking_prettify(text)
-
-        # Count div elements with think-container class (not CSS definition)
-        assert result.count('<div class="think-container">') == 2
-        assert "First thought" in result
-        assert "Second thought" in result
-        assert "middle" in result
-
-    def test_parse_think_tags_with_multiline_content(self):
-        """Test parsing think tag with multiline content."""
-        text = """<think>
-        Line 1
-        Line 2
-        Line 3
-        </think>"""
-        result = chat_message.thinking_prettify(text)
-
-        assert "think-container" in result
-        assert "Line 1" in result
-        assert "Line 2" in result
-        assert "Line 3" in result
-
-    def test_parse_think_tags_without_tags(self):
-        """Test parsing text without think tags."""
-        text = "Just regular text without any tags"
-        result = chat_message.thinking_prettify(text)
-
-        # Should return unchanged text
-        assert result == text
-        assert "think-container" not in result
-
-    def test_parse_think_tags_includes_css_when_tags_present(self):
-        """Test CSS styles are included when think tags are present."""
-        text = "<think>content</think>"
-        result = chat_message.thinking_prettify(text)
-
-        # Should include CSS styles
-        assert "<style>" in result
-        assert ".think-container" in result
-        assert "gradient" in result
-
-    def test_parse_think_tags_no_css_when_no_tags(self):
-        """Test CSS styles are not included when no think tags."""
-        text = "No think tags here"
-        result = chat_message.thinking_prettify(text)
-
-        # Should not include CSS
-        assert "<style>" not in result
-        assert ".think-container" not in result
-
-    def test_parse_think_tags_with_empty_content(self):
-        """Test parsing think tag with empty content."""
-        text = "<think></think>"
-        result = chat_message.thinking_prettify(text)
-
-        assert "think-container" in result
-        # Should still create the container even if empty
-
-    def test_parse_think_tags_preserves_html_in_content(self):
-        """Test parsing preserves HTML content inside think tags."""
-        text = "<think>Some <b>bold</b> text</think>"
-        result = chat_message.thinking_prettify(text)
-
-        assert "think-container" in result
-        assert "<b>bold</b>" in result
-
-    def test_parse_think_tags_with_nested_angle_brackets(self):
-        """Test parsing handles nested angle brackets correctly."""
-        text = "<think>x < y and y > z</think>"
-        result = chat_message.thinking_prettify(text)
-
-        assert "think-container" in result
-        assert "x < y and y > z" in result
-
-
-class TestIntegration:
-    """Integration tests for chat_message module."""
-
-    def test_full_render_flow_with_streaming(self):
-        """Test complete render flow with streaming runtime."""
-        mock_placeholder = Mock()
-        mock_container = Mock()
-        mock_user_msg = Mock()
-        mock_assistant_msg = Mock()
-        mock_placeholder.container.return_value = mock_container
-        mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
-
-        runtime = AgentsRuntime(
-            agent_id="test-agent",
-            query="Calculate 2+2",
-            streaming_text="<think>Let me calculate...</think>The answer is 4",
-        )
-
-        chat_message.render(runtime, mock_placeholder)
-
-        # Verify user message
-        mock_user_msg.text.assert_called_once_with("Calculate 2+2")
-
-        # Verify assistant message with think tags and loading
-        mock_assistant_msg.markdown.assert_called_once()
-        call_args = mock_assistant_msg.markdown.call_args[0][0]
-        assert "think-container" in call_args
-        assert "Let me calculate..." in call_args
-        assert "The answer is 4" in call_args
-        assert "loading-dots" in call_args
-
-    def test_full_render_flow_with_completed_message(self):
-        """Test complete render flow with completed message."""
-        mock_placeholder = Mock()
-        mock_container = Mock()
-        mock_user_msg = Mock()
-        mock_assistant_msg = Mock()
-        mock_placeholder.container.return_value = mock_container
-        mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
-
-        message = {
-            "role": "assistant",
-            "content": [
-                {"text": "<think>Processing query...</think>"},
-                {"text": "Here is your answer."},
-            ],
-        }
-
-        runtime = AgentsRuntime(
-            agent_id="test-agent",
-            query="Help me",
-            reply=message,
-        )
-
-        chat_message.render(runtime, mock_placeholder)
-
-        # Verify both text blocks were rendered
-        assert mock_assistant_msg.markdown.call_count == 2
-
-
-class TestToolRendering:
-    """Test tool call rendering functionality."""
+class TestRenderToolCallMethod:
+    """Test the render_tool_call() static method."""
 
     def test_render_tool_call_pending(self):
         """Test rendering tool call without result (pending)."""
@@ -428,7 +257,7 @@ class TestToolRendering:
             status="pending",
         )
 
-        chat_message.tool_call_render(tool_call, mock_placeholder)
+        ChatMessage.render_tool_call(tool_call, mock_placeholder)
 
         # Should create expander with tool name
         mock_placeholder.expander.assert_called_once()
@@ -453,7 +282,7 @@ class TestToolRendering:
             status="success",
         )
 
-        chat_message.tool_call_render(tool_call, mock_placeholder)
+        ChatMessage.render_tool_call(tool_call, mock_placeholder)
 
         # Should create expander
         mock_placeholder.expander.assert_called_once()
@@ -476,10 +305,70 @@ class TestToolRendering:
             error="File not found",
         )
 
-        chat_message.tool_call_render(tool_call, mock_placeholder)
+        ChatMessage.render_tool_call(tool_call, mock_placeholder)
 
         # Should create expander
         mock_placeholder.expander.assert_called_once()
+
+
+class TestIntegration:
+    """Integration tests for ChatMessage class."""
+
+    def test_full_render_flow_with_streaming(self):
+        """Test complete render flow with streaming runtime."""
+        mock_placeholder = Mock()
+        mock_container = Mock()
+        mock_user_msg = Mock()
+        mock_assistant_msg = Mock()
+        mock_placeholder.container.return_value = mock_container
+        mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
+
+        runtime = AgentsRuntime(
+            agent_id="test-agent",
+            query="Calculate 2+2",
+            streaming_text="The answer is 4",
+        )
+
+        chat_msg = ChatMessage(runtime)
+        chat_msg.render(mock_placeholder)
+
+        # Verify user message
+        mock_user_msg.text.assert_called_once_with("Calculate 2+2")
+
+        # Verify assistant message with loading indicator
+        mock_assistant_msg.markdown.assert_called_once()
+        call_args = mock_assistant_msg.markdown.call_args[0][0]
+        assert "The answer is 4" in call_args
+        assert "loading-dots" in call_args
+
+    def test_full_render_flow_with_completed_message(self):
+        """Test complete render flow with completed message."""
+        mock_placeholder = Mock()
+        mock_container = Mock()
+        mock_user_msg = Mock()
+        mock_assistant_msg = Mock()
+        mock_placeholder.container.return_value = mock_container
+        mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
+
+        message = {
+            "role": "assistant",
+            "content": [
+                {"text": "Processing query..."},
+                {"text": "Here is your answer."},
+            ],
+        }
+
+        runtime = AgentsRuntime(
+            agent_id="test-agent",
+            query="Help me",
+            reply=message,
+        )
+
+        chat_msg = ChatMessage(runtime)
+        chat_msg.render(mock_placeholder)
+
+        # Verify both text blocks were rendered
+        assert mock_assistant_msg.markdown.call_count == 2
 
     def test_render_runtime_with_tool_calls(self):
         """Test rendering runtime with tool calls."""
@@ -517,7 +406,8 @@ class TestToolRendering:
             reply={"role": "assistant", "content": [{"text": "Done"}]},
         )
 
-        chat_message.render(runtime, mock_placeholder)
+        chat_msg = ChatMessage(runtime)
+        chat_msg.render(mock_placeholder)
 
         # Should create two expanders for tool calls
         assert mock_assistant_msg.expander.call_count == 2

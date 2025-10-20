@@ -21,7 +21,7 @@ import streamlit as st
 import asyncio
 
 from fivcadvisor.app.utils import Chat
-from fivcadvisor.app.components import chat_message
+from fivcadvisor.app.components import ChatMessage
 from .base import ViewBase, ViewNavigation
 
 
@@ -119,7 +119,7 @@ class ChatView(ViewBase):
 
         runtimes = self.chat.list_history()
         for runtime in runtimes:
-            chat_message.render(runtime, msg_placeholder)
+            ChatMessage(runtime).render(msg_placeholder)
 
         logo_placeholder = st.empty()
         if not runtimes:
@@ -147,7 +147,7 @@ class ChatView(ViewBase):
             asyncio.run(
                 self.chat.ask(
                     user_query,
-                    on_event=lambda rt: chat_message.render(rt, msg_new_placeholder),
+                    on_event=lambda rt: ChatMessage(rt).render(msg_new_placeholder),
                 )
             )
 

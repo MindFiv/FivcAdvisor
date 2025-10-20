@@ -174,13 +174,13 @@ src/fivcadvisor/app/
 - `tasks.render()`: Task monitoring view (future feature)
 
 **4. Components (`components/`)**
-- `chat_message.render(runtime, container)`: Renders a single message
+- `ChatMessage(runtime).render(container)`: Renders a single message
   - Displays user query
   - Shows agent response with streaming support
   - Renders tool calls in expandable sections with status indicators
   - Handles different message states (pending, executing, completed)
   - Includes tool call rendering with inputs, outputs, and timing
-  - Applies special formatting for `<think>` tags
+  - Uses class-based architecture for better modularity
 
 **5. Persistence Layer**
 - `FileAgentsRuntimeRepository`: File-based storage
@@ -220,12 +220,12 @@ You can customize the interface by modifying:
 
 **3. Message Rendering** (`app/components/chat_message.py`):
 ```python
-# Customize message display
+# ChatMessage class for message display
+- Class-based architecture with runtime initialization
 - Message formatting and styling
 - Tool call visualization with expandable sections
 - Streaming text presentation with animated indicators
 - Error message handling
-- <think> tag styling and formatting
 - Tool execution status indicators
 - Input/output formatting for tool calls
 ```

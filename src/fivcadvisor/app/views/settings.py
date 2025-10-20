@@ -9,6 +9,13 @@ import streamlit as st
 from .base import ViewBase, ViewNavigation
 
 
+# class MCPSettingView(ViewBase):
+#     """MCP Setting view"""
+#
+#     def __init__(self):
+#         pass
+
+
 class SettingsView(ViewBase):
     """Settings view"""
 

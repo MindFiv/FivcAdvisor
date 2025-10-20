@@ -44,7 +44,7 @@ class ViewBase(ABC):
         return self.title
 
 
-class ViewNavigation:
+class ViewNavigation(object):
     """
     Custom navigation system using sidebar for page selection.
 
@@ -418,14 +418,14 @@ class ViewNavigation:
 
             return clicked_page
 
-    def navigate_to(self, page_id: str):
+    def navigate_to(self, page_id: str | None):
         """
         Navigate to a specific page by its ID.
 
         Args:
             page_id: The ID of the page to navigate to
         """
-        self._set_current_page_id(page_id)
+        self._set_current_page_id(page_id or "")
         st.rerun()
 
     def run(self):
