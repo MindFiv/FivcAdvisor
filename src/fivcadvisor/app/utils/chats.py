@@ -33,7 +33,6 @@ Example:
     >>> history = chat.list_history()
 """
 
-import asyncio
 from datetime import datetime, timezone
 from typing import Optional, Callable, List
 
@@ -408,15 +407,13 @@ class Chat(object):
             )
 
             # Execute agent
-            agent_coroutine = agent.invoke_async(query)
+            agent_result = await agent.invoke_async(query)
             # Save agent metadata on first query
             if not self.runtime_meta:
-                agent_desc_coroutine = tasks.run_briefing_task(
-                    query,
+                agent_query = f"{query}\n{str(agent_result)}"
+                agent_desc = await tasks.run_briefing_task(
+                    agent_query,
                     tools_retriever=self.tools_retriever,
-                )
-                agent_result, agent_desc = await asyncio.gather(
-                    agent_coroutine, agent_desc_coroutine
                 )
                 self.runtime_meta = AgentsRuntimeMeta(
                     agent_id=agent.agent_id,
@@ -426,8 +423,6 @@ class Chat(object):
                     started_at=datetime.now(),
                 )
                 self.runtime_repo.update_agent(self.runtime_meta)
-            else:
-                agent_result = await agent_coroutine
 
             return agent_result
 

@@ -1,12 +1,17 @@
 """
-FivcAdvisor App Pages
+FivcAdvisor App Views
 
-Multi-page application modules.
+View implementations for the multi-page application.
+Each view inherits from ViewBase and implements the render() method.
 """
 
 __all__ = [
-    "chats",
-    "settings",
+    "ViewBase",
+    "ViewNavigation",
+    "ChatView",
+    "SettingsView",
 ]
 
-from . import chats, settings
+from .base import ViewBase, ViewNavigation
+from .chats import ChatView
+from .settings import SettingsView

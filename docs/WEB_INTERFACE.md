@@ -136,14 +136,15 @@ The web interface uses a modular, component-based architecture:
 #### Directory Structure
 ```
 src/fivcadvisor/app/
-├── __init__.py              # Main app with st.navigation setup
+├── __init__.py              # Main app with ViewNavigation setup
 ├── utils/                   # Utility classes and state management
 │   ├── chats.py            # Chat and ChatManager classes
 │   └── tasks.py            # Task monitoring (future)
-├── views/                   # Page rendering functions
-│   ├── chats.py            # Chat page view
-│   ├── settings.py         # Settings page view
-│   └── tasks.py            # Tasks page view (future)
+├── views/                   # View implementations (inherit from ViewBase)
+│   ├── base.py             # ViewBase and ViewNavigation
+│   ├── chats.py            # ChatView implementation
+│   ├── settings.py         # SettingsView implementation
+│   └── tasks.py            # TasksView implementation (future)
 └── components/              # Reusable UI components
     └── chat_message.py     # Message and tool call rendering
 ```

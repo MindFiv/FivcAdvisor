@@ -9,63 +9,46 @@ __all__ = [
     "main",
 ]
 
-import functools
 import streamlit as st
 
 from fivcadvisor.tools import default_retriever
 from fivcadvisor.agents.types.repositories import FileAgentsRuntimeRepository
 from fivcadvisor.app.utils import ChatManager
-from fivcadvisor.app.views import chats, settings
+from fivcadvisor.app.views import ViewNavigation, ChatView, SettingsView
 
 
 def main():
-    """Main Streamlit application entry point with st.navigation"""
+    """Main Streamlit application entry point with custom ViewNavigation"""
 
-    agent_runtime_repo = FileAgentsRuntimeRepository()
-    chat_manager = ChatManager(
-        agent_runtime_repo=agent_runtime_repo,
-        tools_retriever=default_retriever,
-    )
-
-    # Add "New Chat" page at the beginning
-    chat_pages = [
-        st.Page(
-            lambda: chats.render(chat_manager.add_chat()),
-            title="New Chat",
-            icon="➕",
-            url_path="chat-new",
-        )
-    ]
-    for chat in chat_manager.list_chats():
-        page = st.Page(
-            functools.partial(chats.render, chat),
-            title=chat.description or f"Chat {chat.id[:8]}",
-            icon="💬",
-            url_path=f"{chat.id}",
-        )
-        chat_pages.append(page)
-
-    # Page configuration
+    # Page configuration (must be called first)
     st.set_page_config(
         page_title="FivcAdvisor - Intelligent Agent Assistant",
         page_icon="🤖",
         layout="wide",
         initial_sidebar_state="expanded",
     )
-
-    # Create navigation
-    pg = st.navigation(
-        {
-            "Chats": chat_pages,
-            "Settings": [
-                st.Page(
-                    settings.render, title="Settings", icon="⚙️", url_path="settings"
-                ),
-            ],
-        }
+    agent_runtime_repo = FileAgentsRuntimeRepository()
+    chat_manager = ChatManager(
+        agent_runtime_repo=agent_runtime_repo,
+        tools_retriever=default_retriever,
     )
-    # Run selected page
-    pg.run()
+
+    # Create navigation instance
+    nav = ViewNavigation()
+
+    # Build chat views
+    chat_pages = [ChatView(chat_manager.add_chat())]
+    chat_pages.extend([ChatView(chat) for chat in chat_manager.list_chats()])
+
+    # Add sections to navigation
+    nav.add_section("Chats", chat_pages)
+    nav.add_section(
+        "Settings",
+        [SettingsView()],
+    )
+
+    # Run navigation
+    nav.run()
 
 
 if __name__ == "__main__":
