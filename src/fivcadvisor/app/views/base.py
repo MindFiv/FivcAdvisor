@@ -9,8 +9,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 import streamlit as st
 
-from fivcadvisor.settings import SettingsConfig
-from fivcadvisor.utils import OutputDir
+from fivcadvisor.app.utils import default_running_config
 
 
 class ViewBase(ABC):
@@ -121,9 +120,7 @@ class ViewNavigation(object):
         Returns:
             str: The current page ID, or None if not set
         """
-        with OutputDir():
-            config = SettingsConfig("run.yml")
-            return config.get("page_id")
+        return default_running_config.get("page_id")
 
     @staticmethod
     def _set_current_page_id(page_id: str):
@@ -133,10 +130,8 @@ class ViewNavigation(object):
         Args:
             page_id: The page ID to set
         """
-        with OutputDir():
-            config = SettingsConfig("run.yml")
-            config.set("page_id", page_id)
-            config.save()
+        default_running_config.set("page_id", page_id)
+        default_running_config.save()
 
     def _get_page(self, page_id: str) -> Optional[ViewBase]:
         """

@@ -71,7 +71,6 @@ async def run_assessing_task(
         f"Provide your assessment in JSON format with these exact fields:\n"
         f"- require_planning (bool): Whether a planning agent is required to break down the task. "
         f"Set to true for complex tasks that need multiple steps or specialized agents.\n"
-        f"- require_tools (list): List of tool names needed, empty list if none\n"
         f"- reasoning (string): Brief explanation of your assessment\n\n"
         f"Query: {query}"
     )

@@ -14,7 +14,13 @@ import streamlit as st
 from fivcadvisor.tools import default_retriever
 from fivcadvisor.agents.types.repositories import FileAgentsRuntimeRepository
 from fivcadvisor.app.utils import ChatManager
-from fivcadvisor.app.views import ViewNavigation, ChatView, SettingsView
+from fivcadvisor.app.views import (
+    ViewNavigation,
+    ChatView,
+    TaskView,
+    MCPSettingView,
+    GeneralSettingView,
+)
 
 
 def main():
@@ -43,8 +49,12 @@ def main():
     # Add sections to navigation
     nav.add_section("Chats", chat_pages)
     nav.add_section(
+        "Tasks",
+        [TaskView()],
+    )
+    nav.add_section(
         "Settings",
-        [SettingsView()],
+        [GeneralSettingView(), MCPSettingView()],
     )
 
     # Run navigation

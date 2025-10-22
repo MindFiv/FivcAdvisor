@@ -2,6 +2,7 @@ __all__ = [
     "register_default_tools",
     "register_mcp_tools",
     "default_retriever",
+    "ToolsConfig",
     "ToolsRetriever",
 ]
 
@@ -76,7 +77,7 @@ def register_mcp_tools(
 def _load_retriever() -> ToolsRetriever:
     retriever = ToolsRetriever()
     register_default_tools(tools_retriever=retriever)
-    register_mcp_tools(tools_retriever=retriever)
+    # register_mcp_tools(tools_retriever=retriever)
     print(f"Registered Tools: {[t.tool_name for t in retriever.get_all()]}")
     return retriever
 

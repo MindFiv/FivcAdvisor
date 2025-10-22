@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 class SettingsConfig(object):
     def __init__(self, config_file: str = "settings.yaml"):
-        self.config_file = config_file
+        self.config_file = os.path.abspath(os.path.join(os.getcwd(), config_file))
         self.errors = []
         self.configs = {}
         self.configs = self._load_file(self.config_file)

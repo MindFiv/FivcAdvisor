@@ -20,9 +20,13 @@ import os
 import streamlit as st
 import asyncio
 
-from fivcadvisor.app.utils import Chat
+from strands.types.content import Message, ContentBlock
+
+from fivcadvisor.app.utils import Chat, default_running_config
 from fivcadvisor.app.components import ChatMessage
+from fivcadvisor.tasks import run_assessing_task
 from .base import ViewBase, ViewNavigation
+from ...agents.types import AgentsRuntime
 
 
 class ChatView(ViewBase):
@@ -136,13 +140,30 @@ class ChatView(ViewBase):
 
             # Create placeholder for streaming response
             msg_new_placeholder = st.empty()
-
-            # Render user query
-            with msg_new_placeholder.chat_message("user"):
-                st.text(user_query)
+            msg_runtime = AgentsRuntime(
+                query=user_query,
+            )
+            ChatMessage(msg_runtime).render(msg_new_placeholder)
 
             # Execute query with streaming callback
             is_new_chat = self.chat.id is None
+
+            # Assess query
+            assessment = asyncio.run(
+                run_assessing_task(
+                    user_query,
+                    tools_retriever=self.chat.tools_retriever,
+                )
+            )
+
+            if assessment.require_planning and default_running_config.get(
+                "enable_tasks"
+            ):
+                msg_runtime.reply = Message(
+                    role="assistant", content=[ContentBlock(text=assessment.reasoning)]
+                )
+                ChatMessage(msg_runtime).render(msg_new_placeholder)
+                return
 
             asyncio.run(
                 self.chat.ask(

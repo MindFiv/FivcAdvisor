@@ -475,6 +475,10 @@ class AgentsMonitorManager(object):
 
         # Retrieve tools according to query
         agent_tools = tools_retriever.retrieve(query)
+        tool_names = [
+            i.tool_name if hasattr(i, "tool_name") else str(i) for i in agent_tools
+        ]
+        print(f"Agent Tools: {tool_names} for query: {query}")
 
         # Generate unique agent ID
         agent_id = agent_id or str(uuid4())

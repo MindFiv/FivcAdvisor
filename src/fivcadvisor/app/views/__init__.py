@@ -9,9 +9,12 @@ __all__ = [
     "ViewBase",
     "ViewNavigation",
     "ChatView",
-    "SettingsView",
+    "TaskView",
+    "GeneralSettingView",
+    "MCPSettingView",
 ]
 
 from .base import ViewBase, ViewNavigation
 from .chats import ChatView
-from .settings import SettingsView
+from .tasks import TaskView
+from .settings import GeneralSettingView, MCPSettingView  # noqa: F401

@@ -143,8 +143,12 @@ src/fivcadvisor/app/
 ├── views/                   # View implementations (inherit from ViewBase)
 │   ├── base.py             # ViewBase and ViewNavigation
 │   ├── chats.py            # ChatView implementation
-│   ├── settings.py         # SettingsView implementation
-│   └── tasks.py            # TasksView implementation (future)
+│   ├── tasks.py            # TasksView implementation (future)
+│   ├── settings/           # Settings views submodule
+│   │   ├── __init__.py     # Settings views exports
+│   │   ├── general.py      # GeneralSettingView implementation
+│   │   └── mcp.py          # MCPSettingView implementation
+│   └── __init__.py         # Views module exports
 └── components/              # Reusable UI components
     └── chat_message.py     # Message and tool call rendering
 ```

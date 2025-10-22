@@ -23,42 +23,36 @@ class TestTaskAssessment:
         """Test basic TaskAssessment initialization."""
         assessment = TaskAssessment(
             require_planning=True,
-            require_tools=["calculator", "python_repl"],
             reasoning="This is a complex task",
         )
 
         assert assessment.require_planning is True
-        assert assessment.require_tools == ["calculator", "python_repl"]
         assert assessment.reasoning == "This is a complex task"
 
     def test_init_no_tools(self):
-        """Test TaskAssessment with no tools required."""
+        """Test TaskAssessment with no planning required."""
         assessment = TaskAssessment(
             require_planning=False,
-            require_tools=[],
             reasoning="Simple task",
         )
 
         assert assessment.require_planning is False
-        assert assessment.require_tools == []
         assert assessment.reasoning == "Simple task"
 
     def test_validation_error(self):
         """Test that missing required fields raises ValidationError."""
         with pytest.raises(ValidationError):
-            TaskAssessment(require_planning=True)
+            TaskAssessment()
 
     def test_dict_conversion(self):
         """Test conversion to dictionary."""
         assessment = TaskAssessment(
             require_planning=True,
-            require_tools=["tool1"],
             reasoning="test reasoning",
         )
         data = assessment.model_dump()
 
         assert data["require_planning"] is True
-        assert data["require_tools"] == ["tool1"]
         assert data["reasoning"] == "test reasoning"
 
     def test_json_schema(self):
@@ -68,7 +62,6 @@ class TestTaskAssessment:
         assert "properties" in schema
         # Check for alias names in schema (Pydantic uses aliases in JSON schema)
         assert "requires_planning_agent" in schema["properties"]
-        assert "required_tools" in schema["properties"]
         assert "reasoning" in schema["properties"]
 
 

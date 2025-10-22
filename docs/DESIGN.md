@@ -209,6 +209,77 @@ FivcAdvisor uses a flexible tool management system:
 - Configured via `configs/mcp.yaml`
 - Supports any MCP-compatible tool
 
+### Tool Configuration
+
+The `ToolsConfig` class manages MCP server configurations with automatic validation:
+
+```python
+from fivcadvisor.tools.types.configs import ToolsConfig, ToolsConfigValue
+
+# Load configuration from YAML or JSON
+config = ToolsConfig("mcp.yaml")
+
+# Get MCP clients
+clients = config.get_clients()
+
+# Check for errors during loading
+errors = config.get_errors()
+
+# Save configuration changes
+config.save()  # Save to original file
+config.save("new_config.yaml")  # Save to new file
+
+# Load a different configuration file
+config.load("other_config.yaml")
+
+# Manage configurations programmatically
+# set() accepts both dict and ToolsConfigValue, with automatic validation
+config.set("my_server", {"command": "python", "args": ["server.py"]})
+config.set("my_sse_server", {"url": "http://localhost:8000"})
+config.delete("my_server")
+
+# List all configured servers
+servers = config.list()
+
+# Get a specific server configuration
+server_config = config.get("my_server")
+```
+
+**Configuration Value Validation:**
+
+Each MCP server configuration is a `ToolsConfigValue` that supports two types:
+
+1. **Command-based** (stdio):
+```python
+config = ToolsConfigValue({
+    "command": "python",
+    "args": ["server.py"],
+    "env": {"VAR": "value"}  # optional
+})
+```
+
+2. **URL-based** (SSE):
+```python
+config = ToolsConfigValue({
+    "url": "http://localhost:8000"
+})
+```
+
+**API Details:**
+
+- `validate()` - Validates configuration structure and required fields
+- `get_client()` - Creates and returns an MCPClient instance
+- `set(name, config)` - Adds/updates a configuration (accepts dict or ToolsConfigValue)
+- `get(name)` - Retrieves a specific configuration
+- `delete(name)` - Removes a configuration
+- `list()` - Returns all configuration names
+- `load(filename)` - Loads configurations from file (validates all entries)
+- `save(filename)` - Saves configurations to file
+
+Supported configuration formats:
+- **YAML** (.yaml, .yml) - Human-readable format
+- **JSON** (.json) - Machine-readable format
+
 ### Tool Retrieval
 
 The `ToolsRetriever` provides semantic search over available tools:

@@ -25,7 +25,7 @@ from strands.multiagent.base import Status as TaskStatus
 class TaskAssessment(BaseModel):
     """Assessment result for a task.
 
-    Determines whether a task requires planning and what tools are needed.
+    Determines whether a task requires planning.
     """
 
     model_config = {"populate_by_name": True}
@@ -33,10 +33,6 @@ class TaskAssessment(BaseModel):
     require_planning: bool = Field(
         description="Whether a planning agent is required to break down the task",
         alias="requires_planning_agent",
-    )
-    require_tools: List[str] = Field(
-        description="List of tools needed for the task, if we can't answer directly",
-        alias="required_tools",
     )
     reasoning: str = Field(default="", description="Reasoning for the assessment")
 
