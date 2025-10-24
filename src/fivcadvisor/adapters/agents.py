@@ -21,9 +21,10 @@ from langchain_core.language_models import BaseLanguageModel
 from langchain_core.tools import Tool
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, ValidationError
+from strands.types.content import Message, ContentBlock
 
 from fivcadvisor.adapters.tools import convert_strands_tools_to_langchain
-from fivcadvisor.adapters.events import EventBus, EventType, Event
+from fivcadvisor.adapters.events import EventBus, EventType, Event, MessageAddedEvent
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -145,6 +146,15 @@ class LangChainAgentAdapter:
             # Extract output from agent result
             output = result.get("output", str(result))
 
+            # Emit message added event with the response
+            self.event_bus.emit(
+                MessageAddedEvent(
+                    agent_id=self.agent_id,
+                    message=output,
+                    role="assistant",
+                )
+            )
+
             # Emit after invocation event
             self.event_bus.emit(
                 Event(
@@ -154,8 +164,24 @@ class LangChainAgentAdapter:
             )
 
             # Call callback handler if provided
+            # Pass both output and a Message object for compatibility
             if self.callback_handler:
-                self.callback_handler(output=output, agent=self)
+                # Create a Message object for the callback
+                message = Message(
+                    role="assistant",
+                    content=[ContentBlock(text=output)]
+                )
+                # Try to call with result parameter (for AgentsMonitor compatibility)
+                try:
+                    self.callback_handler(
+                        result={
+                            "message": message,
+                            "output": output,
+                        }
+                    )
+                except TypeError:
+                    # Fallback to output parameter if result is not supported
+                    self.callback_handler(output=output, agent=self)
 
             return output
 
@@ -180,15 +206,62 @@ class LangChainAgentAdapter:
             The agent's response as a string
         """
         try:
+            # Emit before invocation event
+            self.event_bus.emit(
+                Event(
+                    event_type=EventType.BEFORE_INVOCATION,
+                    data={"agent_id": self.agent_id, "query": query},
+                )
+            )
+
             result = self.agent.invoke({"input": query})
             output = result.get("output", str(result))
 
+            # Emit message added event with the response
+            self.event_bus.emit(
+                MessageAddedEvent(
+                    agent_id=self.agent_id,
+                    message=output,
+                    role="assistant",
+                )
+            )
+
+            # Emit after invocation event
+            self.event_bus.emit(
+                Event(
+                    event_type=EventType.AFTER_INVOCATION,
+                    data={"agent_id": self.agent_id, "output": output},
+                )
+            )
+
             if self.callback_handler:
-                self.callback_handler(output=output, agent=self)
+                # Create a Message object for the callback
+                message = Message(
+                    role="assistant",
+                    content=[ContentBlock(text=output)]
+                )
+                # Try to call with result parameter (for AgentsMonitor compatibility)
+                try:
+                    self.callback_handler(
+                        result={
+                            "message": message,
+                            "output": output,
+                        }
+                    )
+                except TypeError:
+                    # Fallback to output parameter if result is not supported
+                    self.callback_handler(output=output, agent=self)
 
             return output
 
         except Exception as e:
+            # Emit error event
+            self.event_bus.emit(
+                Event(
+                    event_type=EventType.ERROR_OCCURRED,
+                    data={"agent_id": self.agent_id, "error": str(e)},
+                )
+            )
             raise
 
     def __call__(self, query: str) -> str:

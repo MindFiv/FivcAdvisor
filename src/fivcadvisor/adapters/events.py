@@ -72,11 +72,13 @@ class MessageAddedEvent(Event):
     """Event fired when a message is added."""
 
     def __init__(
-        self, message: Optional[str] = None, role: Optional[str] = None, **kwargs
+        self, message: Optional[str] = None, role: Optional[str] = None,
+        agent_id: Optional[str] = None, **kwargs
     ):
         super().__init__(event_type=EventType.MESSAGE_ADDED, **kwargs)
         self.message = message
         self.role = role
+        self.agent_id = agent_id
 
 
 class ToolCalledEvent(Event):

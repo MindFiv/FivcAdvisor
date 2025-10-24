@@ -159,8 +159,11 @@ class TestLangChainAgentAdapter(unittest.TestCase):
         # Verify callback was called
         callback.assert_called_once()
         call_kwargs = callback.call_args[1]
-        self.assertEqual(call_kwargs["output"], "Response")
-        self.assertEqual(call_kwargs["agent"], adapter)
+        # New format: callback is called with result parameter containing message and output
+        self.assertIn("result", call_kwargs)
+        result_dict = call_kwargs["result"]
+        self.assertEqual(result_dict["output"], "Response")
+        self.assertIn("message", result_dict)
 
 
 class TestCreateLangChainAgent(unittest.TestCase):

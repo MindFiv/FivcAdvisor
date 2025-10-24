@@ -282,9 +282,18 @@ class AgentsMonitor(object):
 
         Args:
             result: AgentResult object from Strands containing final output
+                   or a dict with 'message' and 'output' keys
         """
-        # Update runtime state
-        self._runtime.reply = result.message
+        # Handle both AgentResult objects and dict results from LangChain adapter
+        if isinstance(result, dict):
+            # LangChain adapter format: {"message": Message, "output": str}
+            message = result.get("message")
+            if message:
+                self._runtime.reply = message
+        else:
+            # Strands format: AgentResult with message attribute
+            self._runtime.reply = result.message
+
         self._runtime.status = AgentsStatus.COMPLETED
         self._runtime.completed_at = datetime.now()
 
