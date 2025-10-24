@@ -30,11 +30,15 @@ from fivcadvisor.agents.types import (
     AgentsRetriever,
     AgentsCreatorBase,
 )
-from fivcadvisor.adapters import LangGraphSwarmAdapter
+from fivcadvisor.adapters import (
+    LangGraphSwarmAdapter,
+    LangChainAgentAdapter,
+    create_langchain_agent,
+)
 
 
 @agent_creator("Generic")
-def create_default_agent(*args, **kwargs) -> Agent:
+def create_default_agent(*args, **kwargs) -> Union[Agent, LangChainAgentAdapter]:
     """Create a standard ReAct agent for task execution."""
 
     # filter out unknown kwargs
@@ -74,16 +78,8 @@ def create_default_agent(*args, **kwargs) -> Agent:
     if "model" not in kwargs:
         kwargs["model"] = models.create_default_model()
 
-    agent = Agent(*args, **kwargs)
-
-    # if isinstance(agent.callback_handler, Callable):
-    #     callback = agent.callback_handler
-    #
-    #     def _callback_wrapper(**cb_kwargs):
-    #         cb_kwargs["agent"] = agent
-    #         callback(**cb_kwargs)
-    #
-    #     agent.callback_handler = _callback_wrapper
+    # Use LangChain Agent adapter instead of Strands Agent
+    agent = create_langchain_agent(*args, **kwargs)
 
     return agent
 
@@ -229,6 +225,9 @@ def create_generic_agent_swarm(
     underlying orchestration engine. It maintains backward compatibility
     with the Strands Swarm API through the LangGraphSwarmAdapter.
 
+    All agents in the swarm use LangChainAgentAdapter for compatibility
+    with the LangChain ecosystem.
+
     Args:
         team: TaskTeam containing specialist definitions
         tools_retriever: ToolsRetriever to fetch tools for each specialist
@@ -250,6 +249,7 @@ def create_generic_agent_swarm(
     for s in team.specialists:
         s_tools = tools_retriever.get_batch(s.tools)
         s_tools = [t for t in s_tools if t is not None]
+        # create_default_agent now returns LangChainAgentAdapter
         s_agents.append(
             create_default_agent(
                 name=s.name,

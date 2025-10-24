@@ -17,6 +17,9 @@ __all__ = [
     "create_openai_model",
     "create_ollama_model",
     "create_litellm_model",
+    # Agents
+    "LangChainAgentAdapter",
+    "create_langchain_agent",
     # Tools
     "convert_strands_tool_to_langchain",
     "convert_strands_tools_to_langchain",
@@ -56,6 +59,11 @@ from fivcadvisor.adapters.models import (
     create_openai_model,
     create_ollama_model,
     create_litellm_model,
+)
+
+from fivcadvisor.adapters.agents import (
+    LangChainAgentAdapter,
+    create_langchain_agent,
 )
 
 from fivcadvisor.adapters.tools import (

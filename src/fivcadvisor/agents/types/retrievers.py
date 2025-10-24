@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Union, Any
 from strands.agent import Agent
 from strands.multiagent import MultiAgentBase
 
@@ -7,6 +7,8 @@ from strands.multiagent import MultiAgentBase
 class AgentsCreatorBase(ABC):
     """
     Base class for agents creators.
+
+    Supports both Strands Agent and LangChain Agent adapters.
     """
 
     @property
@@ -26,14 +28,20 @@ class AgentsCreatorBase(ABC):
         return self.name
 
     @abstractmethod
-    def __call__(self, *args, **kwargs) -> Agent | MultiAgentBase:
-        """Create and return an agent or multi-agent."""
+    def __call__(self, *args, **kwargs) -> Union[Agent, MultiAgentBase, Any]:
+        """Create and return an agent or multi-agent.
+
+        Returns:
+            Agent instance (Strands Agent or LangChain Agent adapter)
+        """
         raise NotImplementedError()
 
 
 class FunctionAgentCreator(AgentsCreatorBase):
     """
     Agent creator that wraps a function.
+
+    Supports both Strands Agent and LangChain Agent adapters.
     """
 
     def __init__(self, name: str, func: Callable):
@@ -48,7 +56,12 @@ class FunctionAgentCreator(AgentsCreatorBase):
     def description(self):
         return self._func.__doc__ or ""
 
-    def __call__(self, *args, **kwargs) -> Agent | MultiAgentBase:
+    def __call__(self, *args, **kwargs) -> Union[Agent, MultiAgentBase, Any]:
+        """Call the wrapped function to create an agent.
+
+        Returns:
+            Agent instance (Strands Agent or LangChain Agent adapter)
+        """
         return self._func(*args, **kwargs)
 
 
