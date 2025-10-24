@@ -164,3 +164,72 @@ class TestAdapterCompatibility:
 
             # Verify app has ainvoke method
             assert hasattr(adapter.app, "ainvoke")
+
+
+class TestSwarmUtilityMethods:
+    """Test utility methods of LangGraphSwarmAdapter."""
+
+    def test_get_agent_by_name(self):
+        """Test retrieving an agent by name."""
+        agent1 = Mock()
+        agent1.name = "Agent1"
+        agent2 = Mock()
+        agent2.name = "Agent2"
+
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
+            adapter = LangGraphSwarmAdapter([agent1, agent2])
+
+            # Test getting existing agent
+            retrieved = adapter.get_agent_by_name("Agent1")
+            assert retrieved == agent1
+
+            # Test getting non-existent agent
+            retrieved = adapter.get_agent_by_name("NonExistent")
+            assert retrieved is None
+
+    def test_get_agent_names(self):
+        """Test getting all agent names."""
+        agent1 = Mock()
+        agent1.name = "Agent1"
+        agent2 = Mock()
+        agent2.name = "Agent2"
+        agent3 = Mock()
+        agent3.name = "Agent3"
+
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
+            adapter = LangGraphSwarmAdapter([agent1, agent2, agent3])
+
+            names = adapter.get_agent_names()
+            assert len(names) == 3
+            assert "Agent1" in names
+            assert "Agent2" in names
+            assert "Agent3" in names
+
+    def test_set_default_agent(self):
+        """Test setting the default agent."""
+        agent1 = Mock()
+        agent1.name = "Agent1"
+        agent2 = Mock()
+        agent2.name = "Agent2"
+
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
+            adapter = LangGraphSwarmAdapter([agent1, agent2], default_agent_name="Agent1")
+
+            # Verify initial default
+            assert adapter.default_agent_name == "Agent1"
+
+            # Change default
+            adapter.set_default_agent("Agent2")
+            assert adapter.default_agent_name == "Agent2"
+
+    def test_set_default_agent_invalid(self):
+        """Test setting an invalid default agent."""
+        agent1 = Mock()
+        agent1.name = "Agent1"
+
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
+            adapter = LangGraphSwarmAdapter([agent1])
+
+            # Try to set non-existent agent
+            with pytest.raises(ValueError, match="Agent 'NonExistent' not found"):
+                adapter.set_default_agent("NonExistent")
