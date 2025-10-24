@@ -11,8 +11,8 @@ import asyncio
 import os
 
 # Set dummy API keys to avoid initialization errors
-os.environ.setdefault('OPENAI_API_KEY', 'sk-test-key')
-os.environ.setdefault('CHROMA_OPENAI_API_KEY', 'sk-test-key')
+os.environ.setdefault("OPENAI_API_KEY", "sk-test-key")
+os.environ.setdefault("CHROMA_OPENAI_API_KEY", "sk-test-key")
 
 from fivcadvisor.adapters import (
     LangChainAgentAdapter,
@@ -55,7 +55,7 @@ class TestLangChainAgentIntegration(unittest.TestCase):
         self.assertEqual(adapter.name, "TestAgent")
         self.assertEqual(adapter.system_prompt, "Test prompt")
         self.assertIsNotNone(adapter.agent_id)
-    
+
     def test_agent_with_custom_parameters(self):
         """Test agent creation with custom parameters"""
         adapter = LangChainAgentAdapter(
@@ -68,7 +68,7 @@ class TestLangChainAgentIntegration(unittest.TestCase):
         self.assertIsInstance(adapter, LangChainAgentAdapter)
         self.assertEqual(adapter.name, "CustomAgent")
         self.assertEqual(adapter.system_prompt, "Custom prompt")
-    
+
     def test_agent_invocation_interface(self):
         """Test that agent provides correct invocation interface"""
         adapter = LangChainAgentAdapter(
@@ -87,10 +87,11 @@ class TestLangChainAgentIntegration(unittest.TestCase):
         # Test callable interface
         result = adapter("Test query")
         self.assertEqual(result, "Test response")
-    
-    @patch('fivcadvisor.adapters.agents.asyncio.to_thread')
+
+    @patch("fivcadvisor.adapters.agents.asyncio.to_thread")
     def test_agent_async_invocation(self, mock_to_thread):
         """Test async invocation interface"""
+
         async def async_test():
             adapter = LangChainAgentAdapter(
                 model=self.mock_llm,
@@ -104,7 +105,7 @@ class TestLangChainAgentIntegration(unittest.TestCase):
             self.assertEqual(result, "Async response")
 
         asyncio.run(async_test())
-    
+
     def test_agent_event_emission(self):
         """Test that agents emit events"""
         adapter = LangChainAgentAdapter(
@@ -116,7 +117,7 @@ class TestLangChainAgentIntegration(unittest.TestCase):
 
         # Verify event bus exists and has emit method
         self.assertIsNotNone(adapter.event_bus)
-        self.assertTrue(hasattr(adapter.event_bus, 'emit'))
+        self.assertTrue(hasattr(adapter.event_bus, "emit"))
 
 
 class TestLangChainSwarmIntegration(unittest.TestCase):
@@ -135,7 +136,7 @@ class TestLangChainSwarmIntegration(unittest.TestCase):
         ]
 
         # Mock create_swarm to avoid needing real LangGraph setup
-        with patch('fivcadvisor.adapters.multiagent.create_swarm') as mock_create_swarm:
+        with patch("fivcadvisor.adapters.multiagent.create_swarm") as mock_create_swarm:
             mock_workflow = Mock()
             mock_app = Mock()
             mock_workflow.compile = Mock(return_value=mock_app)
@@ -154,7 +155,7 @@ class TestLangChainSwarmIntegration(unittest.TestCase):
             LangChainAgentAdapter(model=self.mock_llm, tools=[], name="Agent2"),
         ]
 
-        with patch('fivcadvisor.adapters.multiagent.create_swarm') as mock_create_swarm:
+        with patch("fivcadvisor.adapters.multiagent.create_swarm") as mock_create_swarm:
             mock_workflow = Mock()
             mock_app = Mock()
             mock_workflow.compile = Mock(return_value=mock_app)
@@ -200,8 +201,8 @@ class TestLangChainEventIntegration(unittest.TestCase):
         self.assertIsNotNone(adapter.event_bus)
 
         # Verify event bus has required methods
-        self.assertTrue(hasattr(adapter.event_bus, 'emit'))
-        self.assertTrue(hasattr(adapter.event_bus, 'subscribe'))
+        self.assertTrue(hasattr(adapter.event_bus, "emit"))
+        self.assertTrue(hasattr(adapter.event_bus, "subscribe"))
 
     def test_event_subscription(self):
         """Test subscribing to agent events"""
@@ -219,7 +220,7 @@ class TestLangChainEventIntegration(unittest.TestCase):
 
         # Verify subscription was registered
         self.assertIsNotNone(adapter.event_bus)
-        self.assertTrue(hasattr(adapter.event_bus, 'subscribe'))
+        self.assertTrue(hasattr(adapter.event_bus, "subscribe"))
 
 
 class TestLangChainBackwardCompatibility(unittest.TestCase):
@@ -234,11 +235,11 @@ class TestLangChainBackwardCompatibility(unittest.TestCase):
         )
 
         # Verify Strands-compatible interface
-        self.assertTrue(hasattr(adapter, 'invoke'))
-        self.assertTrue(hasattr(adapter, 'invoke_async'))
+        self.assertTrue(hasattr(adapter, "invoke"))
+        self.assertTrue(hasattr(adapter, "invoke_async"))
         self.assertTrue(callable(adapter))
-        self.assertTrue(hasattr(adapter, 'agent_id'))
-        self.assertTrue(hasattr(adapter, 'name'))
+        self.assertTrue(hasattr(adapter, "agent_id"))
+        self.assertTrue(hasattr(adapter, "name"))
 
     def test_adapter_properties(self):
         """Test that adapter has all required properties"""
@@ -260,4 +261,3 @@ class TestLangChainBackwardCompatibility(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -92,4 +92,3 @@ from fivcadvisor.adapters.events import (
     emit_event,
     subscribe_to_event,
 )
-

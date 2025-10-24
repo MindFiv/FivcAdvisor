@@ -11,18 +11,21 @@ from langchain_core.language_models import LLM
 def _openai_model(*args, **kwargs) -> LLM:
     """Create an OpenAI model using LangChain adapter."""
     from .adapters import create_openai_model
+
     return create_openai_model(**kwargs)
 
 
 def _ollama_model(*args, **kwargs) -> LLM:
     """Create an Ollama model using LangChain adapter."""
     from .adapters import create_ollama_model
+
     return create_ollama_model(**kwargs)
 
 
 def _litellm_model(*args, **kwargs) -> LLM:
     """Create a LiteLLM model using LangChain adapter."""
     from .adapters import create_litellm_model
+
     return create_litellm_model(**kwargs)
 
 

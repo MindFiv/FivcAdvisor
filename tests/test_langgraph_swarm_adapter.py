@@ -24,7 +24,7 @@ class TestLangGraphSwarmAdapter:
         agent.name = "TestAgent"
 
         # Mock the create_swarm function to avoid needing real agents
-        with patch('fivcadvisor.adapters.multiagent.create_swarm'):
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
             adapter = LangGraphSwarmAdapter([agent])
             assert adapter.default_agent_name == "TestAgent"
 
@@ -35,8 +35,10 @@ class TestLangGraphSwarmAdapter:
         agent2 = Mock()
         agent2.name = "Agent2"
 
-        with patch('fivcadvisor.adapters.multiagent.create_swarm'):
-            adapter = LangGraphSwarmAdapter([agent1, agent2], default_agent_name="Agent2")
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
+            adapter = LangGraphSwarmAdapter(
+                [agent1, agent2], default_agent_name="Agent2"
+            )
             assert adapter.default_agent_name == "Agent2"
 
     def test_adapter_stores_agents_list(self):
@@ -46,7 +48,7 @@ class TestLangGraphSwarmAdapter:
         agent2 = Mock()
         agent2.name = "Agent2"
 
-        with patch('fivcadvisor.adapters.multiagent.create_swarm'):
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
             adapter = LangGraphSwarmAdapter([agent1, agent2])
             assert len(adapter.agents) == 2
             assert adapter.agents[0] == agent1
@@ -57,7 +59,7 @@ class TestLangGraphSwarmAdapter:
         agent = Mock()
         agent.name = "TestAgent"
 
-        with patch('fivcadvisor.adapters.multiagent.create_swarm'):
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
             adapter = LangGraphSwarmAdapter([agent])
             assert hasattr(adapter, "invoke_async")
             assert callable(adapter.invoke_async)
@@ -67,7 +69,7 @@ class TestLangGraphSwarmAdapter:
         agent = Mock()
         agent.name = "TestAgent"
 
-        with patch('fivcadvisor.adapters.multiagent.create_swarm'):
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
             adapter = LangGraphSwarmAdapter([agent])
             assert hasattr(adapter, "invoke")
             assert callable(adapter.invoke)
@@ -80,8 +82,10 @@ class TestLangGraphSwarmAdapter:
         mock_workflow = Mock()
         mock_app = Mock()
 
-        with patch('fivcadvisor.adapters.multiagent.create_swarm', return_value=mock_workflow):
-            with patch.object(mock_workflow, 'compile', return_value=mock_app):
+        with patch(
+            "fivcadvisor.adapters.multiagent.create_swarm", return_value=mock_workflow
+        ):
+            with patch.object(mock_workflow, "compile", return_value=mock_app):
                 adapter = LangGraphSwarmAdapter([agent])
                 assert hasattr(adapter, "workflow")
                 assert hasattr(adapter, "app")
@@ -101,7 +105,7 @@ class TestSwarmIntegration:
             agent.name = f"Agent{i+1}"
             agents.append(agent)
 
-        with patch('fivcadvisor.adapters.multiagent.create_swarm'):
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
             # Create adapter
             adapter = LangGraphSwarmAdapter(agents)
 
@@ -116,12 +120,10 @@ class TestSwarmIntegration:
         agent = Mock()
         agent.name = "TestAgent"
 
-        with patch('fivcadvisor.adapters.multiagent.create_swarm'):
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
             # Create swarm with extra kwargs
             swarm = create_langchain_swarm(
-                [agent],
-                default_agent_name="TestAgent",
-                extra_param="value"
+                [agent], default_agent_name="TestAgent", extra_param="value"
             )
 
             # Verify swarm was created
@@ -136,7 +138,7 @@ class TestAdapterCompatibility:
         agent = Mock()
         agent.name = "TestAgent"
 
-        with patch('fivcadvisor.adapters.multiagent.create_swarm'):
+        with patch("fivcadvisor.adapters.multiagent.create_swarm"):
             adapter = LangGraphSwarmAdapter([agent])
 
             # Verify key methods exist
@@ -155,9 +157,10 @@ class TestAdapterCompatibility:
         mock_app.ainvoke = AsyncMock()
         mock_workflow.compile = Mock(return_value=mock_app)
 
-        with patch('fivcadvisor.adapters.multiagent.create_swarm', return_value=mock_workflow):
+        with patch(
+            "fivcadvisor.adapters.multiagent.create_swarm", return_value=mock_workflow
+        ):
             adapter = LangGraphSwarmAdapter([agent])
 
             # Verify app has ainvoke method
             assert hasattr(adapter.app, "ainvoke")
-
