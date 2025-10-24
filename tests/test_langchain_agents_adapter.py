@@ -369,6 +369,81 @@ class TestAgentIntegration(unittest.TestCase):
 
         asyncio.run(async_test())
 
+    @patch("fivcadvisor.adapters.agents.asyncio.to_thread")
+    def test_message_added_event_emission(self, mock_to_thread):
+        """Test that MESSAGE_ADDED events are emitted during invocation"""
+        async def async_test():
+            agent = create_langchain_agent(
+                model=self.mock_llm,
+                tools=self.mock_tools,
+            )
+            agent.agent = Mock()
+            agent.agent.invoke = Mock(return_value={"output": "Test response"})
+            mock_to_thread.return_value = {"output": "Test response"}
+
+            # Get event history before invocation
+            events_before = len(agent.event_bus.get_history())
+
+            # Invoke agent
+            result = await agent.invoke_async("Test query")
+
+            # Get event history after invocation
+            events_after = agent.event_bus.get_history()
+
+            # Verify events were emitted
+            self.assertGreater(len(events_after), events_before)
+
+            # Check for MESSAGE_ADDED event
+            from fivcadvisor.adapters.events import EventType
+            message_events = [
+                e for e in events_after
+                if e.event_type == EventType.MESSAGE_ADDED
+            ]
+            self.assertGreater(len(message_events), 0)
+
+            # Verify the message event contains the response
+            message_event = message_events[0]
+            self.assertEqual(message_event.message, "Test response")
+            self.assertEqual(message_event.role, "assistant")
+
+        asyncio.run(async_test())
+
+    @patch("fivcadvisor.adapters.agents.asyncio.to_thread")
+    def test_callback_receives_message_object(self, mock_to_thread):
+        """Test that callback handler receives Message object in result"""
+        async def async_test():
+            callback = Mock()
+            agent = create_langchain_agent(
+                model=self.mock_llm,
+                tools=self.mock_tools,
+                callback_handler=callback,
+            )
+            agent.agent = Mock()
+            agent.agent.invoke = Mock(return_value={"output": "Test response"})
+            mock_to_thread.return_value = {"output": "Test response"}
+
+            # Invoke agent
+            result = await agent.invoke_async("Test query")
+
+            # Verify callback was called
+            callback.assert_called_once()
+            call_kwargs = callback.call_args[1]
+
+            # Verify result parameter contains message and output
+            self.assertIn("result", call_kwargs)
+            result_dict = call_kwargs["result"]
+            self.assertIn("message", result_dict)
+            self.assertIn("output", result_dict)
+
+            # Verify message is a proper Message object
+            message = result_dict["message"]
+            self.assertEqual(message["role"], "assistant")
+            self.assertIn("content", message)
+            self.assertEqual(len(message["content"]), 1)
+            self.assertEqual(message["content"][0]["text"], "Test response")
+
+        asyncio.run(async_test())
+
 
 if __name__ == "__main__":
     unittest.main()
