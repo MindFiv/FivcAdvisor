@@ -445,5 +445,106 @@ class TestAgentIntegration(unittest.TestCase):
         asyncio.run(async_test())
 
 
+class TestEventSystemIntegration(unittest.TestCase):
+    """Integration tests for event system and message persistence"""
+
+    def setUp(self):
+        """Set up test fixtures"""
+        self.mock_llm = Mock(spec=BaseLanguageModel)
+        self.mock_tool = Mock(spec=Tool)
+        self.mock_tool.name = "test_tool"
+        self.mock_tools = [self.mock_tool]
+
+    @patch("fivcadvisor.adapters.agents.asyncio.to_thread")
+    def test_complete_event_flow(self, mock_to_thread):
+        """Test complete event flow from invocation to completion"""
+        async def async_test():
+            from fivcadvisor.adapters.events import EventType
+
+            # Create agent with callback
+            callback = Mock()
+            agent = create_langchain_agent(
+                model=self.mock_llm,
+                tools=self.mock_tools,
+                callback_handler=callback,
+            )
+            agent.agent = Mock()
+            agent.agent.invoke = Mock(return_value={"output": "Complete response"})
+            mock_to_thread.return_value = {"output": "Complete response"}
+
+            # Clear event history
+            agent.event_bus.clear_history()
+
+            # Invoke agent
+            result = await agent.invoke_async("Test query")
+
+            # Get all events
+            events = agent.event_bus.get_history()
+
+            # Verify event sequence
+            event_types = [e.event_type for e in events]
+            self.assertIn(EventType.BEFORE_INVOCATION, event_types)
+            self.assertIn(EventType.MESSAGE_ADDED, event_types)
+            self.assertIn(EventType.AFTER_INVOCATION, event_types)
+
+            # Verify order
+            before_idx = event_types.index(EventType.BEFORE_INVOCATION)
+            message_idx = event_types.index(EventType.MESSAGE_ADDED)
+            after_idx = event_types.index(EventType.AFTER_INVOCATION)
+            self.assertLess(before_idx, message_idx)
+            self.assertLess(message_idx, after_idx)
+
+            # Verify callback was called with result
+            callback.assert_called_once()
+            call_kwargs = callback.call_args[1]
+            self.assertIn("result", call_kwargs)
+            result_dict = call_kwargs["result"]
+            self.assertEqual(result_dict["output"], "Complete response")
+            self.assertIn("message", result_dict)
+
+        asyncio.run(async_test())
+
+    @patch("fivcadvisor.adapters.agents.asyncio.to_thread")
+    def test_message_persistence_through_callback(self, mock_to_thread):
+        """Test that messages are properly persisted through callback"""
+        async def async_test():
+            from fivcadvisor.agents.types.monitors import AgentsMonitor
+            from fivcadvisor.agents.types.repositories.files import FileAgentsRuntimeRepository
+            from fivcadvisor.agents.types import AgentsRuntime
+            from fivcadvisor.utils import OutputDir
+            import tempfile
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                # Create repository and runtime
+                repo = FileAgentsRuntimeRepository(output_dir=OutputDir(tmpdir))
+                runtime = AgentsRuntime(agent_id="test-agent", agent_name="TestAgent")
+
+                # Create monitor as callback
+                monitor = AgentsMonitor(runtime=runtime, runtime_repo=repo)
+
+                # Create agent with monitor as callback
+                agent = create_langchain_agent(
+                    model=self.mock_llm,
+                    tools=self.mock_tools,
+                    callback_handler=monitor,
+                    agent_id="test-agent",
+                    name="TestAgent",
+                )
+                agent.agent = Mock()
+                agent.agent.invoke = Mock(return_value={"output": "Persisted response"})
+                mock_to_thread.return_value = {"output": "Persisted response"}
+
+                # Invoke agent
+                result = await agent.invoke_async("Test query")
+
+                # Verify runtime was updated with message
+                self.assertIsNotNone(runtime.reply)
+                self.assertEqual(runtime.reply["role"], "assistant")
+                self.assertEqual(len(runtime.reply["content"]), 1)
+                self.assertEqual(runtime.reply["content"][0]["text"], "Persisted response")
+
+        asyncio.run(async_test())
+
+
 if __name__ == "__main__":
     unittest.main()
