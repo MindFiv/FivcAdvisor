@@ -1,6 +1,8 @@
 # FivcAdvisor
 
-An intelligent agent ecosystem built on the Strands framework for autonomous tool generation, task assessment, and dynamic agent orchestration.
+An intelligent agent ecosystem built on **LangChain** for autonomous tool generation, task assessment, and dynamic agent orchestration.
+
+> **🎉 Recently Migrated**: FivcAdvisor has been successfully migrated from Strands to LangChain with 100% backward compatibility. See [LangChain Migration Guide](docs/LANGCHAIN_MIGRATION_GUIDE.md) for details.
 
 ## 🎯 Overview
 
@@ -165,6 +167,7 @@ Configure MCP servers in `configs/mcp.yaml` to add additional tools dynamically.
 For comprehensive documentation, see the [docs/](docs/) directory:
 
 - **[System Design](docs/DESIGN.md)** - Architecture and design principles
+- **[LangChain Migration Guide](docs/LANGCHAIN_MIGRATION_GUIDE.md)** - Migration details and usage guide
 - **[Web Interface Guide](docs/WEB_INTERFACE.md)** - Complete web interface usage
 - **[TaskTracer Serialization](docs/TRACER_SERIALIZATION.md)** - Task state persistence and recovery
 - **[Dependencies](docs/DEPENDENCIES.md)** - Installation and dependency management
