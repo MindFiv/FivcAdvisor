@@ -12,7 +12,7 @@ __all__ = [
     "AgentsRetriever",
 ]
 
-from typing import cast, List, Optional
+from typing import cast, List, Optional, Union, Any
 from uuid import uuid4
 # from typing import Callable
 
@@ -30,6 +30,7 @@ from fivcadvisor.agents.types import (
     AgentsRetriever,
     AgentsCreatorBase,
 )
+from fivcadvisor.adapters import LangGraphSwarmAdapter
 
 
 @agent_creator("Generic")
@@ -220,8 +221,25 @@ def create_generic_agent_swarm(
     team: Optional[TaskTeam] = None,
     tools_retriever: Optional[tools.ToolsRetriever] = None,
     **kwargs,
-) -> Swarm:
-    """Create a generic swarm of agents."""
+) -> Union[Swarm, LangGraphSwarmAdapter]:
+    """
+    Create a generic swarm of agents.
+
+    This function creates a swarm of agents using LangGraph Swarm as the
+    underlying orchestration engine. It maintains backward compatibility
+    with the Strands Swarm API through the LangGraphSwarmAdapter.
+
+    Args:
+        team: TaskTeam containing specialist definitions
+        tools_retriever: ToolsRetriever to fetch tools for each specialist
+        **kwargs: Additional arguments passed to agent creation
+
+    Returns:
+        LangGraphSwarmAdapter instance (compatible with Swarm API)
+
+    Raises:
+        RuntimeError: If team or tools_retriever is not provided
+    """
     if not team:
         raise RuntimeError("team not provided")
 
@@ -240,7 +258,10 @@ def create_generic_agent_swarm(
                 **kwargs,
             )
         )
-    return Swarm(s_agents)
+
+    # Use LangGraph Swarm adapter instead of Strands Swarm
+    # This maintains the same API while using LangGraph under the hood
+    return LangGraphSwarmAdapter(s_agents)
 
 
 def _load_retriever() -> AgentsRetriever:
