@@ -4,6 +4,8 @@ __all__ = [
     "default_retriever",
     "ToolsConfig",
     "ToolsRetriever",
+    "ToolsBundle",
+    "ToolsBundleManager",
 ]
 
 # import atexit
@@ -13,7 +15,12 @@ from typing import Optional
 from strands.types.exceptions import MCPClientInitializationError
 
 from fivcadvisor.utils import create_lazy_value
-from fivcadvisor.tools.types import ToolsRetriever, ToolsConfig
+from fivcadvisor.tools.types import (
+    ToolsRetriever,
+    ToolsConfig,
+    ToolsBundle,
+    ToolsBundleManager,
+)
 
 
 def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **kwargs):
@@ -52,24 +59,30 @@ def register_mcp_tools(
     tools_retriever: Optional[ToolsRetriever] = None,
     **kwargs,
 ):
-    """Create tools for MCP server."""
+    """Create tools for MCP server with bundle support."""
     assert tools_retriever is not None
 
     config_file = os.environ.get("MCP_FILE", "mcp.yaml")
     config_file = os.path.abspath(config_file)
 
     config = ToolsConfig(config_file=config_file)
-    for c in config.get_clients():
+    for client_name, client_config in config._configs.items():
         try:
-            tools = c.start().list_tools_sync()
+            client = client_config.get_client()
+            tools = client.start().list_tools_sync()
             # atexit.register(lambda: c.stop(None, None, None))
             # tools.pagination_token
+
+            # Get bundle name from config or use client name as default
+            bundle_name = client_config.get("bundle", client_name)
+
+            # Add tools with bundle information
+            tools_retriever.add_batch(tools, tool_bundle=bundle_name)
+
         except MCPClientInitializationError as e:
             # c.stop(None, None, None)  # fixme
-            print(f"Error loading tools from {c}: {e}")
+            print(f"Error loading tools from {client_name}: {e}")
             continue
-
-        tools_retriever.add_batch(tools)
 
     return config
 

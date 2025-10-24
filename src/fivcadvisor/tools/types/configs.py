@@ -60,6 +60,11 @@ class ToolsConfigValue(dict):
             if not isinstance(url, str) or not url:
                 return False
 
+        # Validate optional bundle field
+        bundle = self.get("bundle")
+        if bundle is not None and not isinstance(bundle, str):
+            return False
+
         return True
 
     def get_client(self) -> Optional[MCPClient]:

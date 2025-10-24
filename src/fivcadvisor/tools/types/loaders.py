@@ -1,18 +1,8 @@
-from enum import Enum
 from typing import Optional
 
 from fivcadvisor.tools.types.configs import ToolsConfig
 
 from fivcadvisor.tools.types.retrievers import ToolsRetriever
-
-
-class ToolsStatus(str, Enum):
-    """Tools loading status enumeration."""
-
-    PENDING = "pending"
-    LOADING = "loading"
-    LOADED = "loaded"
-    FAILED = "failed"
 
 
 class ToolsLoader(object):

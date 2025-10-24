@@ -7,6 +7,7 @@ import pytest
 from unittest.mock import Mock
 
 from fivcadvisor.tools.types.retrievers import ToolsRetriever
+from fivcadvisor.tools.types.bundles import ToolsBundleManager
 
 
 class TestToolsRetriever:
@@ -40,6 +41,7 @@ class TestToolsRetriever:
         assert retriever.min_score == 0.0
         assert isinstance(retriever.tools, dict)
         assert len(retriever.tools) == 0
+        assert isinstance(retriever.bundle_manager, ToolsBundleManager)
         mock_embedding_db.get_collection.assert_called_once_with("tools")
 
     def test_str(self, mock_embedding_db):
@@ -287,6 +289,37 @@ class TestToolsRetriever:
         assert len(results) == 1
         assert results[0]["name"] == "calculator"
         assert results[0]["description"] == "Calculate math"
+
+    def test_add_with_bundle(self, mock_embedding_db, mock_tool):
+        """Test adding a tool with bundle."""
+        retriever = ToolsRetriever(db=mock_embedding_db)
+
+        retriever.add(mock_tool, tool_bundle="test_bundle")
+
+        assert "test_tool" in retriever.tools
+        assert retriever.bundle_manager.get_bundle("test_bundle") is not None
+        bundle = retriever.bundle_manager.get_bundle("test_bundle")
+        assert "test_tool" in bundle.get_tool_names()
+
+    def test_add_batch_with_bundle(self, mock_embedding_db):
+        """Test adding multiple tools to the same bundle."""
+        retriever = ToolsRetriever(db=mock_embedding_db)
+
+        tool1 = Mock()
+        tool1.tool_name = "tool1"
+        tool1.tool_spec = {"description": "Tool 1"}
+
+        tool2 = Mock()
+        tool2.tool_name = "tool2"
+        tool2.tool_spec = {"description": "Tool 2"}
+
+        retriever.add_batch([tool1, tool2], tool_bundle="test_bundle")
+
+        assert len(retriever.tools) == 2
+        bundle = retriever.bundle_manager.get_bundle("test_bundle")
+        assert len(bundle) == 2
+        assert "tool1" in bundle.get_tool_names()
+        assert "tool2" in bundle.get_tool_names()
 
     def test_to_tool(self, mock_embedding_db):
         """Test converting retriever to a tool."""
