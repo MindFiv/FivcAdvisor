@@ -5,7 +5,7 @@ This module provides an event bus system that replaces Strands hooks,
 enabling event-driven architecture for agent execution monitoring.
 """
 
-from typing import Any, Dict, List, Callable, Optional, Type
+from typing import Any, Dict, List, Callable, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -72,8 +72,11 @@ class MessageAddedEvent(Event):
     """Event fired when a message is added."""
 
     def __init__(
-        self, message: Optional[str] = None, role: Optional[str] = None,
-        agent_id: Optional[str] = None, **kwargs
+        self,
+        message: Optional[str] = None,
+        role: Optional[str] = None,
+        agent_id: Optional[str] = None,
+        **kwargs,
     ):
         super().__init__(event_type=EventType.MESSAGE_ADDED, **kwargs)
         self.message = message

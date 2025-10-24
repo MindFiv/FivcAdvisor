@@ -6,16 +6,16 @@ LangChain models from various providers.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch
 from fivcadvisor.adapters import (
     create_langchain_model,
-    create_default_langchain_model,
-    create_chat_langchain_model,
-    create_reasoning_langchain_model,
-    create_coding_langchain_model,
-    create_openai_model,
-    create_ollama_model,
-    create_litellm_model,
+    # create_default_langchain_model,
+    # create_chat_langchain_model,
+    # create_reasoning_langchain_model,
+    # create_coding_langchain_model,
+    # create_openai_model,
+    # create_ollama_model,
+    # create_litellm_model,
 )
 
 

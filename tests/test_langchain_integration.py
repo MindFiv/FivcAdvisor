@@ -6,7 +6,7 @@ ensuring all components work together correctly.
 """
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import asyncio
 import os
 
@@ -16,21 +16,21 @@ os.environ.setdefault("CHROMA_OPENAI_API_KEY", "sk-test-key")
 
 from fivcadvisor.adapters import (
     LangChainAgentAdapter,
-    create_langchain_agent,
+    # create_langchain_agent,
     LangGraphSwarmAdapter,
 )
-from fivcadvisor.agents import (
-    create_default_agent,
-    create_companion_agent,
-    create_tooling_agent,
-    create_consultant_agent,
-    create_planning_agent,
-    create_research_agent,
-    create_engineering_agent,
-    create_evaluating_agent,
-    create_generic_agent_swarm,
-)
-from fivcadvisor.tasks.types import TaskTeam
+# from fivcadvisor.agents import (
+#     create_default_agent,
+#     create_companion_agent,
+#     create_tooling_agent,
+#     create_consultant_agent,
+#     create_planning_agent,
+#     create_research_agent,
+#     create_engineering_agent,
+#     create_evaluating_agent,
+#     create_generic_agent_swarm,
+# )
+# from fivcadvisor.tasks.types import TaskTeam
 
 
 class TestLangChainAgentIntegration(unittest.TestCase):

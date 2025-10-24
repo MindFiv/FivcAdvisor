@@ -3,16 +3,16 @@ Tests for LangChain tools and events adapters.
 """
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime
+from unittest.mock import Mock
+# from datetime import datetime
 
 from fivcadvisor.adapters import (
     # Tools
     convert_strands_tool_to_langchain,
     convert_strands_tools_to_langchain,
-    create_tool_adapter,
+    # create_tool_adapter,
     is_strands_tool,
-    is_langchain_tool,
+    # is_langchain_tool,
     ToolAdapter,
     adapt_tool,
     adapt_tools,

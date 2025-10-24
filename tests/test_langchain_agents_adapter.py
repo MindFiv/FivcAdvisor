@@ -22,8 +22,9 @@ class TestLangChainAgentAdapter(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        # Create mock LLM
-        self.mock_llm = Mock(spec=BaseLanguageModel)
+        # Create mock LLM with bind_tools support
+        self.mock_llm = MagicMock(spec=BaseLanguageModel)
+        self.mock_llm.bind_tools = MagicMock(return_value=self.mock_llm)
 
         # Create mock tools
         self.mock_tool = Mock(spec=Tool)
@@ -154,7 +155,7 @@ class TestLangChainAgentAdapter(unittest.TestCase):
         adapter.agent = Mock()
         adapter.agent.invoke = Mock(return_value={"output": "Response"})
 
-        result = adapter.invoke("Test query")
+        _ = adapter.invoke("Test query")
 
         # Verify callback was called
         callback.assert_called_once()
@@ -171,7 +172,8 @@ class TestCreateLangChainAgent(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        self.mock_llm = Mock(spec=BaseLanguageModel)
+        self.mock_llm = MagicMock(spec=BaseLanguageModel)
+        self.mock_llm.bind_tools = MagicMock(return_value=self.mock_llm)
         self.mock_tool = Mock(spec=Tool)
         self.mock_tool.name = "test_tool"
         self.mock_tools = [self.mock_tool]
@@ -266,7 +268,8 @@ class TestAgentIntegration(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        self.mock_llm = Mock(spec=BaseLanguageModel)
+        self.mock_llm = MagicMock(spec=BaseLanguageModel)
+        self.mock_llm.bind_tools = MagicMock(return_value=self.mock_llm)
         self.mock_tool = Mock(spec=Tool)
         self.mock_tool.name = "test_tool"
         self.mock_tools = [self.mock_tool]
@@ -372,6 +375,7 @@ class TestAgentIntegration(unittest.TestCase):
     @patch("fivcadvisor.adapters.agents.asyncio.to_thread")
     def test_message_added_event_emission(self, mock_to_thread):
         """Test that MESSAGE_ADDED events are emitted during invocation"""
+
         async def async_test():
             agent = create_langchain_agent(
                 model=self.mock_llm,
@@ -385,7 +389,7 @@ class TestAgentIntegration(unittest.TestCase):
             events_before = len(agent.event_bus.get_history())
 
             # Invoke agent
-            result = await agent.invoke_async("Test query")
+            _ = await agent.invoke_async("Test query")
 
             # Get event history after invocation
             events_after = agent.event_bus.get_history()
@@ -395,9 +399,9 @@ class TestAgentIntegration(unittest.TestCase):
 
             # Check for MESSAGE_ADDED event
             from fivcadvisor.adapters.events import EventType
+
             message_events = [
-                e for e in events_after
-                if e.event_type == EventType.MESSAGE_ADDED
+                e for e in events_after if e.event_type == EventType.MESSAGE_ADDED
             ]
             self.assertGreater(len(message_events), 0)
 
@@ -411,6 +415,7 @@ class TestAgentIntegration(unittest.TestCase):
     @patch("fivcadvisor.adapters.agents.asyncio.to_thread")
     def test_callback_receives_message_object(self, mock_to_thread):
         """Test that callback handler receives Message object in result"""
+
         async def async_test():
             callback = Mock()
             agent = create_langchain_agent(
@@ -423,7 +428,7 @@ class TestAgentIntegration(unittest.TestCase):
             mock_to_thread.return_value = {"output": "Test response"}
 
             # Invoke agent
-            result = await agent.invoke_async("Test query")
+            _ = await agent.invoke_async("Test query")
 
             # Verify callback was called
             callback.assert_called_once()
@@ -450,7 +455,8 @@ class TestEventSystemIntegration(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        self.mock_llm = Mock(spec=BaseLanguageModel)
+        self.mock_llm = MagicMock(spec=BaseLanguageModel)
+        self.mock_llm.bind_tools = MagicMock(return_value=self.mock_llm)
         self.mock_tool = Mock(spec=Tool)
         self.mock_tool.name = "test_tool"
         self.mock_tools = [self.mock_tool]
@@ -458,6 +464,7 @@ class TestEventSystemIntegration(unittest.TestCase):
     @patch("fivcadvisor.adapters.agents.asyncio.to_thread")
     def test_complete_event_flow(self, mock_to_thread):
         """Test complete event flow from invocation to completion"""
+
         async def async_test():
             from fivcadvisor.adapters.events import EventType
 
@@ -476,7 +483,7 @@ class TestEventSystemIntegration(unittest.TestCase):
             agent.event_bus.clear_history()
 
             # Invoke agent
-            result = await agent.invoke_async("Test query")
+            _ = await agent.invoke_async("Test query")
 
             # Get all events
             events = agent.event_bus.get_history()
@@ -507,9 +514,12 @@ class TestEventSystemIntegration(unittest.TestCase):
     @patch("fivcadvisor.adapters.agents.asyncio.to_thread")
     def test_message_persistence_through_callback(self, mock_to_thread):
         """Test that messages are properly persisted through callback"""
+
         async def async_test():
             from fivcadvisor.agents.types.monitors import AgentsMonitor
-            from fivcadvisor.agents.types.repositories.files import FileAgentsRuntimeRepository
+            from fivcadvisor.agents.types.repositories.files import (
+                FileAgentsRuntimeRepository,
+            )
             from fivcadvisor.agents.types import AgentsRuntime
             from fivcadvisor.utils import OutputDir
             import tempfile
@@ -535,15 +545,115 @@ class TestEventSystemIntegration(unittest.TestCase):
                 mock_to_thread.return_value = {"output": "Persisted response"}
 
                 # Invoke agent
-                result = await agent.invoke_async("Test query")
+                _ = await agent.invoke_async("Test query")
 
                 # Verify runtime was updated with message
                 self.assertIsNotNone(runtime.reply)
                 self.assertEqual(runtime.reply["role"], "assistant")
                 self.assertEqual(len(runtime.reply["content"]), 1)
-                self.assertEqual(runtime.reply["content"][0]["text"], "Persisted response")
+                self.assertEqual(
+                    runtime.reply["content"][0]["text"], "Persisted response"
+                )
 
         asyncio.run(async_test())
+
+
+class TestToolCalling(unittest.TestCase):
+    """Test tool calling functionality in SimpleAgent"""
+
+    def setUp(self):
+        """Set up test fixtures"""
+        self.mock_llm = MagicMock(spec=BaseLanguageModel)
+
+        # Create a mock tool
+        self.mock_tool = Mock(spec=Tool)
+        self.mock_tool.name = "calculator"
+        self.mock_tool.description = "A calculator tool"
+        self.mock_tool.invoke = Mock(return_value=4)
+
+        self.mock_tools = [self.mock_tool]
+
+    def test_simple_agent_with_tool_calls(self):
+        """Test that SimpleAgent properly handles tool calls"""
+        # Mock the LLM to return a response with tool calls
+        mock_response = Mock()
+        mock_response.tool_calls = [
+            {"name": "calculator", "args": {"expression": "2+2"}}
+        ]
+        mock_response.content = ""
+
+        # Mock bind_tools to return a mock LLM that returns our response
+        mock_llm_with_tools = Mock()
+        mock_llm_with_tools.invoke = Mock(return_value=mock_response)
+        self.mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
+
+        adapter = LangChainAgentAdapter(
+            model=self.mock_llm,
+            tools=self.mock_tools,
+            system_prompt="You are a helpful assistant",
+        )
+
+        # Invoke the agent
+        result = adapter.invoke("What is 2+2?")
+
+        # Verify the tool was called
+        self.mock_tool.invoke.assert_called_once()
+
+        # Verify the result contains tool results (result is a string)
+        self.assertIsInstance(result, str)
+        self.assertIn("calculator", result)
+
+    def test_simple_agent_without_tools(self):
+        """Test that SimpleAgent works without tools"""
+        # Mock the LLM to return a simple response
+        mock_response = Mock()
+        mock_response.content = "Hello, I'm an assistant"
+        mock_response.tool_calls = None
+
+        self.mock_llm.invoke = Mock(return_value=mock_response)
+
+        adapter = LangChainAgentAdapter(
+            model=self.mock_llm,
+            tools=[],
+            system_prompt="You are a helpful assistant",
+        )
+
+        # Invoke the agent
+        result = adapter.invoke("Hello")
+
+        # Verify the result (result is a string)
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "Hello, I'm an assistant")
+
+    def test_simple_agent_tool_error_handling(self):
+        """Test that SimpleAgent handles tool errors gracefully"""
+        # Mock the tool to raise an error
+        self.mock_tool.invoke = Mock(side_effect=Exception("Tool error"))
+
+        # Mock the LLM to return a response with tool calls
+        mock_response = Mock()
+        mock_response.tool_calls = [
+            {"name": "calculator", "args": {"expression": "invalid"}}
+        ]
+        mock_response.content = ""
+
+        # Mock bind_tools
+        mock_llm_with_tools = Mock()
+        mock_llm_with_tools.invoke = Mock(return_value=mock_response)
+        self.mock_llm.bind_tools = Mock(return_value=mock_llm_with_tools)
+
+        adapter = LangChainAgentAdapter(
+            model=self.mock_llm,
+            tools=self.mock_tools,
+            system_prompt="You are a helpful assistant",
+        )
+
+        # Invoke the agent
+        result = adapter.invoke("What is 2+2?")
+
+        # Verify the result contains error information (result is a string)
+        self.assertIsInstance(result, str)
+        self.assertIn("error", result.lower())
 
 
 if __name__ == "__main__":

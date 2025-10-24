@@ -6,7 +6,7 @@ and LangChain tool definitions, maintaining compatibility with the existing
 tool system while enabling LangChain integration.
 """
 
-from typing import Any, Dict, Optional, List, Callable
+from typing import Any, Dict, Optional, List
 from langchain_core.tools import Tool, StructuredTool
 
 
