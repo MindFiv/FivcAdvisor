@@ -96,13 +96,7 @@ class TestLangChainSwarmPerformance:
         ]
 
         def create_swarm():
-            with patch("fivcadvisor.adapters.multiagent.create_swarm") as mock_create:
-                mock_workflow = Mock()
-                mock_app = Mock()
-                mock_workflow.compile = Mock(return_value=mock_app)
-                mock_create.return_value = mock_workflow
-
-                return LangGraphSwarmAdapter(agents)
+            return LangGraphSwarmAdapter(agents)
 
         result = benchmark(create_swarm)
         assert isinstance(result, LangGraphSwarmAdapter)
@@ -115,13 +109,7 @@ class TestLangChainSwarmPerformance:
         ]
 
         def create_large_swarm():
-            with patch("fivcadvisor.adapters.multiagent.create_swarm") as mock_create:
-                mock_workflow = Mock()
-                mock_app = Mock()
-                mock_workflow.compile = Mock(return_value=mock_app)
-                mock_create.return_value = mock_workflow
-
-                return LangGraphSwarmAdapter(agents)
+            return LangGraphSwarmAdapter(agents)
 
         result = benchmark(create_large_swarm)
         assert len(result.agents) == 10
