@@ -1,11 +1,7 @@
 from typing import List, Optional, Dict, Callable
 
 from pydantic import BaseModel, Field
-from fivcadvisor.tools.compat import (
-    AgentTool,
-    tool as make_tool,
-    wrap_tool_for_compatibility,
-)
+from langchain_core.tools import Tool, tool as make_tool
 from fivcadvisor import embeddings
 from fivcadvisor.tools.types.bundles import ToolsBundleManager, ToolsBundle
 
@@ -23,7 +19,7 @@ class ToolsRetriever(object):
     ):
         self.max_num = 10  # top k
         self.min_score = 0.0  # min score
-        self.tools: dict[str, AgentTool] = {}
+        self.tools: dict[str, Tool] = {}
         db = db or embeddings.default_embedding_db
         self.collection = db.get_collection("tools")
         self.collection.clear()  # clean up any old data
@@ -41,7 +37,7 @@ class ToolsRetriever(object):
         self.collection.clear()
         self.bundle_manager.cleanup()
 
-    def add(self, tool: AgentTool, tool_bundle: str = "", **kwargs):
+    def add(self, tool: Tool, tool_bundle: str = "", **kwargs):
         """
         Add a tool to the retriever.
 
@@ -49,11 +45,11 @@ class ToolsRetriever(object):
             tool: The tool to add
             tool_bundle: Optional bundle name for this tool
         """
-        tool_name = tool.tool_name
+        tool_name = tool.name
         if tool_name in self.tools:
             raise ValueError(f"Duplicate tool name: {tool_name}")
 
-        tool_desc = tool.tool_spec.get("description")
+        tool_desc = tool.description
         if not tool_desc:
             raise ValueError(f"Tool description is empty: {tool_name}")
 
@@ -74,18 +70,18 @@ class ToolsRetriever(object):
 
         print(f"Total Docs {self.collection.count()} in ToolsRetriever")
 
-    def add_batch(self, tools: List[AgentTool], tool_bundle: str = ""):
+    def add_batch(self, tools: List[Tool], tool_bundle: str = ""):
         """Add multiple tools, optionally to the same bundle."""
         for tool in tools:
             self.add(tool, tool_bundle=tool_bundle)
 
-    def get(self, name: str) -> Optional[AgentTool]:
+    def get(self, name: str) -> Optional[Tool]:
         return self.tools.get(name)
 
-    def get_batch(self, names: List[str]) -> List[AgentTool]:
+    def get_batch(self, names: List[str]) -> List[Tool]:
         return [self.get(name) for name in names]
 
-    def get_all(self) -> List[AgentTool]:
+    def get_all(self) -> List[Tool]:
         return list(self.tools.values())
 
     @property
@@ -111,7 +107,7 @@ class ToolsRetriever(object):
         bundle_filter: Optional[Callable[[ToolsBundle], bool]] = None,
         *args,
         **kwargs,
-    ) -> List[AgentTool]:
+    ) -> List[Tool]:
         """
         Retrieve tools for a query.
 
@@ -148,7 +144,7 @@ class ToolsRetriever(object):
     def __call__(self, *args, **kwargs) -> List[Dict]:
         tools = self.retrieve(*args, **kwargs)
         return [
-            {"name": t.tool_name, "description": t.tool_spec["description"]}
+            {"name": t.name, "description": t.description}
             for t in tools
         ]
 
@@ -157,11 +153,9 @@ class ToolsRetriever(object):
 
     def to_tool(self):
         """Convert the retriever to a tool."""
-        tool_obj = make_tool(
-            name="tools_retriever",
-            description="Use this tool to retrieve the best tools for a given task",
-            inputSchema=self._ToolSchema.model_json_schema(),
-            context=False,
-        )(self.__call__)
-        # Ensure compatibility properties are set
-        return wrap_tool_for_compatibility(tool_obj)
+        @make_tool
+        def tools_retriever(query: str) -> str:
+            """Use this tool to retrieve the best tools for a given task"""
+            return str(self.retrieve(query))
+
+        return tools_retriever

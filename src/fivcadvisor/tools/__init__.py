@@ -6,14 +6,14 @@ __all__ = [
     "ToolsRetriever",
     "ToolsBundle",
     "ToolsBundleManager",
+    "MCPClientInitializationError",
 ]
 
 # import atexit
 import os
 from typing import Optional
 
-from fivcadvisor.tools.compat import MCPClientInitializationError
-
+from fivcadvisor.tools.types.configs import MCPClientInitializationError
 from fivcadvisor.utils import create_lazy_value
 from fivcadvisor.tools.types import (
     ToolsRetriever,

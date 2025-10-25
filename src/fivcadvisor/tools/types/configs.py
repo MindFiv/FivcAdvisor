@@ -1,9 +1,62 @@
 import os
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Callable, Any
 
 from mcp import StdioServerParameters, stdio_client
 from mcp.client.sse import sse_client
-from fivcadvisor.tools.compat import MCPClient
+
+
+class MCPClientInitializationError(Exception):
+    """
+    Exception raised when MCP client initialization fails.
+
+    This exception is raised when there are issues initializing or connecting
+    to an MCP (Model Context Protocol) client.
+    """
+
+    pass
+
+
+class MCPClient:
+    """
+    Wrapper for MCP (Model Context Protocol) client connections.
+
+    This class wraps MCP client factories to provide a consistent interface
+    for managing MCP server connections.
+
+    Attributes:
+        client_factory: A callable that returns an MCP client instance
+        _client: Cached client instance
+    """
+
+    def __init__(self, client_factory: Callable[[], Any]):
+        """
+        Initialize MCPClient with a client factory.
+
+        Args:
+            client_factory: A callable that returns an MCP client instance
+        """
+        self.client_factory = client_factory
+        self._client = None
+
+    def start(self) -> Any:
+        """
+        Start the MCP client and return it.
+
+        Returns:
+            The MCP client instance
+        """
+        if self._client is None:
+            self._client = self.client_factory()
+        return self._client
+
+    def stop(self) -> None:
+        """Stop the MCP client."""
+        if self._client is not None:
+            if hasattr(self._client, "close"):
+                self._client.close()
+            elif hasattr(self._client, "stop"):
+                self._client.stop()
+            self._client = None
 
 
 class ToolsConfigValue(dict):
