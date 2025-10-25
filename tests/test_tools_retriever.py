@@ -29,8 +29,8 @@ class TestToolsRetriever:
     def mock_tool(self):
         """Create a mock tool."""
         tool = Mock()
-        tool.tool_name = "test_tool"
-        tool.tool_spec = {"description": "A test tool"}
+        tool.name = "test_tool"
+        tool.description = "A test tool"
         return tool
 
     def test_init(self, mock_embedding_db):
@@ -86,8 +86,8 @@ class TestToolsRetriever:
         """Test that adding tool without description raises ValueError."""
         retriever = ToolsRetriever(db=mock_embedding_db)
         tool = Mock()
-        tool.tool_name = "bad_tool"
-        tool.tool_spec = {"description": ""}
+        tool.name = "bad_tool"
+        tool.description = ""
 
         with pytest.raises(ValueError, match="Tool description is empty"):
             retriever.add(tool)
@@ -97,12 +97,12 @@ class TestToolsRetriever:
         retriever = ToolsRetriever(db=mock_embedding_db)
 
         tool1 = Mock()
-        tool1.tool_name = "tool1"
-        tool1.tool_spec = {"description": "Tool 1"}
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
 
         tool2 = Mock()
-        tool2.tool_name = "tool2"
-        tool2.tool_spec = {"description": "Tool 2"}
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
 
         retriever.add_batch([tool1, tool2])
 
@@ -132,12 +132,12 @@ class TestToolsRetriever:
         retriever = ToolsRetriever(db=mock_embedding_db)
 
         tool1 = Mock()
-        tool1.tool_name = "tool1"
-        tool1.tool_spec = {"description": "Tool 1"}
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
 
         tool2 = Mock()
-        tool2.tool_name = "tool2"
-        tool2.tool_spec = {"description": "Tool 2"}
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
 
         retriever.add_batch([tool1, tool2])
 
@@ -152,12 +152,12 @@ class TestToolsRetriever:
         retriever = ToolsRetriever(db=mock_embedding_db)
 
         tool1 = Mock()
-        tool1.tool_name = "tool1"
-        tool1.tool_spec = {"description": "Tool 1"}
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
 
         tool2 = Mock()
-        tool2.tool_name = "tool2"
-        tool2.tool_spec = {"description": "Tool 2"}
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
 
         retriever.add_batch([tool1, tool2])
 
@@ -194,12 +194,12 @@ class TestToolsRetriever:
         retriever = ToolsRetriever(db=mock_embedding_db)
 
         tool1 = Mock()
-        tool1.tool_name = "calculator"
-        tool1.tool_spec = {"description": "Calculate math"}
+        tool1.name = "calculator"
+        tool1.description = "Calculate math"
 
         tool2 = Mock()
-        tool2.tool_name = "search"
-        tool2.tool_spec = {"description": "Search the web"}
+        tool2.name = "search"
+        tool2.description = "Search the web"
 
         retriever.add_batch([tool1, tool2])
 
@@ -231,12 +231,12 @@ class TestToolsRetriever:
         retriever.retrieve_min_score = 0.8
 
         tool1 = Mock()
-        tool1.tool_name = "calculator"
-        tool1.tool_spec = {"description": "Calculate math"}
+        tool1.name = "calculator"
+        tool1.description = "Calculate math"
 
         tool2 = Mock()
-        tool2.tool_name = "search"
-        tool2.tool_spec = {"description": "Search the web"}
+        tool2.name = "search"
+        tool2.description = "Search the web"
 
         retriever.add_batch([tool1, tool2])
 
@@ -268,8 +268,8 @@ class TestToolsRetriever:
         retriever = ToolsRetriever(db=mock_embedding_db)
 
         tool1 = Mock()
-        tool1.tool_name = "calculator"
-        tool1.tool_spec = {"description": "Calculate math"}
+        tool1.name = "calculator"
+        tool1.description = "Calculate math"
 
         retriever.add(tool1)
 
@@ -306,12 +306,12 @@ class TestToolsRetriever:
         retriever = ToolsRetriever(db=mock_embedding_db)
 
         tool1 = Mock()
-        tool1.tool_name = "tool1"
-        tool1.tool_spec = {"description": "Tool 1"}
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
 
         tool2 = Mock()
-        tool2.tool_name = "tool2"
-        tool2.tool_spec = {"description": "Tool 2"}
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
 
         retriever.add_batch([tool1, tool2], tool_bundle="test_bundle")
 
@@ -328,7 +328,7 @@ class TestToolsRetriever:
         tool = retriever.to_tool()
 
         assert tool is not None
-        assert hasattr(tool, "tool_name")
+        assert hasattr(tool, "name")
         # LangChain tools have invoke method instead of being directly callable
         assert hasattr(tool, "invoke")
 

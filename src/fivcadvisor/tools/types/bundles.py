@@ -175,7 +175,7 @@ class ToolsBundleManager:
             raise ValueError(f"Bundle '{bundle_name}' does not exist")
 
         bundle.add_tool(tool)
-        self._tool_to_bundle[tool.tool_name] = bundle_name
+        self._tool_to_bundle[tool.name] = bundle_name
 
     def get_bundle(self, bundle_name: str) -> Optional[ToolsBundle]:
         """

@@ -143,16 +143,14 @@ class ToolsRetriever(object):
 
     def __call__(self, *args, **kwargs) -> List[Dict]:
         tools = self.retrieve(*args, **kwargs)
-        return [
-            {"name": t.name, "description": t.description}
-            for t in tools
-        ]
+        return [{"name": t.name, "description": t.description} for t in tools]
 
     class _ToolSchema(BaseModel):
         query: str = Field(description="The task to find the best tool for")
 
     def to_tool(self):
         """Convert the retriever to a tool."""
+
         @make_tool
         def tools_retriever(query: str) -> str:
             """Use this tool to retrieve the best tools for a given task"""

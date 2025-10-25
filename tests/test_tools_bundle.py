@@ -16,8 +16,8 @@ class TestToolsBundle:
     def mock_tool(self):
         """Create a mock tool."""
         tool = Mock()
-        tool.tool_name = "test_tool"
-        tool.tool_spec = {"description": "A test tool"}
+        tool.name = "test_tool"
+        tool.description = "A test tool"
         return tool
 
     def test_bundle_creation(self):
@@ -51,12 +51,12 @@ class TestToolsBundle:
         bundle = ToolsBundle(bundle_name="test_bundle")
 
         tool1 = Mock()
-        tool1.tool_name = "tool1"
-        tool1.tool_spec = {"description": "Tool 1"}
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
 
         tool2 = Mock()
-        tool2.tool_name = "tool2"
-        tool2.tool_spec = {"description": "Tool 2"}
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
 
         bundle.add_tools([tool1, tool2])
 
@@ -69,12 +69,12 @@ class TestToolsBundle:
         bundle = ToolsBundle(bundle_name="test_bundle")
 
         tool1 = Mock()
-        tool1.tool_name = "tool1"
-        tool1.tool_spec = {"description": "Tool 1"}
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
 
         tool2 = Mock()
-        tool2.tool_name = "tool2"
-        tool2.tool_spec = {"description": "Tool 2"}
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
 
         bundle.add_tools([tool1, tool2])
 
@@ -103,8 +103,8 @@ class TestToolsBundleManager:
     def mock_tool(self):
         """Create a mock tool."""
         tool = Mock()
-        tool.tool_name = "test_tool"
-        tool.tool_spec = {"description": "A test tool"}
+        tool.name = "test_tool"
+        tool.description = "A test tool"
         return tool
 
     def test_manager_creation(self, manager):
@@ -146,12 +146,12 @@ class TestToolsBundleManager:
         bundle = manager.create_bundle("test_bundle")
 
         tool1 = Mock()
-        tool1.tool_name = "tool1"
-        tool1.tool_spec = {"description": "Tool 1"}
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
 
         tool2 = Mock()
-        tool2.tool_name = "tool2"
-        tool2.tool_spec = {"description": "Tool 2"}
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
 
         bundle.add_tools([tool1, tool2])
 
@@ -173,16 +173,16 @@ class TestToolsBundleManager:
         _ = manager.create_bundle("test_bundle")
 
         tool1 = Mock()
-        tool1.tool_name = "tool1"
-        tool1.tool_spec = {"description": "Tool 1"}
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
 
         tool2 = Mock()
-        tool2.tool_name = "tool2"
-        tool2.tool_spec = {"description": "Tool 2"}
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
 
         tool3 = Mock()
-        tool3.tool_name = "tool3"
-        tool3.tool_spec = {"description": "Tool 3"}
+        tool3.name = "tool3"
+        tool3.description = "Tool 3"
 
         # Use manager's method to add tools and update mapping
         manager.add_tool_to_bundle("test_bundle", tool1)
@@ -204,16 +204,16 @@ class TestToolsBundleManager:
         bundle2 = manager.create_bundle("bundle2")
 
         tool1 = Mock()
-        tool1.tool_name = "tool1"
-        tool1.tool_spec = {"description": "Tool 1"}
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
 
         tool2 = Mock()
-        tool2.tool_name = "tool2"
-        tool2.tool_spec = {"description": "Tool 2"}
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
 
         tool3 = Mock()
-        tool3.tool_name = "tool3"
-        tool3.tool_spec = {"description": "Tool 3"}
+        tool3.name = "tool3"
+        tool3.description = "Tool 3"
 
         bundle1.add_tool(tool1)
         bundle2.add_tools([tool2, tool3])
@@ -235,8 +235,8 @@ class TestToolsBundleManager:
         bundle = manager.create_bundle("test_bundle", metadata={"version": "1.0"})
 
         tool1 = Mock()
-        tool1.tool_name = "tool1"
-        tool1.tool_spec = {"description": "Tool 1"}
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
 
         bundle.add_tool(tool1)
 
