@@ -22,8 +22,7 @@ from functools import cached_property
 from typing import Any, Optional, List, Callable, Dict
 from datetime import datetime
 
-from strands import Agent
-from strands.hooks import (
+from fivcadvisor.events.hooks import (
     HookRegistry,
     HookEvent,
     AgentInitializedEvent,
@@ -31,8 +30,6 @@ from strands.hooks import (
     AfterInvocationEvent,
     MessageAddedEvent,
 )
-from strands.multiagent import MultiAgentBase
-
 from fivcadvisor import agents, tools
 from fivcadvisor.tasks.types.base import (
     TaskTeam,
@@ -292,7 +289,7 @@ class TaskMonitorManager(object):
         tools_retriever: Optional["tools.ToolsRetriever"] = None,
         on_event: Optional[Callable[[TaskRuntime], None]] = None,
         **kwargs: Any,
-    ) -> Agent | MultiAgentBase:
+    ) -> Any:
         """
         Create a new task with agent swarm and monitor.
 

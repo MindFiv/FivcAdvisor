@@ -6,7 +6,7 @@ a compatible interface with Strands Swarm.
 """
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock
 from fivcadvisor.adapters import LangGraphSwarmAdapter, create_langchain_swarm
 
 

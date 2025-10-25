@@ -12,7 +12,7 @@ from fivcadvisor.agents.types import (
     FunctionAgentCreator,
     agent_creator,
 )
-from strands.agent import Agent
+from fivcadvisor.adapters import LangChainAgentAdapter
 
 
 class TestFunctionAgentCreator:
@@ -23,7 +23,7 @@ class TestFunctionAgentCreator:
 
         def dummy_func():
             """Test function docstring"""
-            return Mock(spec=Agent)
+            return Mock(spec=LangChainAgentAdapter)
 
         creator = FunctionAgentCreator("TestAgent", dummy_func)
 
@@ -33,7 +33,7 @@ class TestFunctionAgentCreator:
 
     def test_call(self):
         """Test FunctionAgentCreator call functionality."""
-        mock_agent = Mock(spec=Agent)
+        mock_agent = Mock(spec=LangChainAgentAdapter)
 
         def create_agent(*args, **kwargs):
             """Create agent function"""
@@ -46,7 +46,7 @@ class TestFunctionAgentCreator:
 
     def test_call_with_args(self):
         """Test FunctionAgentCreator call with arguments."""
-        mock_agent = Mock(spec=Agent)
+        mock_agent = Mock(spec=LangChainAgentAdapter)
 
         def create_agent(*args, **kwargs):
             """Create agent with args"""
@@ -70,7 +70,7 @@ class TestAgentCreatorDecorator:
         @agent_creator("TestAgent")
         def create_test_agent():
             """Test agent creator function"""
-            return Mock(spec=Agent)
+            return Mock(spec=LangChainAgentAdapter)
 
         # The decorator should return a FunctionAgentCreator instance
         assert isinstance(create_test_agent, FunctionAgentCreator)
@@ -84,7 +84,7 @@ class TestAgentCreatorDecorator:
         @agent_creator("ConfigurableAgent")
         def create_configurable_agent(*args, **kwargs):
             """An agent that can be configured"""
-            mock_agent = Mock(spec=Agent)
+            mock_agent = Mock(spec=LangChainAgentAdapter)
             mock_agent.name = kwargs.get("name", "DefaultName")
             return mock_agent
 
@@ -101,7 +101,7 @@ class TestAgentCreatorDecorator:
             """An agent that counts calls"""
             nonlocal call_count
             call_count += 1
-            return Mock(spec=Agent)
+            return Mock(spec=LangChainAgentAdapter)
 
         # Call the decorated function multiple times
         create_counting_agent()
@@ -119,7 +119,7 @@ class TestAgentsRetrieverIntegration:
         @agent_creator("IntegrationAgent")
         def create_integration_agent():
             """An agent for integration testing"""
-            return Mock(spec=Agent)
+            return Mock(spec=LangChainAgentAdapter)
 
         retriever = AgentsRetriever()
         retriever.add(create_integration_agent)
@@ -137,12 +137,12 @@ class TestAgentsRetrieverIntegration:
         @agent_creator("Agent1")
         def create_agent1():
             """First agent"""
-            return Mock(spec=Agent)
+            return Mock(spec=LangChainAgentAdapter)
 
         @agent_creator("Agent2")
         def create_agent2():
             """Second agent"""
-            return Mock(spec=Agent)
+            return Mock(spec=LangChainAgentAdapter)
 
         retriever = AgentsRetriever()
         retriever.add_batch([create_agent1, create_agent2])
@@ -157,7 +157,7 @@ class TestAgentsRetrieverIntegration:
         @agent_creator("UsableAgent")
         def create_usable_agent(name="DefaultName"):
             """An agent that can be used"""
-            mock_agent = Mock(spec=Agent)
+            mock_agent = Mock(spec=LangChainAgentAdapter)
             mock_agent.name = name
             return mock_agent
 
@@ -176,12 +176,12 @@ class TestAgentsRetrieverIntegration:
         @agent_creator("DuplicateAgent")
         def create_agent1():
             """First agent"""
-            return Mock(spec=Agent)
+            return Mock(spec=LangChainAgentAdapter)
 
         @agent_creator("DuplicateAgent")
         def create_agent2():
             """Second agent with same name"""
-            return Mock(spec=Agent)
+            return Mock(spec=LangChainAgentAdapter)
 
         retriever = AgentsRetriever()
         retriever.add(create_agent1)
@@ -227,7 +227,7 @@ class TestAgentsCreatorBase:
                 return self._description
 
             def __call__(self, *args, **kwargs):
-                return Mock(spec=Agent)
+                return Mock(spec=LangChainAgentAdapter)
 
         creator = CompleteCreator("test", "test description")
         assert creator.name == "test"

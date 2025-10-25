@@ -329,8 +329,8 @@ class TestToolsRetriever:
 
         assert tool is not None
         assert hasattr(tool, "tool_name")
-        # The tool should be callable
-        assert callable(tool)
+        # LangChain tools have invoke method instead of being directly callable
+        assert hasattr(tool, "invoke")
 
 
 if __name__ == "__main__":

@@ -442,10 +442,13 @@ class TestAgentIntegration(unittest.TestCase):
 
             # Verify message is a proper Message object
             message = result_dict["message"]
-            self.assertEqual(message["role"], "assistant")
-            self.assertIn("content", message)
-            self.assertEqual(len(message["content"]), 1)
-            self.assertEqual(message["content"][0]["text"], "Test response")
+            from fivcadvisor.events import MessageDictAdapter
+
+            message_dict = MessageDictAdapter(message)
+            self.assertEqual(message_dict["role"], "assistant")
+            self.assertIn("content", message_dict)
+            self.assertEqual(len(message_dict["content"]), 1)
+            self.assertEqual(message_dict["content"][0]["text"], "Test response")
 
         asyncio.run(async_test())
 
@@ -549,11 +552,12 @@ class TestEventSystemIntegration(unittest.TestCase):
 
                 # Verify runtime was updated with message
                 self.assertIsNotNone(runtime.reply)
-                self.assertEqual(runtime.reply["role"], "assistant")
-                self.assertEqual(len(runtime.reply["content"]), 1)
-                self.assertEqual(
-                    runtime.reply["content"][0]["text"], "Persisted response"
-                )
+                from fivcadvisor.events import MessageDictAdapter
+
+                reply_dict = MessageDictAdapter(runtime.reply)
+                self.assertEqual(reply_dict["role"], "assistant")
+                self.assertEqual(len(reply_dict["content"]), 1)
+                self.assertEqual(reply_dict["content"][0]["text"], "Persisted response")
 
         asyncio.run(async_test())
 

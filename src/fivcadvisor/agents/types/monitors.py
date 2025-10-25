@@ -26,16 +26,17 @@ Key Features:
 """
 
 from datetime import datetime
-from typing import Any, Optional, List, Callable, cast
+from typing import Any, Optional, List, Callable, cast, Dict
 from uuid import uuid4
 from warnings import warn
+from langchain_core.messages import BaseMessage
 
-from strands import Agent
-from strands.agent import AgentResult, SlidingWindowConversationManager
-from strands.types.content import Message
-from strands.types.streaming import StreamEvent
-from strands.types.tools import ToolUse, ToolResult
-
+from fivcadvisor.events import (
+    StreamEvent,
+    AgentResult,
+    SlidingWindowConversationManager,
+    MessageDictAdapter,
+)
 from fivcadvisor import agents, tools
 from fivcadvisor.agents.types.base import (
     AgentsRuntime,
@@ -159,7 +160,7 @@ class AgentsMonitor(object):
 
         # Handle message events (tool calls)
         elif "message" in kwargs:
-            self._on_message_event(cast(Message, kwargs["message"]))
+            self._on_message_event(cast(BaseMessage, kwargs["message"]))
 
         elif "result" in kwargs:
             self._on_complete_event(cast(AgentResult, kwargs["result"]))
@@ -202,7 +203,7 @@ class AgentsMonitor(object):
                 stacklevel=2,
             )
 
-    def _on_message_event(self, message: Message) -> None:
+    def _on_message_event(self, message: BaseMessage) -> None:
         """
         Handle message events containing tool calls.
 
@@ -211,17 +212,18 @@ class AgentsMonitor(object):
         on_event callback if registered, passing the complete runtime state.
 
         Args:
-            message: Message object from Strands containing toolUse or toolResult
+            message: Message object from LangChain containing toolUse or toolResult
                      content blocks
         """
         try:
-            # Parse message structure
+            # Parse message structure using adapter for dict-like access
             # Message format: {"role": str, "content": List[...]}
-            content = message.get("content", [])
+            msg_dict = MessageDictAdapter(message)
+            content = msg_dict.get("content", [])
 
             for block in content:
                 if "toolUse" in block:
-                    tool_use = cast(ToolUse, block["toolUse"])
+                    tool_use = cast(Dict[str, Any], block["toolUse"])
                     tool_use_id = tool_use.get("toolUseId")
                     tool_call = AgentsRuntimeToolCall(
                         tool_use_id=tool_use_id,
@@ -241,7 +243,7 @@ class AgentsMonitor(object):
                         self._on_event(self._runtime)
 
                 if "toolResult" in block:
-                    tool_result = cast(ToolResult, block["toolResult"])
+                    tool_result = cast(Dict[str, Any], block["toolResult"])
                     tool_use_id = tool_result.get("toolUseId")
                     tool_call = self._runtime.tool_calls.get(tool_use_id)
                     if not tool_call:
@@ -421,7 +423,7 @@ class AgentsMonitorManager(object):
         agent_creator: Optional["agents.AgentsCreatorBase"] = None,
         on_event: Optional[Callable[[AgentsRuntime], None]] = None,
         **kwargs,
-    ) -> Agent:
+    ) -> Any:
         """
         Create a new agent runtime with automatic monitoring integration.
 

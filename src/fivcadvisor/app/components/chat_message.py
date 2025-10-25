@@ -1,7 +1,8 @@
 import re
 
 import streamlit as st
-from strands.types.content import Message
+from langchain_core.messages import BaseMessage
+from fivcadvisor.events import MessageDictAdapter
 from streamlit.delta_generator import DeltaGenerator
 
 from fivcadvisor.agents.types import AgentsRuntime, AgentsRuntimeToolCall
@@ -171,10 +172,11 @@ class ChatMessage(object):
 
     @staticmethod
     def render_message(
-        message: Message,
+        message: BaseMessage,
         placeholder: DeltaGenerator,
     ):
-        msg = message
+        # Wrap message in adapter for dict-like access
+        msg = MessageDictAdapter(message)
         # msg_role = msg["role"]
         msg_content = msg["content"]
 

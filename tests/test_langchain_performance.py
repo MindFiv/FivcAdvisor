@@ -7,7 +7,7 @@ LangChain agents and swarms compared to baseline expectations.
 
 import pytest
 import time
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from fivcadvisor.adapters import (
     LangChainAgentAdapter,
     LangGraphSwarmAdapter,

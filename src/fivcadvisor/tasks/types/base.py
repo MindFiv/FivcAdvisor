@@ -7,7 +7,7 @@ This module defines the core data models for task execution tracking:
     - TaskTeam: Team plan with specialist agents
     - TaskRuntimeStep: Individual agent execution step
     - TaskRuntime: Overall task execution state
-    - TaskStatus: Execution status enumeration (imported from Strands)
+    - TaskStatus: Execution status enumeration
 
 These models use Pydantic for validation and serialization, making them
 suitable for persistence and API communication.
@@ -16,10 +16,34 @@ suitable for persistence and API communication.
 import uuid
 from typing import Optional, List, Dict
 from datetime import datetime
+from enum import Enum
 
 from pydantic import BaseModel, Field, computed_field
-from strands.types.content import Message
-from strands.multiagent.base import Status as TaskStatus
+from langchain_core.messages import BaseMessage
+
+
+class TaskStatus(str, Enum):
+    """
+    Task execution status enumeration.
+
+    Defines the possible states of a task execution. The status progresses
+    through a lifecycle from PENDING to either COMPLETED or FAILED.
+
+    Attributes:
+        PENDING: Task created but not yet started
+        EXECUTING: Task is currently running
+        COMPLETED: Task finished successfully
+        FAILED: Task encountered an error and stopped
+
+    Note:
+        This enum inherits from str, making it JSON-serializable and
+        compatible with string comparisons.
+    """
+
+    PENDING = "pending"
+    EXECUTING = "executing"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class TaskAssessment(BaseModel):
@@ -102,7 +126,7 @@ class TaskRuntimeStep(BaseModel):
     completed_at: Optional[datetime] = Field(
         default=None, description="Step completion timestamp"
     )
-    messages: List[Message] = Field(
+    messages: List[BaseMessage] = Field(
         default_factory=list, description="Messages during execution"
     )
     error: Optional[str] = Field(default=None, description="Error message if failed")

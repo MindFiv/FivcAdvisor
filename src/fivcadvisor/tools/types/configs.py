@@ -3,7 +3,7 @@ from typing import Optional, List, Dict
 
 from mcp import StdioServerParameters, stdio_client
 from mcp.client.sse import sse_client
-from strands.tools.mcp import MCPClient
+from fivcadvisor.tools.compat import MCPClient
 
 
 class ToolsConfigValue(dict):

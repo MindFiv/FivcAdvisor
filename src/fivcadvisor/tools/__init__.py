@@ -12,7 +12,7 @@ __all__ = [
 import os
 from typing import Optional
 
-from strands.types.exceptions import MCPClientInitializationError
+from fivcadvisor.tools.compat import MCPClientInitializationError
 
 from fivcadvisor.utils import create_lazy_value
 from fivcadvisor.tools.types import (
@@ -24,35 +24,26 @@ from fivcadvisor.tools.types import (
 
 
 def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **kwargs):
+    """
+    Register default tools with the tools retriever.
+
+    Note: Default tools from strands_tools have been removed.
+    Tools are now primarily loaded from MCP servers via register_mcp_tools().
+
+    Args:
+        tools_retriever: The ToolsRetriever instance to register tools with
+        **kwargs: Additional arguments (ignored)
+
+    Returns:
+        Empty list (no default tools registered)
+    """
     assert tools_retriever is not None
 
-    from strands.tools.registry import ToolRegistry
-    from strands_tools import (
-        calculator,
-        current_time,
-        # python_repl,
-        # swarm,
-        # workflow,
-        # retrieve,
-        # browser,
-    )
+    # Default tools from strands_tools are no longer available
+    # Tools should be loaded from MCP servers instead
+    # See register_mcp_tools() for MCP tool loading
 
-    r = ToolRegistry()
-    tool_names = r.process_tools(
-        [
-            calculator,
-            current_time,
-            # python_repl,
-            # swarm,
-            # workflow,
-            # retrieve,
-            # browser,
-        ]
-    )
-    tools = [r.registry.get(name) for name in tool_names]
-    tools_retriever.add_batch(tools)
-
-    return tools
+    return []
 
 
 def register_mcp_tools(

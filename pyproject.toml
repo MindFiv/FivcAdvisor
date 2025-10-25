@@ -47,6 +47,7 @@ fivcadvisor = "fivcadvisor.cli:main"
 where = ["src"]
 
 [dependency-groups]
+
 dev = [
     "pytest>=8.4.1",
 ]

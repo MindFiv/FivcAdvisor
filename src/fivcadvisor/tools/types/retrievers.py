@@ -1,8 +1,11 @@
 from typing import List, Optional, Dict, Callable
 
 from pydantic import BaseModel, Field
-from strands.types.tools import AgentTool
-from strands.tools import tool as make_tool
+from fivcadvisor.tools.compat import (
+    AgentTool,
+    tool as make_tool,
+    wrap_tool_for_compatibility,
+)
 from fivcadvisor import embeddings
 from fivcadvisor.tools.types.bundles import ToolsBundleManager, ToolsBundle
 
@@ -154,9 +157,11 @@ class ToolsRetriever(object):
 
     def to_tool(self):
         """Convert the retriever to a tool."""
-        return make_tool(
+        tool_obj = make_tool(
             name="tools_retriever",
             description="Use this tool to retrieve the best tools for a given task",
             inputSchema=self._ToolSchema.model_json_schema(),
             context=False,
         )(self.__call__)
+        # Ensure compatibility properties are set
+        return wrap_tool_for_compatibility(tool_obj)

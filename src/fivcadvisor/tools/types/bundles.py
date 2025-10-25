@@ -8,7 +8,7 @@ coordinated tool retrieval and expansion.
 
 from typing import List, Optional, Dict, Set, Callable, Any
 from dataclasses import dataclass, field
-from strands.types.tools import AgentTool
+from fivcadvisor.tools.compat import AgentTool
 
 
 @dataclass

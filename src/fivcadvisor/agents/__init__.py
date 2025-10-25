@@ -12,12 +12,9 @@ __all__ = [
     "AgentsRetriever",
 ]
 
-from typing import cast, List, Optional, Union
+from typing import cast, List, Optional, Any
 from uuid import uuid4
 # from typing import Callable
-
-from strands.agent import Agent
-from strands.multiagent import Swarm
 
 from fivcadvisor import (
     models,
@@ -32,13 +29,12 @@ from fivcadvisor.agents.types import (
 )
 from fivcadvisor.adapters import (
     LangGraphSwarmAdapter,
-    LangChainAgentAdapter,
     create_langchain_agent,
 )
 
 
 @agent_creator("Generic")
-def create_default_agent(*args, **kwargs) -> Union[Agent, LangChainAgentAdapter]:
+def create_default_agent(*args, **kwargs) -> Any:
     """Create a standard ReAct agent for task execution."""
 
     # filter out unknown kwargs
@@ -85,7 +81,7 @@ def create_default_agent(*args, **kwargs) -> Union[Agent, LangChainAgentAdapter]
 
 
 @agent_creator("Companion")
-def create_companion_agent(*args, **kwargs) -> Agent:
+def create_companion_agent(*args, **kwargs) -> Any:
     """Create a friend agent for chat."""
     kwargs["name"] = "Companion"
     kwargs.setdefault(
@@ -101,7 +97,7 @@ def create_companion_agent(*args, **kwargs) -> Agent:
 
 
 @agent_creator("ToolRetriever")
-def create_tooling_agent(*args, **kwargs) -> Agent:
+def create_tooling_agent(*args, **kwargs) -> Any:
     """Create an agent that can retrieve tools."""
     kwargs["name"] = "ToolRetriever"
     kwargs.setdefault(
@@ -120,7 +116,7 @@ def create_tooling_agent(*args, **kwargs) -> Agent:
 
 
 @agent_creator(name="Consultant")
-def create_consultant_agent(*args, **kwargs) -> Agent:
+def create_consultant_agent(*args, **kwargs) -> Any:
     """Create an agent that can assess tasks."""
     kwargs["name"] = "Consultant"
     kwargs.setdefault(
@@ -140,7 +136,7 @@ def create_consultant_agent(*args, **kwargs) -> Agent:
 
 
 @agent_creator(name="Planner")
-def create_planning_agent(*args, **kwargs) -> Agent:
+def create_planning_agent(*args, **kwargs) -> Any:
     """Create an agent that can plan tasks."""
     kwargs["name"] = "Planner"
     kwargs.setdefault(
@@ -156,7 +152,7 @@ def create_planning_agent(*args, **kwargs) -> Agent:
 
 
 @agent_creator(name="Researcher")
-def create_research_agent(*args, **kwargs) -> Agent:
+def create_research_agent(*args, **kwargs) -> Any:
     """Create an agent that can research tasks."""
     kwargs["name"] = "Researcher"
     kwargs.setdefault(
@@ -174,7 +170,7 @@ def create_research_agent(*args, **kwargs) -> Agent:
 
 
 @agent_creator(name="Engineer")
-def create_engineering_agent(*args, **kwargs) -> Agent:
+def create_engineering_agent(*args, **kwargs) -> Any:
     """Create an agent that can engineer tools."""
     kwargs["name"] = "Engineer"
     kwargs.setdefault(
@@ -192,7 +188,7 @@ def create_engineering_agent(*args, **kwargs) -> Agent:
 
 
 @agent_creator(name="Evaluator")
-def create_evaluating_agent(*args, **kwargs) -> Agent:
+def create_evaluating_agent(*args, **kwargs) -> Any:
     """Create an agent that can evaluate performance."""
     kwargs["name"] = "Evaluator"
     kwargs.setdefault(
@@ -217,7 +213,7 @@ def create_generic_agent_swarm(
     team: Optional[TaskTeam] = None,
     tools_retriever: Optional[tools.ToolsRetriever] = None,
     **kwargs,
-) -> Union[Swarm, LangGraphSwarmAdapter]:
+) -> Any:
     """
     Create a generic swarm of agents.
 

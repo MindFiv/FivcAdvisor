@@ -19,8 +19,7 @@ import os
 
 import streamlit as st
 import asyncio
-
-from strands.types.content import Message, ContentBlock
+from langchain_core.messages import AIMessage
 
 from fivcadvisor.app.utils import Chat, default_running_config
 from fivcadvisor.app.components import ChatMessage
@@ -159,9 +158,7 @@ class ChatView(ViewBase):
             if assessment.require_planning and default_running_config.get(
                 "enable_tasks"
             ):
-                msg_runtime.reply = Message(
-                    role="assistant", content=[ContentBlock(text=assessment.reasoning)]
-                )
+                msg_runtime.reply = AIMessage(content=assessment.reasoning)
                 ChatMessage(msg_runtime).render(msg_new_placeholder)
                 return
 

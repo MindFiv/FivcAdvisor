@@ -20,9 +20,8 @@ import json
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.tools import Tool
 
-# from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, ValidationError
-from strands.types.content import Message, ContentBlock
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 
 from fivcadvisor.adapters.tools import convert_strands_tools_to_langchain
 from fivcadvisor.adapters.events import EventBus, EventType, Event, MessageAddedEvent
@@ -110,9 +109,6 @@ class LangChainAgentAdapter:
             def invoke(self, input_dict: Dict[str, str]) -> Dict[str, str]:
                 """Invoke the agent with a query."""
                 query = input_dict.get("input", "")
-
-                # Build the messages
-                from langchain_core.messages import SystemMessage, HumanMessage
 
                 messages = []
                 if self.system_prompt:
@@ -221,8 +217,8 @@ class LangChainAgentAdapter:
             # Call callback handler if provided
             # Pass both output and a Message object for compatibility
             if self.callback_handler:
-                # Create a Message object for the callback
-                message = Message(role="assistant", content=[ContentBlock(text=output)])
+                # Create a Message object for the callback using LangChain AIMessage
+                message = AIMessage(content=output)
                 # Try to call with result parameter (for AgentsMonitor compatibility)
                 try:
                     self.callback_handler(
@@ -287,8 +283,8 @@ class LangChainAgentAdapter:
             )
 
             if self.callback_handler:
-                # Create a Message object for the callback
-                message = Message(role="assistant", content=[ContentBlock(text=output)])
+                # Create a Message object for the callback using LangChain AIMessage
+                message = AIMessage(content=output)
                 # Try to call with result parameter (for AgentsMonitor compatibility)
                 try:
                     self.callback_handler(

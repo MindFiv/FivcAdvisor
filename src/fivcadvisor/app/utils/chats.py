@@ -36,8 +36,7 @@ Example:
 from datetime import datetime, timezone
 from typing import Optional, Callable, List
 
-from strands.agent import AgentResult
-
+from fivcadvisor.events import AgentResult
 from fivcadvisor import agents, tools, tasks
 from fivcadvisor.agents.types import (
     AgentsRuntime,

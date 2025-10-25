@@ -30,8 +30,7 @@ Example:
 
 from typing import Any, List, Optional, Dict, TypedDict
 import asyncio
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph, END
 
 
 class SwarmState(TypedDict):
@@ -141,7 +140,7 @@ class LangGraphSwarmAdapter:
         """Determine which agent should handle the next step."""
         # For now, use round-robin or stay with current agent
         # In a more sophisticated implementation, this could use LLM to decide
-        current = state.get("current_agent", self.default_agent_name)
+        _ = state.get("current_agent", self.default_agent_name)
 
         # If there's a next_agent specified, use it
         if state.get("next_agent"):
