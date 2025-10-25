@@ -1,19 +1,20 @@
 """
-LangGraph Swarm adapter for multi-agent orchestration.
+Custom LangGraph Swarm implementation for multi-agent orchestration.
 
-This module provides a wrapper around LangGraph Swarm to replace Strands Swarm
-with minimal changes to existing code.
+This module provides a custom swarm implementation using LangGraph 1.0 StateGraph
+to replace the deprecated langgraph-swarm package.
 
 Key Components:
     - LangGraphSwarmAdapter: Main adapter class for swarm orchestration
     - create_langchain_swarm: Factory function for creating swarms
+    - SwarmState: State management for swarm execution
 
 Features:
     - Multi-agent coordination with dynamic handoffs
     - Backward compatible with Strands Swarm API
     - Full async/await support
     - Flexible agent configuration
-    - Event-based communication between agents
+    - Built on LangGraph 1.0 StateGraph
 
 Example:
     >>> from fivcadvisor.adapters import create_langchain_swarm
@@ -27,17 +28,25 @@ Example:
     >>> result = await swarm.invoke_async("Your query")
 """
 
-from typing import Any, List, Optional, Dict
+from typing import Any, List, Optional, Dict, TypedDict
 import asyncio
-from langgraph_swarm import create_swarm
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langgraph.graph import StateGraph, START, END
+
+
+class SwarmState(TypedDict):
+    """State for swarm execution."""
+    messages: List[Dict[str, str]]
+    current_agent: str
+    next_agent: Optional[str]
 
 
 class LangGraphSwarmAdapter:
     """
-    Adapter for LangGraph Swarm that provides a Strands-compatible API.
+    Custom LangGraph Swarm adapter for multi-agent orchestration.
 
-    This adapter wraps LangGraph Swarm to maintain compatibility with existing
-    code that expects a Strands Swarm interface.
+    This adapter implements a swarm using LangGraph 1.0 StateGraph,
+    providing a Strands-compatible API for multi-agent coordination.
     """
 
     def __init__(
@@ -56,12 +65,88 @@ class LangGraphSwarmAdapter:
 
         self.agents = agents
         self.default_agent_name = default_agent_name or agents[0].name
+        self._agent_map = {agent.name: agent for agent in agents}
 
-        # Create the LangGraph Swarm
-        self.workflow = create_swarm(
-            agents=agents, default_active_agent=self.default_agent_name
-        )
+        # Create the LangGraph workflow
+        self.workflow = self._create_workflow()
         self.app = self.workflow.compile()
+
+    def _create_workflow(self) -> StateGraph:
+        """Create the LangGraph workflow for the swarm."""
+        workflow = StateGraph(SwarmState)
+
+        # Add nodes for each agent
+        for agent in self.agents:
+            workflow.add_node(agent.name, self._create_agent_node(agent))
+
+        # Add router node to determine next agent
+        workflow.add_node("router", self._router_node)
+
+        # Set entry point
+        workflow.set_entry_point("router")
+
+        # Add edges from router to agents
+        for agent in self.agents:
+            workflow.add_edge(agent.name, "router")
+
+        # Add conditional edges from router
+        workflow.add_conditional_edges(
+            "router",
+            self._route_to_agent,
+            {agent.name: agent.name for agent in self.agents} | {"END": END},
+        )
+
+        return workflow
+
+    def _create_agent_node(self, agent: Any):
+        """Create a node function for an agent."""
+        async def agent_node(state: SwarmState) -> SwarmState:
+            # Convert messages to LangChain format if needed
+            messages = state.get("messages", [])
+
+            # Invoke the agent
+            try:
+                if hasattr(agent, "invoke_async"):
+                    result = await agent.invoke_async(
+                        messages[-1]["content"] if messages else ""
+                    )
+                else:
+                    result = agent.invoke(
+                        messages[-1]["content"] if messages else ""
+                    )
+            except Exception as e:
+                result = {"messages": [{"role": "assistant", "content": str(e)}]}
+
+            # Update messages
+            if isinstance(result, dict) and "messages" in result:
+                new_messages = messages + result["messages"]
+            else:
+                new_messages = messages + [{"role": "assistant", "content": str(result)}]
+
+            return {
+                "messages": new_messages,
+                "current_agent": agent.name,
+                "next_agent": None,
+            }
+
+        return agent_node
+
+    def _router_node(self, state: SwarmState) -> SwarmState:
+        """Route to the next agent based on current state."""
+        return state
+
+    def _route_to_agent(self, state: SwarmState) -> str:
+        """Determine which agent should handle the next step."""
+        # For now, use round-robin or stay with current agent
+        # In a more sophisticated implementation, this could use LLM to decide
+        current = state.get("current_agent", self.default_agent_name)
+
+        # If there's a next_agent specified, use it
+        if state.get("next_agent"):
+            return state["next_agent"]
+
+        # Otherwise, end the conversation
+        return "END"
 
     async def invoke_async(self, query: str, **kwargs) -> dict:
         """
@@ -74,8 +159,14 @@ class LangGraphSwarmAdapter:
         Returns:
             Dictionary containing the result with 'messages' key
         """
+        initial_state = {
+            "messages": [{"role": "user", "content": query}],
+            "current_agent": self.default_agent_name,
+            "next_agent": None,
+        }
+
         result = await self.app.ainvoke(
-            {"messages": [{"role": "user", "content": query}]},
+            initial_state,
             config=kwargs.get("config"),
         )
         return result

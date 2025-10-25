@@ -135,18 +135,11 @@ class TestLangChainSwarmIntegration(unittest.TestCase):
             LangChainAgentAdapter(model=self.mock_llm, tools=[], name="Agent2"),
         ]
 
-        # Mock create_swarm to avoid needing real LangGraph setup
-        with patch("fivcadvisor.adapters.multiagent.create_swarm") as mock_create_swarm:
-            mock_workflow = Mock()
-            mock_app = Mock()
-            mock_workflow.compile = Mock(return_value=mock_app)
-            mock_create_swarm.return_value = mock_workflow
+        # Create swarm
+        swarm = LangGraphSwarmAdapter(agents)
 
-            # Create swarm
-            swarm = LangGraphSwarmAdapter(agents)
-
-            self.assertIsInstance(swarm, LangGraphSwarmAdapter)
-            self.assertEqual(len(swarm.agents), 2)
+        self.assertIsInstance(swarm, LangGraphSwarmAdapter)
+        self.assertEqual(len(swarm.agents), 2)
 
     def test_swarm_agent_access(self):
         """Test accessing agents in swarm"""
@@ -155,17 +148,11 @@ class TestLangChainSwarmIntegration(unittest.TestCase):
             LangChainAgentAdapter(model=self.mock_llm, tools=[], name="Agent2"),
         ]
 
-        with patch("fivcadvisor.adapters.multiagent.create_swarm") as mock_create_swarm:
-            mock_workflow = Mock()
-            mock_app = Mock()
-            mock_workflow.compile = Mock(return_value=mock_app)
-            mock_create_swarm.return_value = mock_workflow
+        swarm = LangGraphSwarmAdapter(agents)
 
-            swarm = LangGraphSwarmAdapter(agents)
-
-            # Verify agents are accessible
-            self.assertEqual(swarm.agents[0].name, "Agent1")
-            self.assertEqual(swarm.agents[1].name, "Agent2")
+        # Verify agents are accessible
+        self.assertEqual(swarm.agents[0].name, "Agent1")
+        self.assertEqual(swarm.agents[1].name, "Agent2")
 
 
 class TestLangChainToolIntegration(unittest.TestCase):

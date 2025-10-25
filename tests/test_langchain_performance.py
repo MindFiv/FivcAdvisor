@@ -159,19 +159,13 @@ class TestLangChainMemoryUsage:
             for i in range(5)
         ]
 
-        with patch("fivcadvisor.adapters.multiagent.create_swarm") as mock_create:
-            mock_workflow = Mock()
-            mock_app = Mock()
-            mock_workflow.compile = Mock(return_value=mock_app)
-            mock_create.return_value = mock_workflow
+        swarm = LangGraphSwarmAdapter(agents)
 
-            swarm = LangGraphSwarmAdapter(agents)
+        # Get size of swarm object
+        size = sys.getsizeof(swarm)
 
-            # Get size of swarm object
-            size = sys.getsizeof(swarm)
-
-            # Should be reasonable (less than 50MB)
-            assert size < 50 * 1024 * 1024
+        # Should be reasonable (less than 50MB)
+        assert size < 50 * 1024 * 1024
 
 
 class TestLangChainThroughput:
