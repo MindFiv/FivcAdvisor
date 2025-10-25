@@ -33,9 +33,7 @@ class TestLangGraphSwarmAdapter:
         agent2 = Mock()
         agent2.name = "Agent2"
 
-        adapter = LangGraphSwarmAdapter(
-            [agent1, agent2], default_agent_name="Agent2"
-        )
+        adapter = LangGraphSwarmAdapter([agent1, agent2], default_agent_name="Agent2")
         assert adapter.default_agent_name == "Agent2"
 
     def test_adapter_stores_agents_list(self):

@@ -36,6 +36,7 @@ from langgraph.graph import StateGraph, START, END
 
 class SwarmState(TypedDict):
     """State for swarm execution."""
+
     messages: List[Dict[str, str]]
     current_agent: str
     next_agent: Optional[str]
@@ -100,6 +101,7 @@ class LangGraphSwarmAdapter:
 
     def _create_agent_node(self, agent: Any):
         """Create a node function for an agent."""
+
         async def agent_node(state: SwarmState) -> SwarmState:
             # Convert messages to LangChain format if needed
             messages = state.get("messages", [])
@@ -111,9 +113,7 @@ class LangGraphSwarmAdapter:
                         messages[-1]["content"] if messages else ""
                     )
                 else:
-                    result = agent.invoke(
-                        messages[-1]["content"] if messages else ""
-                    )
+                    result = agent.invoke(messages[-1]["content"] if messages else "")
             except Exception as e:
                 result = {"messages": [{"role": "assistant", "content": str(e)}]}
 
@@ -121,7 +121,9 @@ class LangGraphSwarmAdapter:
             if isinstance(result, dict) and "messages" in result:
                 new_messages = messages + result["messages"]
             else:
-                new_messages = messages + [{"role": "assistant", "content": str(result)}]
+                new_messages = messages + [
+                    {"role": "assistant", "content": str(result)}
+                ]
 
             return {
                 "messages": new_messages,
@@ -219,9 +221,7 @@ class LangGraphSwarmAdapter:
             ValueError: If the agent name is not found in the swarm
         """
         if not any(
-            agent.name == agent_name
-            for agent in self.agents
-            if hasattr(agent, "name")
+            agent.name == agent_name for agent in self.agents if hasattr(agent, "name")
         ):
             raise ValueError(f"Agent '{agent_name}' not found in swarm")
         self.default_agent_name = agent_name
