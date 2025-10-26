@@ -8,8 +8,7 @@ Key Components:
     - TaskRunnable: Wraps an agent runnable with a task query
 """
 
-import json
-from typing import Any, Optional, Type
+from typing import Any, Union
 
 from pydantic import BaseModel
 
@@ -41,7 +40,6 @@ class TaskRunnable(Runnable):
         self,
         query: str,
         runnable: Runnable,
-        response_format: Optional[Type[BaseModel]] = None,
         **kwargs,
     ):
         """
@@ -53,10 +51,9 @@ class TaskRunnable(Runnable):
                    underlying runnable's run/run_async methods.
             runnable: The underlying agent runnable to wrap and execute.
                      Must implement the Runnable interface with run() and
-                     run_async() methods.
-            response_format: Optional Pydantic model class to parse the response into.
-                           If provided, the string response will be parsed as JSON
-                           and converted to this model type.
+                     run_async() methods. If the runnable is an AgentsRunnable
+                     with a response_model, the result will be a Pydantic model
+                     instance instead of a string.
             **kwargs: Additional keyword arguments (reserved for future use).
 
         Raises:
@@ -64,7 +61,6 @@ class TaskRunnable(Runnable):
         """
         self._query = query
         self._runnable = runnable
-        self._response_format = response_format
 
     @property
     def id(self) -> str:
@@ -79,7 +75,7 @@ class TaskRunnable(Runnable):
         """
         return self._runnable.id
 
-    def run(self, **kwargs: Any) -> BaseModel:
+    def run(self, **kwargs: Any) -> Union[BaseModel, str]:
         """
         Execute the task synchronously.
 
@@ -87,14 +83,19 @@ class TaskRunnable(Runnable):
         underlying runnable's run method. The query is passed as the
         first positional argument.
 
+        The return type depends on the underlying runnable's response_model:
+        - If the runnable has a response_model: Returns a Pydantic model instance
+        - If the runnable has no response_model: Returns a string
+
         Args:
             **kwargs: Additional keyword arguments to pass to the underlying
                      runnable's run method.
 
         Returns:
-            BaseModel: The execution result from the underlying runnable,
-                      typically a Pydantic model instance (e.g., TaskAssessment,
-                      TaskRequirement, TaskTeam).
+            Union[BaseModel, str]: The execution result from the underlying runnable.
+                                   Typically a Pydantic model instance (e.g., TaskAssessment,
+                                   TaskRequirement, TaskTeam) when response_model is set,
+                                   or a string otherwise.
 
         Raises:
             Exception: Any exception raised by the underlying runnable.
@@ -104,10 +105,9 @@ class TaskRunnable(Runnable):
             >>> result = task.run()  # Returns TaskAssessment
             >>> print(result.require_planning)
         """
-        result = self._runnable.run(self._query, **kwargs)
-        return self._parse_response(result)
+        return self._runnable.run(self._query, **kwargs)
 
-    async def run_async(self, **kwargs: Any) -> BaseModel:
+    async def run_async(self, **kwargs: Any) -> Union[BaseModel, str]:
         """
         Execute the task asynchronously.
 
@@ -118,14 +118,19 @@ class TaskRunnable(Runnable):
         This method is useful for non-blocking execution in async contexts,
         such as web servers or concurrent task processing.
 
+        The return type depends on the underlying runnable's response_model:
+        - If the runnable has a response_model: Returns a Pydantic model instance
+        - If the runnable has no response_model: Returns a string
+
         Args:
             **kwargs: Additional keyword arguments to pass to the underlying
                      runnable's run_async method.
 
         Returns:
-            BaseModel: The execution result from the underlying runnable,
-                      typically a Pydantic model instance (e.g., TaskAssessment,
-                      TaskRequirement, TaskTeam).
+            Union[BaseModel, str]: The execution result from the underlying runnable.
+                                   Typically a Pydantic model instance (e.g., TaskAssessment,
+                                   TaskRequirement, TaskTeam) when response_model is set,
+                                   or a string otherwise.
 
         Raises:
             Exception: Any exception raised by the underlying runnable.
@@ -135,59 +140,4 @@ class TaskRunnable(Runnable):
             >>> result = await task.run_async()  # Returns TaskTeam
             >>> print(len(result.specialists))
         """
-        result = await self._runnable.run_async(self._query, **kwargs)
-        return self._parse_response(result)
-
-    def _parse_response(self, response: Any) -> BaseModel:
-        """
-        Parse the response using the response_format if provided.
-
-        If response_format is set, attempts to parse the response as JSON
-        and convert it to the specified Pydantic model. If response is already
-        a BaseModel instance, returns it as-is.
-
-        Args:
-            response: The response from the underlying runnable (typically a string)
-
-        Returns:
-            BaseModel: The parsed response or the original response if no
-                      response_format is set
-
-        Raises:
-            json.JSONDecodeError: If response is a string but not valid JSON
-            ValueError: If the parsed JSON doesn't match the response_format schema
-        """
-        # If no response format specified, return as-is
-        if self._response_format is None:
-            return response
-
-        # If already a BaseModel instance, return as-is
-        if isinstance(response, BaseModel):
-            return response
-
-        # If response is a string, try to parse as JSON
-        if isinstance(response, str):
-            try:
-                # Try to parse as JSON
-                data = json.loads(response)
-                # Convert to the response format model
-                return self._response_format(**data)
-            except json.JSONDecodeError:
-                # If not valid JSON, try to extract JSON from the string
-                # Look for JSON object or array in the string
-                import re
-
-                json_match = re.search(r"\{.*\}|\[.*\]", response, re.DOTALL)
-                if json_match:
-                    try:
-                        data = json.loads(json_match.group())
-                        return self._response_format(**data)
-                    except (json.JSONDecodeError, ValueError):
-                        pass
-                # If all parsing fails, raise error
-                raise ValueError(
-                    f"Could not parse response as JSON for {self._response_format.__name__}: {response}"
-                )
-
-        # For other types, try to convert directly
-        return self._response_format(**response)
+        return await self._runnable.run_async(self._query, **kwargs)

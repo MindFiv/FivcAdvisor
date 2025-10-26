@@ -406,7 +406,8 @@ class Chat(object):
             )
 
             # Execute agent
-            agent_result = await agent.invoke_async(query)
+            agent_result = await agent.run_async(query)
+            print(agent_result)
             # Save agent metadata on first query
             if not self.runtime_meta:
                 agent_query = f"{query}\n{str(agent_result)}"

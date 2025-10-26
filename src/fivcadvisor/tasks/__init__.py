@@ -110,21 +110,21 @@ def create_tooling_task(
         >>> print(result.tools)  # ['calculator']
 
     Note:
-        The response format is automatically set to TaskRequirement.
+        The response_model is automatically set to TaskRequirement and passed to
+        the underlying agent. The agent's create_agent function handles the
+        conversion from LLM output to TaskRequirement model automatically.
         The query is prepended with "Retrieve the best tools for the following task:"
     """
     if "tools" not in kwargs and tools_retriever is not None:
         kwargs["tools"] = [tools_retriever.to_tool()]
 
-    # Extract response_format before passing to agent
-    response_format = TaskRequirement
-    kwargs["response_format"] = response_format
+    # Extract response_model before passing to agent
+    kwargs["response_model"] = TaskRequirement
 
     # Create tooling agent
     return TaskRunnable(
         query=f"Retrieve the best tools for the following task: \n{query}",
         runnable=agents.create_tooling_agent(**kwargs),
-        response_format=response_format,
     )
 
 
@@ -232,7 +232,9 @@ def create_assessing_task(
         >>> print(result.reasoning)  # "Complex task requiring data analysis..."
 
     Note:
-        The response format is automatically set to TaskAssessment.
+        The response_model is automatically set to TaskAssessment and passed to
+        the underlying agent. The agent's create_agent function handles the
+        conversion from LLM output to TaskAssessment model automatically.
         The assessment includes:
         - require_planning: Boolean indicating if planning is needed
         - reasoning: Explanation of the assessment decision
@@ -240,9 +242,8 @@ def create_assessing_task(
     if "tools" not in kwargs and tools_retriever is not None:
         kwargs["tools"] = [tools_retriever.to_tool()]
 
-    # Extract response_format before passing to agent
-    response_format = TaskAssessment
-    kwargs["response_format"] = response_format
+    # Extract response_model before passing to agent
+    kwargs["response_model"] = TaskAssessment
 
     return TaskRunnable(
         query=f"Assess the following query and determine the best approach for handling it. "
@@ -252,7 +253,6 @@ def create_assessing_task(
         f"- reasoning (string): Brief explanation of your assessment\n\n"
         f"Query: {query}",
         runnable=agents.create_consultant_agent(**kwargs),
-        response_format=response_format,
     )
 
 
@@ -304,7 +304,9 @@ def create_planning_task(
         ...     print(f"{specialist.name}: {specialist.tools}")
 
     Note:
-        The response format is automatically set to TaskTeam.
+        The response_model is automatically set to TaskTeam and passed to
+        the underlying agent. The agent's create_agent function handles the
+        conversion from LLM output to TaskTeam model automatically.
         The plan includes:
         - specialists: List of specialist agents needed
         - Each specialist has: name, backstory, tools
@@ -313,9 +315,8 @@ def create_planning_task(
     if "tools" not in kwargs and tools_retriever is not None:
         kwargs["tools"] = [tools_retriever.to_tool()]
 
-    # Extract response_format before passing to agent
-    response_format = TaskTeam
-    kwargs["response_format"] = response_format
+    # Extract response_model before passing to agent
+    kwargs["response_model"] = TaskTeam
 
     return TaskRunnable(
         query=f"Plan the following query and determine the best approach for handling it. "
@@ -327,7 +328,6 @@ def create_planning_task(
         f"  - tools (array): List of tool names the agent needs\n\n"
         f"Query: {query}",
         runnable=agents.create_planning_agent(**kwargs),
-        response_format=response_format,
     )
 
 

@@ -268,7 +268,7 @@ class TestChatAsk:
 
         # Mock the agent runtime
         mock_agent = AsyncMock()
-        mock_agent.invoke_async = AsyncMock(return_value="test response")
+        mock_agent.run_async = AsyncMock(return_value="test response")
         mock_agent.name = "TestAgent"
         mock_agent.system_prompt = "Test prompt"
         mock_agent.agent_id = "generated-agent-id"
@@ -314,7 +314,7 @@ class TestChatAsk:
 
         # Mock the agent runtime
         mock_agent = AsyncMock()
-        mock_agent.invoke_async = AsyncMock(return_value="test response")
+        mock_agent.run_async = AsyncMock(return_value="test response")
 
         manager.monitor_manager.create_agent_runtime = Mock(return_value=mock_agent)
 
@@ -522,6 +522,84 @@ class TestChatManager:
         assert chat1 is not chat2
         assert chat1.runtime_repo is chat2.runtime_repo  # Shared repo
         assert chat1.tools_retriever is chat2.tools_retriever  # Shared tools
+
+
+class TestAgentExecutionMethodRegression:
+    """Regression tests for agent execution method.
+
+    These tests ensure that the agent execution uses the correct method (run_async)
+    and not invoke_async, which was causing AttributeError in the Streamlit app.
+
+    Issue: agent.invoke_async() was being called but agents have run_async() method
+    """
+
+    @pytest.mark.asyncio
+    async def test_agent_execution_uses_run_async_not_invoke_async(self):
+        """Regression test: Verify agent execution uses run_async method."""
+        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_retriever = Mock(spec=tools.ToolsRetriever)
+
+        manager = Chat(
+            agent_runtime_repo=mock_repo,
+            tools_retriever=mock_retriever,
+        )
+
+        # Create a mock agent with run_async method (correct)
+        mock_agent = AsyncMock()
+        mock_agent.run_async = AsyncMock(return_value="agent response")
+        mock_agent.name = "TestAgent"
+        mock_agent.system_prompt = "Test prompt"
+        mock_agent.agent_id = "test-agent-id"
+
+        manager.monitor_manager.create_agent_runtime = Mock(return_value=mock_agent)
+        mock_repo.update_agent = Mock()
+
+        # Mock create_briefing_task
+        with patch(
+            "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+        ) as mock_briefing_task:
+            mock_task = Mock()
+            mock_task.run_async = AsyncMock(return_value="Agent description")
+            mock_briefing_task.return_value = mock_task
+
+            # This should work without AttributeError
+            result = await manager.ask("test query")
+
+        # Verify run_async was called (not invoke_async)
+        mock_agent.run_async.assert_called_once_with("test query")
+        assert result == "agent response"
+
+    @pytest.mark.asyncio
+    async def test_agent_without_run_async_raises_error(self):
+        """Regression test: Verify error if agent doesn't have run_async method."""
+        mock_repo = Mock(spec=AgentsRuntimeRepository)
+        mock_retriever = Mock(spec=tools.ToolsRetriever)
+
+        manager = Chat(
+            agent_runtime_repo=mock_repo,
+            tools_retriever=mock_retriever,
+        )
+
+        # Create a mock agent WITHOUT run_async method (incorrect)
+        mock_agent = Mock()
+        # Don't set run_async - this should cause an error
+        mock_agent.name = "TestAgent"
+        mock_agent.system_prompt = "Test prompt"
+        mock_agent.agent_id = "test-agent-id"
+
+        manager.monitor_manager.create_agent_runtime = Mock(return_value=mock_agent)
+
+        # Mock create_briefing_task
+        with patch(
+            "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+        ) as mock_briefing_task:
+            mock_task = Mock()
+            mock_task.run_async = AsyncMock(return_value="Agent description")
+            mock_briefing_task.return_value = mock_task
+
+            # This should raise an error because run_async is not available
+            with pytest.raises((AttributeError, TypeError)):
+                await manager.ask("test query")
 
 
 if __name__ == "__main__":

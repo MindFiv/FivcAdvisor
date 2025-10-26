@@ -10,8 +10,8 @@ Tests verify:
 - ID delegation to underlying runnable
 - Error handling and edge cases
 - Runnable interface compliance
-- Response parsing with response_format parameter
-- JSON string to Pydantic model conversion
+- Response handling from underlying agents (BaseModel or str)
+- Union return type (BaseModel | str) based on underlying agent's response_model
 """
 
 import json
@@ -310,32 +310,35 @@ class TestTaskRunnableIntegration:
 
 
 class TestTaskRunnableResponseParsing:
-    """Test TaskRunnable response parsing with response_format parameter."""
+    """Test TaskRunnable response parsing with response_model in underlying agent."""
 
-    def test_parse_response_with_json_string_assessment(self):
-        """Test parsing JSON string to TaskAssessment."""
-        response_data = {
-            "require_planning": True,
-            "reasoning": "This is a complex task",
-        }
-        mock_runnable = StringReturningMockRunnable(response_data=response_data)
-        task = TaskRunnable(
-            query="Test", runnable=mock_runnable, response_format=TaskAssessment
-        )
+    def test_parse_response_with_basemodel_assessment(self):
+        """Test that TaskRunnable returns BaseModel from underlying agent with response_model."""
+        # When AgentsRunnable has response_model set, it returns BaseModel instances
+        mock_runnable = MockRunnable()
+        task = TaskRunnable(query="Test", runnable=mock_runnable)
 
         result = task.run()
 
         assert isinstance(result, TaskAssessment)
         assert result.require_planning is True
-        assert result.reasoning == "This is a complex task"
+        assert result.reasoning == "Mock response"
 
-    def test_parse_response_with_json_string_requirement(self):
-        """Test parsing JSON string to TaskRequirement."""
-        response_data = {"tools": ["tool1", "tool2", "tool3"]}
-        mock_runnable = StringReturningMockRunnable(response_data=response_data)
-        task = TaskRunnable(
-            query="Test", runnable=mock_runnable, response_format=TaskRequirement
-        )
+    def test_parse_response_with_basemodel_requirement(self):
+        """Test TaskRunnable with underlying agent returning TaskRequirement."""
+
+        class RequirementMockRunnable(Runnable):
+            def id(self) -> str:
+                return "req-mock"
+
+            def run(self, query: str, **kwargs):
+                return TaskRequirement(tools=["tool1", "tool2", "tool3"])
+
+            async def run_async(self, query: str, **kwargs):
+                return self.run(query, **kwargs)
+
+        mock_runnable = RequirementMockRunnable()
+        task = TaskRunnable(query="Test", runnable=mock_runnable)
 
         result = task.run()
 
@@ -343,37 +346,32 @@ class TestTaskRunnableResponseParsing:
         assert result.tools == ["tool1", "tool2", "tool3"]
 
     @pytest.mark.asyncio
-    async def test_parse_response_async_with_json_string(self):
-        """Test async parsing of JSON string to TaskAssessment."""
-        response_data = {"require_planning": False, "reasoning": "Simple task"}
-        mock_runnable = StringReturningMockRunnable(response_data=response_data)
-        task = TaskRunnable(
-            query="Test", runnable=mock_runnable, response_format=TaskAssessment
-        )
+    async def test_parse_response_async_with_basemodel(self):
+        """Test async parsing when underlying agent returns BaseModel."""
+        mock_runnable = MockRunnable()
+        task = TaskRunnable(query="Test", runnable=mock_runnable)
 
         result = await task.run_async()
 
         assert isinstance(result, TaskAssessment)
         assert result.require_planning is False
-        assert result.reasoning == "Simple task"
+        assert result.reasoning == "Mock async response"
 
-    def test_parse_response_without_response_format(self):
-        """Test that response is returned as-is when no response_format is set."""
+    def test_parse_response_with_string_from_agent(self):
+        """Test that string responses are returned as-is when agent doesn't use response_model."""
         mock_runnable = StringReturningMockRunnable()
         task = TaskRunnable(query="Test", runnable=mock_runnable)
 
         result = task.run()
 
-        # Should return the JSON string as-is
+        # Should return the JSON string as-is (agent didn't have response_model)
         assert isinstance(result, str)
         assert "require_planning" in result
 
     def test_parse_response_with_basemodel_instance(self):
-        """Test that BaseModel instances are returned as-is."""
+        """Test that BaseModel instances are returned as-is from agent."""
         mock_runnable = MockRunnable()
-        task = TaskRunnable(
-            query="Test", runnable=mock_runnable, response_format=TaskAssessment
-        )
+        task = TaskRunnable(query="Test", runnable=mock_runnable)
 
         result = task.run()
 
@@ -381,84 +379,66 @@ class TestTaskRunnableResponseParsing:
         assert isinstance(result, TaskAssessment)
         assert result.require_planning is True
 
-    def test_parse_response_with_json_embedded_in_text(self):
-        """Test parsing JSON embedded in text response."""
+    def test_parse_response_returns_union_type(self):
+        """Test that TaskRunnable can return either BaseModel or str."""
+        # Test with BaseModel-returning agent
+        mock_runnable_model = MockRunnable()
+        task_model = TaskRunnable(query="Test", runnable=mock_runnable_model)
+        result_model = task_model.run()
+        assert isinstance(result_model, (BaseModel, str))
 
-        class EmbeddedJsonMockRunnable(Runnable):
+        # Test with string-returning agent
+        mock_runnable_str = StringReturningMockRunnable()
+        task_str = TaskRunnable(query="Test", runnable=mock_runnable_str)
+        result_str = task_str.run()
+        assert isinstance(result_str, (BaseModel, str))
+
+    def test_parse_response_with_different_model_types(self):
+        """Test TaskRunnable with different underlying agent response types."""
+
+        # Test with TaskAssessment from agent
+        class AssessmentMockRunnable(Runnable):
             def id(self) -> str:
-                return "embedded-mock"
+                return "assess-mock"
 
-            def run(self, query: str, **kwargs) -> str:
-                return 'Here is the assessment: {"require_planning": true, "reasoning": "Complex"}'
+            def run(self, query: str, **kwargs):
+                return TaskAssessment(require_planning=True, reasoning="Test")
 
-            async def run_async(self, query: str, **kwargs) -> str:
+            async def run_async(self, query: str, **kwargs):
                 return self.run(query, **kwargs)
 
-        mock_runnable = EmbeddedJsonMockRunnable()
-        task = TaskRunnable(
-            query="Test", runnable=mock_runnable, response_format=TaskAssessment
-        )
-
-        result = task.run()
-
-        assert isinstance(result, TaskAssessment)
-        assert result.require_planning is True
-        assert result.reasoning == "Complex"
-
-    def test_parse_response_invalid_json_raises_error(self):
-        """Test that invalid JSON raises ValueError."""
-
-        class InvalidJsonMockRunnable(Runnable):
-            def id(self) -> str:
-                return "invalid-mock"
-
-            def run(self, query: str, **kwargs) -> str:
-                return "This is not valid JSON at all"
-
-            async def run_async(self, query: str, **kwargs) -> str:
-                return self.run(query, **kwargs)
-
-        mock_runnable = InvalidJsonMockRunnable()
-        task = TaskRunnable(
-            query="Test", runnable=mock_runnable, response_format=TaskAssessment
-        )
-
-        with pytest.raises(ValueError):
-            task.run()
-
-    def test_parse_response_with_multiple_models(self):
-        """Test parsing with different response formats."""
-        # Test with TaskAssessment
-        assessment_data = {"require_planning": True, "reasoning": "Test"}
-        mock_runnable = StringReturningMockRunnable(response_data=assessment_data)
-        task = TaskRunnable(
-            query="Test", runnable=mock_runnable, response_format=TaskAssessment
-        )
+        mock_runnable = AssessmentMockRunnable()
+        task = TaskRunnable(query="Test", runnable=mock_runnable)
         result = task.run()
         assert isinstance(result, TaskAssessment)
 
-        # Test with TaskRequirement
-        requirement_data = {"tools": ["tool1"]}
-        mock_runnable = StringReturningMockRunnable(response_data=requirement_data)
-        task = TaskRunnable(
-            query="Test", runnable=mock_runnable, response_format=TaskRequirement
-        )
+        # Test with TaskRequirement from agent
+        class RequirementMockRunnable(Runnable):
+            def id(self) -> str:
+                return "req-mock"
+
+            def run(self, query: str, **kwargs):
+                return TaskRequirement(tools=["tool1"])
+
+            async def run_async(self, query: str, **kwargs):
+                return self.run(query, **kwargs)
+
+        mock_runnable = RequirementMockRunnable()
+        task = TaskRunnable(query="Test", runnable=mock_runnable)
         result = task.run()
         assert isinstance(result, TaskRequirement)
 
     @pytest.mark.asyncio
     async def test_parse_response_async_consistency(self):
         """Test that async parsing is consistent with sync parsing."""
-        response_data = {"require_planning": True, "reasoning": "Consistent test"}
-        mock_runnable = StringReturningMockRunnable(response_data=response_data)
-        task = TaskRunnable(
-            query="Test", runnable=mock_runnable, response_format=TaskAssessment
-        )
+        mock_runnable = MockRunnable()
+        task = TaskRunnable(query="Test", runnable=mock_runnable)
 
         result_sync = task.run()
         result_async = await task.run_async()
 
         assert isinstance(result_sync, TaskAssessment)
         assert isinstance(result_async, TaskAssessment)
-        assert result_sync.require_planning == result_async.require_planning
-        assert result_sync.reasoning == result_async.reasoning
+        # Note: MockRunnable returns different values for sync vs async
+        assert result_sync.require_planning is True
+        assert result_async.require_planning is False

@@ -59,7 +59,7 @@ class TestChatMonitorIntegration:
         mock_agent.agent_id = "test-agent-id"
         mock_agent.name = "TestAgent"
         mock_agent.system_prompt = "Test prompt"
-        mock_agent.invoke_async = AsyncMock(
+        mock_agent.run_async = AsyncMock(
             return_value=Mock(output="Test response", message={})
         )
 
@@ -129,7 +129,7 @@ class TestMonitorWithMockAgent:
             on_event(runtime)
             return Mock(output="Hello world", message={})
 
-        mock_agent.invoke_async = mock_invoke
+        mock_agent.run_async = mock_invoke
 
         with patch.object(
             manager.monitor_manager, "create_agent_runtime", return_value=mock_agent
@@ -194,7 +194,7 @@ class TestMonitorWithMockAgent:
 
             return Mock(output="The answer is 4", message={})
 
-        mock_agent.invoke_async = mock_invoke
+        mock_agent.run_async = mock_invoke
 
         with patch.object(
             manager.monitor_manager, "create_agent_runtime", return_value=mock_agent
@@ -270,7 +270,7 @@ class TestMonitorWithMockAgent:
 
             return Mock(output="Let me calculate that. The answer is 42.", message={})
 
-        mock_agent.invoke_async = mock_invoke
+        mock_agent.run_async = mock_invoke
 
         with patch.object(
             manager.monitor_manager, "create_agent_runtime", return_value=mock_agent
@@ -336,7 +336,7 @@ class TestMonitorErrorHandling:
             # Even with failing callback, execution should continue
             return Mock(output="test", message={})
 
-        mock_agent.invoke_async = mock_invoke
+        mock_agent.run_async = mock_invoke
 
         with patch.object(
             manager.monitor_manager, "create_agent_runtime", return_value=mock_agent
@@ -403,8 +403,8 @@ class TestMonitorStateManagement:
             on_event_second(runtime)
             return Mock(output="Second response", message={})
 
-        mock_agent_1.invoke_async = mock_invoke_1
-        mock_agent_2.invoke_async = mock_invoke_2
+        mock_agent_1.run_async = mock_invoke_1
+        mock_agent_2.run_async = mock_invoke_2
 
         # First execution
         with patch.object(

@@ -47,16 +47,16 @@ class TestCreateToolingTask:
         assert "Find tools for data analysis" in task._query
 
     @patch("fivcadvisor.tasks.agents.create_tooling_agent")
-    def test_create_tooling_task_sets_response_format(self, mock_create_agent):
-        """Test that create_tooling_task sets response_format to TaskRequirement."""
+    def test_create_tooling_task_sets_response_model(self, mock_create_agent):
+        """Test that create_tooling_task sets response_model to TaskRequirement."""
         mock_agent = MagicMock(spec=Runnable)
         mock_create_agent.return_value = mock_agent
 
         create_tooling_task("Test query")
 
-        # Verify response_format was set
+        # Verify response_model was set (passed to create_agent as response_format)
         call_kwargs = mock_create_agent.call_args[1]
-        assert call_kwargs.get("response_format") == TaskRequirement
+        assert call_kwargs.get("response_model") == TaskRequirement
 
     @patch("fivcadvisor.tasks.agents.create_tooling_agent")
     def test_create_tooling_task_with_tools_retriever(self, mock_create_agent):
@@ -147,15 +147,15 @@ class TestCreateAssessingTask:
         assert "Is this complex?" in task._query
 
     @patch("fivcadvisor.tasks.agents.create_consultant_agent")
-    def test_create_assessing_task_sets_response_format(self, mock_create_agent):
-        """Test that create_assessing_task sets response_format to TaskAssessment."""
+    def test_create_assessing_task_sets_response_model(self, mock_create_agent):
+        """Test that create_assessing_task sets response_model to TaskAssessment."""
         mock_agent = MagicMock(spec=Runnable)
         mock_create_agent.return_value = mock_agent
 
         create_assessing_task("Test query")
 
         call_kwargs = mock_create_agent.call_args[1]
-        assert call_kwargs.get("response_format") == TaskAssessment
+        assert call_kwargs.get("response_model") == TaskAssessment
 
     @patch("fivcadvisor.tasks.agents.create_consultant_agent")
     def test_create_assessing_task_includes_planning_guidance(self, mock_create_agent):
@@ -200,15 +200,15 @@ class TestCreatePlanningTask:
         assert "Plan this complex task" in task._query
 
     @patch("fivcadvisor.tasks.agents.create_planning_agent")
-    def test_create_planning_task_sets_response_format(self, mock_create_agent):
-        """Test that create_planning_task sets response_format to TaskTeam."""
+    def test_create_planning_task_sets_response_model(self, mock_create_agent):
+        """Test that create_planning_task sets response_model to TaskTeam."""
         mock_agent = MagicMock(spec=Runnable)
         mock_create_agent.return_value = mock_agent
 
         create_planning_task("Test query")
 
         call_kwargs = mock_create_agent.call_args[1]
-        assert call_kwargs.get("response_format") == TaskTeam
+        assert call_kwargs.get("response_model") == TaskTeam
 
     @patch("fivcadvisor.tasks.agents.create_planning_agent")
     def test_create_planning_task_includes_specialist_guidance(self, mock_create_agent):

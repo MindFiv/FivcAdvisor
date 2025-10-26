@@ -479,7 +479,7 @@ class AgentsMonitorManager(object):
             ...     tools_retriever=tools.default_retriever,
             ...     agent_creator=agent_creator("companion")
             ... )
-            >>> result = await agent.invoke_async("What is 2+2?")
+            >>> result = await agent.run_async("What is 2+2?")
         """
         assert tools_retriever is not None
         assert agent_creator is not None

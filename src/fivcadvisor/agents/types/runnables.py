@@ -29,12 +29,13 @@ Example:
     >>> print(result)
 """
 
-from typing import Optional, Any, List, Callable
+from typing import Optional, Any, List, Callable, Type, Union
 from uuid import uuid4
 
 from langchain.agents import create_agent
 from langchain_core.tools import BaseTool
 from langchain_core.language_models import BaseChatModel
+from pydantic import BaseModel
 
 from fivcadvisor.utils import Runnable
 
@@ -87,6 +88,7 @@ class AgentsRunnable(Runnable):
         agent_id: str | None = None,
         agent_name: str = "Default",
         system_prompt: str | None = None,
+        response_model: Type[BaseModel] | None = None,
         callback_handler: Optional[Callable] = None,
         **kwargs,
     ):
@@ -99,17 +101,28 @@ class AgentsRunnable(Runnable):
             agent_id: Unique identifier for the agent (auto-generated if not provided)
             agent_name: Human-readable name for the agent (default: 'Default')
             system_prompt: System prompt/instructions for the agent
+            response_model: Optional Pydantic model class for structured output.
+                           When provided, the agent will return instances of this model
+                           instead of strings. The model is passed to create_agent as
+                           response_format for automatic conversion.
             callback_handler: Optional callback handler for execution events
             **kwargs: Additional arguments (ignored for compatibility)
 
         Example:
             >>> from langchain_openai import ChatOpenAI
+            >>> from pydantic import BaseModel
+            >>>
+            >>> class MyResponse(BaseModel):
+            ...     answer: str
+            ...     confidence: float
+            >>>
             >>> model = ChatOpenAI(model="gpt-4o-mini")
             >>> agent = AgentsRunnable(
             ...     model=model,
             ...     tools=[],
             ...     agent_name="MyAgent",
-            ...     system_prompt="You are helpful"
+            ...     system_prompt="You are helpful",
+            ...     response_model=MyResponse
             ... )
         """
         self._id = agent_id or str(uuid4())
@@ -121,6 +134,7 @@ class AgentsRunnable(Runnable):
             tools,
             name=agent_name,
             system_prompt=system_prompt,
+            response_format=response_model,
         )
 
     @property
@@ -138,19 +152,25 @@ class AgentsRunnable(Runnable):
         """
         return self._id
 
-    def run(self, query: str, **kwargs: Any) -> str:
+    def run(self, query: str, **kwargs: Any) -> Union[BaseModel, str]:
         """
         Execute the agent synchronously.
 
         Invokes the agent with the provided query and returns the response.
         If a callback handler is configured, it will be called with the result.
 
+        The return type depends on whether a response_model was provided during
+        initialization:
+        - If response_model is set: Returns an instance of that Pydantic model
+        - If response_model is None: Returns the response as a string
+
         Args:
             query: The user query to process
             **kwargs: Additional arguments passed to the agent
 
         Returns:
-            The agent's response as a string
+            Union[BaseModel, str]: The agent's response, either as a Pydantic model
+                                   instance (if response_model was provided) or as a string
 
         Raises:
             Exception: Any exception from the agent is caught and returned as error message
@@ -160,6 +180,15 @@ class AgentsRunnable(Runnable):
             >>> result = agent.run("What is 2+2?")
             >>> print(result)
             '4'
+
+            >>> # With response_model
+            >>> from pydantic import BaseModel
+            >>> class Answer(BaseModel):
+            ...     value: int
+            >>> agent = AgentsRunnable(model=model, tools=[], response_model=Answer)
+            >>> result = agent.run("What is 2+2?")
+            >>> print(result.value)
+            4
         """
         try:
             # LangGraph agent expects messages in the input
@@ -186,19 +215,25 @@ class AgentsRunnable(Runnable):
                     pass
             return error_msg
 
-    async def run_async(self, query: str, **kwargs: Any) -> str:
+    async def run_async(self, query: str, **kwargs: Any) -> Union[BaseModel, str]:
         """
         Execute the agent asynchronously.
 
         Asynchronously invokes the agent with the provided query and returns the response.
         If a callback handler is configured, it will be called with the result.
 
+        The return type depends on whether a response_model was provided during
+        initialization:
+        - If response_model is set: Returns an instance of that Pydantic model
+        - If response_model is None: Returns the response as a string
+
         Args:
             query: The user query to process
             **kwargs: Additional arguments passed to the agent
 
         Returns:
-            The agent's response as a string
+            Union[BaseModel, str]: The agent's response, either as a Pydantic model
+                                   instance (if response_model was provided) or as a string
 
         Raises:
             Exception: Any exception from the agent is caught and returned as error message
@@ -209,6 +244,15 @@ class AgentsRunnable(Runnable):
             >>> result = asyncio.run(agent.run_async("What is 2+2?"))
             >>> print(result)
             '4'
+
+            >>> # With response_model
+            >>> from pydantic import BaseModel
+            >>> class Answer(BaseModel):
+            ...     value: int
+            >>> agent = AgentsRunnable(model=model, tools=[], response_model=Answer)
+            >>> result = asyncio.run(agent.run_async("What is 2+2?"))
+            >>> print(result.value)
+            4
         """
         try:
             # LangGraph agent expects messages in the input
@@ -236,24 +280,35 @@ class AgentsRunnable(Runnable):
                     pass
             return error_msg
 
-    def _extract_output(self, result: Any) -> str:
+    def _extract_output(self, result: Any) -> Union[BaseModel, str]:
         """
         Extract output from agent result.
 
         Handles both dict results with 'messages' key and other formats.
         Extracts the content from the last message in the result.
 
+        When response_format is configured in create_agent, the output may be
+        a Pydantic model instance. Otherwise, it's extracted as a string from
+        the message content.
+
         Args:
             result: The result from agent invocation (typically a dict with 'messages' key)
 
         Returns:
-            Extracted output as a string
+            Union[BaseModel, str]: Extracted output as either a Pydantic model instance
+                                   or a string, depending on the agent's response_format
 
         Example:
             >>> result = {"messages": [AIMessage(content="Hello!")]}
             >>> output = agent._extract_output(result)
             >>> print(output)
             'Hello!'
+
+            >>> # With response_format
+            >>> result = {"messages": [MyModel(field="value")]}
+            >>> output = agent._extract_output(result)
+            >>> print(output.field)
+            'value'
         """
         if isinstance(result, dict) and "messages" in result:
             messages = result["messages"]
