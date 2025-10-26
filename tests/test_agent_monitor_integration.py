@@ -66,19 +66,22 @@ class TestChatMonitorIntegration:
         with patch.object(
             manager.monitor_manager, "create_agent_runtime", return_value=mock_agent
         ):
-            # Mock run_briefing_task to avoid actual agent creation
+            # Mock create_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
-            ) as mock_briefing:
-                mock_briefing.return_value = "Agent description"
+                "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            ) as mock_briefing_task:
+                # Mock the task to return a mock with run_async method
+                mock_task = Mock()
+                mock_task.run_async = AsyncMock(return_value="Agent description")
+                mock_briefing_task.return_value = mock_task
 
                 # First execution - should call briefing task to create agent metadata
                 await manager.ask("query 1")
-                assert mock_briefing.call_count == 1
+                assert mock_briefing_task.call_count == 1
 
                 # Second execution - should NOT call briefing task (metadata already exists)
                 await manager.ask("query 2")
-                assert mock_briefing.call_count == 1  # Still 1, not 2
+                assert mock_briefing_task.call_count == 1  # Still 1, not 2
 
 
 class TestMonitorWithMockAgent:
@@ -131,11 +134,14 @@ class TestMonitorWithMockAgent:
         with patch.object(
             manager.monitor_manager, "create_agent_runtime", return_value=mock_agent
         ):
-            # Mock run_briefing_task to avoid actual agent creation
+            # Mock create_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
-            ) as mock_briefing:
-                mock_briefing.return_value = "Agent description"
+                "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            ) as mock_briefing_task:
+                # Mock the task to return a mock with run_async method
+                mock_task = Mock()
+                mock_task.run_async = AsyncMock(return_value="Agent description")
+                mock_briefing_task.return_value = mock_task
 
                 # Pass callback to ask method
                 await manager.ask("test", on_event=on_event)
@@ -193,11 +199,14 @@ class TestMonitorWithMockAgent:
         with patch.object(
             manager.monitor_manager, "create_agent_runtime", return_value=mock_agent
         ):
-            # Mock run_briefing_task to avoid actual agent creation
+            # Mock create_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
-            ) as mock_briefing:
-                mock_briefing.return_value = "Agent description"
+                "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            ) as mock_briefing_task:
+                # Mock the task to return a mock with run_async method
+                mock_task = Mock()
+                mock_task.run_async = AsyncMock(return_value="Agent description")
+                mock_briefing_task.return_value = mock_task
 
                 # Pass callback to ask method
                 await manager.ask("test", on_event=on_event)
@@ -266,11 +275,14 @@ class TestMonitorWithMockAgent:
         with patch.object(
             manager.monitor_manager, "create_agent_runtime", return_value=mock_agent
         ):
-            # Mock run_briefing_task to avoid actual agent creation
+            # Mock create_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
-            ) as mock_briefing:
-                mock_briefing.return_value = "Agent description"
+                "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            ) as mock_briefing_task:
+                # Mock the task to return a mock with run_async method
+                mock_task = Mock()
+                mock_task.run_async = AsyncMock(return_value="Agent description")
+                mock_briefing_task.return_value = mock_task
 
                 # Pass callback to ask method
                 await manager.ask("test", on_event=on_event)
@@ -329,11 +341,14 @@ class TestMonitorErrorHandling:
         with patch.object(
             manager.monitor_manager, "create_agent_runtime", return_value=mock_agent
         ):
-            # Mock run_briefing_task to avoid actual agent creation
+            # Mock create_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
-            ) as mock_briefing:
-                mock_briefing.return_value = "Agent description"
+                "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            ) as mock_briefing_task:
+                # Mock the task to return a mock with run_async method
+                mock_task = Mock()
+                mock_task.run_async = AsyncMock(return_value="Agent description")
+                mock_briefing_task.return_value = mock_task
 
                 # Should not raise exception despite failing callback
                 result = await manager.ask("test", on_event=failing_callback)
@@ -395,22 +410,28 @@ class TestMonitorStateManagement:
         with patch.object(
             manager.monitor_manager, "create_agent_runtime", return_value=mock_agent_1
         ):
-            # Mock run_briefing_task to avoid actual agent creation
+            # Mock create_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
-            ) as mock_briefing:
-                mock_briefing.return_value = "Agent description"
+                "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            ) as mock_briefing_task:
+                # Mock the task to return a mock with run_async method
+                mock_task = Mock()
+                mock_task.run_async = AsyncMock(return_value="Agent description")
+                mock_briefing_task.return_value = mock_task
                 await manager.ask("query 1", on_event=on_event_first)
 
         # Second execution
         with patch.object(
             manager.monitor_manager, "create_agent_runtime", return_value=mock_agent_2
         ):
-            # Mock run_briefing_task to avoid actual agent creation
+            # Mock create_briefing_task to avoid actual agent creation
             with patch(
-                "fivcadvisor.app.utils.chats.tasks.run_briefing_task"
-            ) as mock_briefing:
-                mock_briefing.return_value = "Agent description"
+                "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            ) as mock_briefing_task:
+                # Mock the task to return a mock with run_async method
+                mock_task = Mock()
+                mock_task.run_async = AsyncMock(return_value="Agent description")
+                mock_briefing_task.return_value = mock_task
                 await manager.ask("query 2", on_event=on_event_second)
 
         # State should be isolated between runs

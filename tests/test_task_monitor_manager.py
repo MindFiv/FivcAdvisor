@@ -6,7 +6,7 @@ Tests for TaskMonitorManager functionality.
 import os
 import tempfile
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, AsyncMock, patch
 
 from fivcadvisor.tasks.types import (
     TaskTeam,
@@ -52,19 +52,23 @@ class TestTaskMonitorManager:
             )
 
             # Mock both planning and swarm creation
-            with patch("fivcadvisor.tasks.run_planning_task") as mock_planning:
+            with patch("fivcadvisor.tasks.create_planning_task") as mock_planning_task:
                 with patch(
                     "fivcadvisor.agents.create_generic_agent_swarm"
                 ) as mock_create:
-                    mock_planning.return_value = plan
+                    # Mock the planning task to return a TaskTeam
+                    mock_task = Mock()
+                    mock_task.run_async = AsyncMock(return_value=plan)
+                    mock_planning_task.return_value = mock_task
+
                     mock_swarm = Mock()
                     mock_create.return_value = mock_swarm
 
                     swarm = await manager.create_task(query="Test query")
 
                     assert swarm == mock_swarm
-                    # Verify that planning was called
-                    mock_planning.assert_called_once()
+                    # Verify that planning task was created
+                    mock_planning_task.assert_called_once()
                     # Verify that create_generic_agent_swarm was called with hooks
                     mock_create.assert_called_once()
                     call_kwargs = mock_create.call_args[1]

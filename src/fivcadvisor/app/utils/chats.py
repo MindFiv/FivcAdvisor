@@ -410,10 +410,11 @@ class Chat(object):
             # Save agent metadata on first query
             if not self.runtime_meta:
                 agent_query = f"{query}\n{str(agent_result)}"
-                agent_desc = await tasks.run_briefing_task(
+                agent_desc = tasks.create_briefing_task(
                     agent_query,
                     tools_retriever=self.tools_retriever,
                 )
+                agent_desc = await agent_desc.run_async()
                 self.runtime_meta = AgentsRuntimeMeta(
                     agent_id=agent.agent_id,
                     agent_name=agent.name,

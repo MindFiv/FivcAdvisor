@@ -303,13 +303,14 @@ class TaskMonitorManager(object):
             Agent swarm instance
         """
         # Import here to avoid circular dependency
-        from fivcadvisor.tasks import run_planning_task
+        from fivcadvisor.tasks import create_planning_task
 
-        task_team = await run_planning_task(
+        task_team = create_planning_task(
             query,
             tools_retriever=tools_retriever,
             **kwargs,
         )
+        task_team = await task_team.run_async()
         task_runtime = TaskRuntime(
             query=query,
             team=task_team,

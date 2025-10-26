@@ -1,18 +1,41 @@
 """
 Task types module.
 
-Provides types and utilities for task execution tracking and persistence.
+Provides types, models, and utilities for task execution tracking, persistence,
+and execution management.
 
-Key Components:
-    - TaskAssessment: Assessment result for task complexity
+Task Models (Pydantic):
+    - TaskAssessment: Assessment result for task complexity and planning needs
     - TaskRequirement: Tool requirements for a task
-    - TaskTeam: Team plan with specialist agents
-    - TaskMonitor: Tracks agent execution through Strands hooks
+    - TaskTeam: Team plan with specialist agents for complex tasks
+    - TaskStatus: Execution status enumeration (PENDING, EXECUTING, COMPLETED, FAILED)
+    - TaskRuntimeStep: Individual agent execution step with timing and messages
+    - TaskRuntime: Overall task execution state and metadata
+
+Task Execution and Monitoring:
+    - TaskRunnable: Wrapper for task-specific agent execution
+    - TaskMonitor: Tracks agent execution through hook events
     - TaskMonitorManager: Manages multiple tasks with centralized monitoring
-    - TaskRuntime: Task metadata and execution state
-    - TaskRuntimeStep: Individual agent execution step
+
+Task Persistence:
     - TaskRuntimeRepository: Abstract interface for task persistence
-    - TaskStatus: Execution status enumeration (from Strands)
+
+Usage Example:
+    >>> from fivcadvisor.tasks.types import TaskMonitor, TaskStatus
+    >>> from fivcadvisor.tasks.types.repositories.files import FileTaskRuntimeRepository
+    >>>
+    >>> # Create a monitor with file persistence
+    >>> repo = FileTaskRuntimeRepository(output_dir="./tasks")
+    >>> monitor = TaskMonitor(runtime_repo=repo)
+    >>>
+    >>> # Use with agent execution
+    >>> swarm = create_agent_swarm(hooks=[monitor])
+    >>> result = swarm.run("Execute task")
+    >>>
+    >>> # Query task status
+    >>> runtime = monitor.get_runtime()
+    >>> print(f"Status: {runtime.status}")
+    >>> print(f"Steps: {len(runtime.steps)}")
 """
 
 __all__ = [
@@ -25,6 +48,7 @@ __all__ = [
     "TaskRuntimeRepository",
     "TaskStatus",
     "TaskMonitorManager",
+    "TaskRunnable",
 ]
 
 from .base import (
@@ -37,3 +61,4 @@ from .base import (
 )
 from .monitors import TaskMonitor, TaskMonitorManager
 from .repositories import TaskRuntimeRepository
+from .runnables import TaskRunnable

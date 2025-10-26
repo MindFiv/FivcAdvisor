@@ -31,7 +31,7 @@ class TaskManager(object):
     - Simplified task creation API for UI
 
     The underlying TaskMonitorManager.create_task() handles:
-    - Planning via run_planning_task()
+    - Planning via create_planning_task()
     - TaskMonitor creation with persistence
     - Agent swarm creation with monitoring hooks
 
@@ -70,7 +70,7 @@ class TaskManager(object):
         Create and execute a task from a user query.
 
         This uses TaskMonitorManager.create_task() which handles:
-        1. Planning (via run_planning_task)
+        1. Planning (via create_planning_task)
         2. Creating TaskMonitor with persistence
         3. Creating agent swarm with monitoring hooks
 

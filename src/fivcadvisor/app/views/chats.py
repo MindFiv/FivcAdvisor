@@ -23,7 +23,7 @@ from langchain_core.messages import AIMessage
 
 from fivcadvisor.app.utils import Chat, default_running_config
 from fivcadvisor.app.components import ChatMessage
-from fivcadvisor.tasks import run_assessing_task
+from fivcadvisor.tasks import create_assessing_task
 from .base import ViewBase, ViewNavigation
 from ...agents.types import AgentsRuntime
 
@@ -147,13 +147,12 @@ class ChatView(ViewBase):
             # Execute query with streaming callback
             is_new_chat = self.chat.id is None
 
-            # Assess query
-            assessment = asyncio.run(
-                run_assessing_task(
-                    user_query,
-                    tools_retriever=self.chat.tools_retriever,
-                )
+            assessment_task = create_assessing_task(
+                user_query,
+                tools_retriever=self.chat.tools_retriever,
             )
+            # Assess query
+            assessment = asyncio.run(assessment_task.run_async())
 
             if assessment.require_planning and default_running_config.get(
                 "enable_tasks"

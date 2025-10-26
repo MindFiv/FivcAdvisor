@@ -6,7 +6,6 @@ Tests the complete workflow integration without requiring actual LLM calls.
 """
 
 import sys
-import pytest
 import dotenv
 
 from fivcadvisor import tasks, agents
@@ -19,8 +18,8 @@ class TestExecutionTaskIntegration:
 
     def test_imports(self):
         """Test that all required imports work"""
-        assert hasattr(tasks, "run_planning_task")
-        assert hasattr(tasks, "run_assessing_task")
+        assert hasattr(tasks, "create_planning_task")
+        assert hasattr(tasks, "create_assessing_task")
         assert hasattr(agents, "create_generic_agent_swarm")
         assert hasattr(tasks, "TaskTeam")
         assert hasattr(tasks, "TaskMonitor")
@@ -74,20 +73,21 @@ class TestExecutionTaskIntegration:
         assert event.is_completed
         assert event.duration is not None
 
-    @pytest.mark.asyncio
-    async def test_run_planning_task_signature(self):
-        """Test run_planning_task function signature"""
+    def test_create_planning_task_signature(self):
+        """Test create_planning_task function signature"""
         import inspect
 
-        sig = inspect.signature(tasks.run_planning_task)
+        sig = inspect.signature(tasks.create_planning_task)
         params = list(sig.parameters.keys())
 
         assert "query" in params
         assert "tools_retriever" in params
         assert "kwargs" in params
 
-        # Check it's async
-        assert inspect.iscoroutinefunction(tasks.run_planning_task)
+        # Check it's callable and returns a Runnable
+        task = tasks.create_planning_task("Test query")
+        assert hasattr(task, "run")
+        assert hasattr(task, "run_async")
 
     def test_swarm_creator_signature(self):
         """Test create_generic_agent_swarm signature"""
@@ -103,12 +103,12 @@ class TestExecutionTaskIntegration:
     def test_workflow_components(self):
         """Test that all workflow components exist"""
         # Assessment
-        assert hasattr(tasks, "run_assessing_task")
-        assert callable(tasks.run_assessing_task)
+        assert hasattr(tasks, "create_assessing_task")
+        assert callable(tasks.create_assessing_task)
 
         # Planning
-        assert hasattr(tasks, "run_planning_task")
-        assert callable(tasks.run_planning_task)
+        assert hasattr(tasks, "create_planning_task")
+        assert callable(tasks.create_planning_task)
 
         # Task execution through TaskMonitorManager
         assert hasattr(tasks, "TaskMonitorManager")
@@ -127,8 +127,8 @@ class TestExecutionTaskIntegration:
     def test_exports(self):
         """Test that functions are properly exported"""
         # Tasks module
-        assert "run_planning_task" in tasks.__all__
-        assert "run_assessing_task" in tasks.__all__
+        assert "create_planning_task" in tasks.__all__
+        assert "create_assessing_task" in tasks.__all__
         assert "TaskMonitorManager" in tasks.__all__
 
         # Agents module

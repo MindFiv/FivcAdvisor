@@ -14,5 +14,5 @@ __all__ = [
 ]
 
 from .directories import OutputDir
-from .runables import Runnable
+from .runnables import Runnable
 from .variables import LazyValue
