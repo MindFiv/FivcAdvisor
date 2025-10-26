@@ -5,6 +5,8 @@ __all__ = [
     "AgentsRuntime",
     "AgentsRuntimeToolCall",
     "AgentsStatus",
+    "AgentsRunnable",
+    "AgentsSwarmRunnable",
     "AgentsCreatorBase",
     "AgentsRetriever",
     "FunctionAgentCreator",
@@ -17,6 +19,7 @@ from .base import (
     AgentsRuntimeToolCall,
     AgentsStatus,
 )
+from .runnables import AgentsRunnable, AgentsSwarmRunnable
 from .monitors import (
     AgentsMonitor,
     AgentsMonitorManager,

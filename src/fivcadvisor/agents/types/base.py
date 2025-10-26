@@ -40,22 +40,22 @@ Example:
     ...     agent_name="MyAgent",
     ...     status=AgentsStatus.EXECUTING
     ... )
-    >>>
-    >>> # Add tool call
-    >>> tool_call = AgentsRuntimeToolCall(
-    ...     tool_use_id="tool-1",
-    ...     tool_name="calculator",
-    ...     tool_input={"expression": "2+2"}
-    ... )
-    >>> runtime.tool_calls[tool_call.tool_use_id] = tool_call
+
+Note:
+    For agent execution, see AgentsRunnable in fivcadvisor.agents.types.runnables
 """
 
 from datetime import datetime
 from enum import Enum
 from typing import Optional, Dict, Any
 
-from pydantic import BaseModel, Field, computed_field, field_validator
 from langchain_core.messages import BaseMessage, AIMessage
+from pydantic import (
+    BaseModel,
+    Field,
+    computed_field,
+    field_validator,
+)
 
 
 class AgentsStatus(str, Enum):

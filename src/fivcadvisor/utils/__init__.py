@@ -4,12 +4,16 @@ __all__ = [
     "create_output_dir",
     "LazyValue",
     "OutputDir",
+    "Runnable",
 ]
 
 from typing import Optional, Callable
 
-from .variables import LazyValue
-from .directories import OutputDir
+from fivcadvisor.utils.types import (
+    LazyValue,
+    OutputDir,
+    Runnable,
+)
 
 
 def create_default_kwargs(kwargs: dict, defaults: dict):

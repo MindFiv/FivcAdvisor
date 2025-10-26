@@ -13,9 +13,8 @@ __all__ = [
     "AgentsRetriever",
 ]
 
-from typing import cast, List, Optional, Any
+from typing import cast, List, Optional
 from uuid import uuid4
-# from typing import Callable
 
 from fivcadvisor import (
     tools,
@@ -31,45 +30,20 @@ from fivcadvisor.agents.types import (
     agent_creator,
     AgentsRetriever,
     AgentsCreatorBase,
+    AgentsRunnable,
+    AgentsSwarmRunnable,
 )
-from fivcadvisor.agents.types.langchain_agent import create_langchain_agent
-from fivcadvisor.agents.types.swarm import LangGraphSwarm
-
-# Backward compatibility alias
-LangGraphSwarmAdapter = LangGraphSwarm
+from fivcadvisor.utils import Runnable
 
 
 @agent_creator("Generic")
-def create_default_agent(*args, **kwargs) -> Any:
+def create_default_agent(**kwargs) -> Runnable:
     """Create a standard ReAct agent for task execution."""
 
-    # filter out unknown kwargs
-    kwargs = {
-        k: v
-        for k, v in kwargs.items()
-        if k
-        in [
-            "model",
-            "messages",
-            "tools",
-            "system_prompt",
-            "callback_handler",
-            "conversation_manager",
-            "record_direct_tool_call",
-            "load_tools_from_directory",
-            "trace_attributes",
-            "agent_id",
-            "name",
-            "description",
-            "state",
-            "hooks",
-            "session_manager",
-            "tool_executor",
-        ]
-    }
-
     # Set default role if not provided
-    kwargs.setdefault("name", "Generic")
+    # Support both 'name' and 'agent_name' for backward compatibility
+    if "agent_name" not in kwargs:
+        kwargs["agent_name"] = kwargs.pop("name", "Generic")
 
     if "agent_id" not in kwargs:
         kwargs["agent_id"] = str(uuid4())
@@ -80,16 +54,13 @@ def create_default_agent(*args, **kwargs) -> Any:
     if "model" not in kwargs:
         kwargs["model"] = create_default_model()
 
-    # Use LangChain Agent adapter instead of Strands Agent
-    agent = create_langchain_agent(*args, **kwargs)
-
-    return agent
+    return AgentsRunnable(**kwargs)
 
 
 @agent_creator("Companion")
-def create_companion_agent(*args, **kwargs) -> Any:
+def create_companion_agent(*args, **kwargs) -> Runnable:
     """Create a friend agent for chat."""
-    kwargs["name"] = "Companion"
+    kwargs["agent_name"] = "Companion"
     kwargs.setdefault(
         "system_prompt", "You are a companion, or even a close friend of the user. "
     )
@@ -102,10 +73,10 @@ def create_companion_agent(*args, **kwargs) -> Any:
     return create_default_agent(*args, **kwargs)
 
 
-@agent_creator("ToolRetriever")
-def create_tooling_agent(*args, **kwargs) -> Any:
+@agent_creator("Tooling")
+def create_tooling_agent(*args, **kwargs) -> Runnable:
     """Create an agent that can retrieve tools."""
-    kwargs["name"] = "ToolRetriever"
+    kwargs["agent_name"] = "Tooling"
     kwargs.setdefault(
         "system_prompt",
         "You are a tool retrieval specialist with deep expertise "
@@ -122,9 +93,9 @@ def create_tooling_agent(*args, **kwargs) -> Any:
 
 
 @agent_creator(name="Consultant")
-def create_consultant_agent(*args, **kwargs) -> Any:
+def create_consultant_agent(*args, **kwargs) -> Runnable:
     """Create an agent that can assess tasks."""
-    kwargs["name"] = "Consultant"
+    kwargs["agent_name"] = "Consultant"
     kwargs.setdefault(
         "system_prompt",
         """
@@ -142,9 +113,9 @@ def create_consultant_agent(*args, **kwargs) -> Any:
 
 
 @agent_creator(name="Planner")
-def create_planning_agent(*args, **kwargs) -> Any:
+def create_planning_agent(*args, **kwargs) -> Runnable:
     """Create an agent that can plan tasks."""
-    kwargs["name"] = "Planner"
+    kwargs["agent_name"] = "Planner"
     kwargs.setdefault(
         "system_prompt",
         "You are a task planning specialist with deep expertise "
@@ -158,9 +129,9 @@ def create_planning_agent(*args, **kwargs) -> Any:
 
 
 @agent_creator(name="Researcher")
-def create_research_agent(*args, **kwargs) -> Any:
+def create_research_agent(*args, **kwargs) -> Runnable:
     """Create an agent that can research tasks."""
-    kwargs["name"] = "Researcher"
+    kwargs["agent_name"] = "Researcher"
     kwargs.setdefault(
         "system_prompt",
         "You are a pattern recognition specialist and domain analysis expert "
@@ -176,9 +147,9 @@ def create_research_agent(*args, **kwargs) -> Any:
 
 
 @agent_creator(name="Engineer")
-def create_engineering_agent(*args, **kwargs) -> Any:
+def create_engineering_agent(*args, **kwargs) -> Runnable:
     """Create an agent that can engineer tools."""
-    kwargs["name"] = "Engineer"
+    kwargs["agent_name"] = "Engineer"
     kwargs.setdefault(
         "system_prompt",
         "You are a tool development specialist and code generation expert "
@@ -194,9 +165,9 @@ def create_engineering_agent(*args, **kwargs) -> Any:
 
 
 @agent_creator(name="Evaluator")
-def create_evaluating_agent(*args, **kwargs) -> Any:
+def create_evaluating_agent(*args, **kwargs) -> Runnable:
     """Create an agent that can evaluate performance."""
-    kwargs["name"] = "Evaluator"
+    kwargs["agent_name"] = "Evaluator"
     kwargs.setdefault(
         "system_prompt",
         "You are a performance assessment specialist and "
@@ -219,15 +190,15 @@ def create_generic_agent_swarm(
     team: Optional[TaskTeam] = None,
     tools_retriever: Optional[tools.ToolsRetriever] = None,
     **kwargs,
-) -> Any:
+) -> Runnable:
     """
     Create a generic swarm of agents.
 
-    This function creates a swarm of agents using LangGraph Swarm as the
-    underlying orchestration engine. It maintains backward compatibility
-    with the Strands Swarm API through the LangGraphSwarmAdapter.
+    This function creates a swarm of agents using AgentsSwarmRunnable for
+    multi-agent orchestration. The swarm enables dynamic agent routing,
+    message passing, and coordinated execution across specialized agents.
 
-    All agents in the swarm use LangChainAgentAdapter for compatibility
+    All agents in the swarm use AgentsRunnable for compatibility
     with the LangChain ecosystem.
 
     Args:
@@ -236,10 +207,36 @@ def create_generic_agent_swarm(
         **kwargs: Additional arguments passed to agent creation
 
     Returns:
-        LangGraphSwarmAdapter instance (compatible with Swarm API)
+        AgentsSwarmRunnable instance for multi-agent orchestration
 
     Raises:
         RuntimeError: If team or tools_retriever is not provided
+
+    Example:
+        >>> from fivcadvisor.agents import create_generic_agent_swarm
+        >>> from fivcadvisor.tasks.types import TaskTeam, TaskRequirement
+        >>> from fivcadvisor import tools
+        >>>
+        >>> team = TaskTeam(specialists=[
+        ...     TaskRequirement(
+        ...         name="Researcher",
+        ...         backstory="You are a research specialist",
+        ...         tools=["search_tool"]
+        ...     ),
+        ...     TaskRequirement(
+        ...         name="Analyst",
+        ...         backstory="You are a data analyst",
+        ...         tools=["analysis_tool"]
+        ...     )
+        ... ])
+        >>>
+        >>> swarm = create_generic_agent_swarm(
+        ...     team=team,
+        ...     tools_retriever=tools.default_retriever
+        ... )
+        >>>
+        >>> result = await swarm.run_async("Analyze the latest trends")
+        >>> print(result)
     """
     if not team:
         raise RuntimeError("team not provided")
@@ -251,7 +248,7 @@ def create_generic_agent_swarm(
     for s in team.specialists:
         s_tools = tools_retriever.get_batch(s.tools)
         s_tools = [t for t in s_tools if t is not None]
-        # create_default_agent now returns LangChainAgentAdapter
+        # create_default_agent now returns AgentsRunnable
         s_agents.append(
             create_default_agent(
                 name=s.name,
@@ -261,9 +258,12 @@ def create_generic_agent_swarm(
             )
         )
 
-    # Use LangGraph Swarm adapter instead of Strands Swarm
-    # This maintains the same API while using LangGraph under the hood
-    return LangGraphSwarmAdapter(s_agents)
+    # Create and return AgentsSwarmRunnable for multi-agent orchestration
+    return AgentsSwarmRunnable(
+        swarm_name=team.name if hasattr(team, "name") else "GenericSwarm",
+        agents=s_agents,
+        default_agent_name=s_agents[0]._name if s_agents else None,
+    )
 
 
 def _load_retriever() -> AgentsRetriever:

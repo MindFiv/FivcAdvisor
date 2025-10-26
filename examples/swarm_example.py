@@ -1,10 +1,10 @@
 """
-LangGraph Swarm Example
+AgentsSwarmRunnable Example
 
-This example demonstrates how to use the LangGraph Swarm adapter to create
+This example demonstrates how to use AgentsSwarmRunnable to create
 a multi-agent system with specialized agents that can hand off tasks to each other.
 
-The swarm uses LangChain agents with LangGraph for orchestration, providing
+The swarm uses AgentsRunnable agents with LangGraph for orchestration, providing
 a powerful multi-agent architecture.
 """
 
@@ -14,7 +14,8 @@ from typing import List
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 
-from fivcadvisor.agents import create_default_agent, create_swarm
+from fivcadvisor.agents import create_default_agent
+from fivcadvisor.agents.types import AgentsSwarmRunnable
 
 
 # Define some example tools
@@ -73,8 +74,9 @@ async def main():
         name="Writer",
     )
     
-    # Create the swarm
-    swarm = create_swarm(
+    # Create the swarm using AgentsSwarmRunnable
+    swarm = AgentsSwarmRunnable(
+        swarm_name="ResearchSwarm",
         agents=[researcher, analyst, writer],
         default_agent_name="Researcher",
     )
