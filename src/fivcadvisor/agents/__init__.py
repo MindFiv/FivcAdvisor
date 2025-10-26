@@ -10,6 +10,7 @@ __all__ = [
     "create_generic_agent_swarm",
     "default_retriever",
     "default_agent",
+    "AgentsCreatorBase",
     "AgentsRetriever",
 ]
 
