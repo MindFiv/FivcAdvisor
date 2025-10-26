@@ -1,62 +1,7 @@
 import os
-from typing import Optional, List, Dict, Callable, Any
+from typing import Optional, List, Dict, Any
 
-from mcp import StdioServerParameters, stdio_client
-from mcp.client.sse import sse_client
-
-
-class MCPClientInitializationError(Exception):
-    """
-    Exception raised when MCP client initialization fails.
-
-    This exception is raised when there are issues initializing or connecting
-    to an MCP (Model Context Protocol) client.
-    """
-
-    pass
-
-
-class MCPClient:
-    """
-    Wrapper for MCP (Model Context Protocol) client connections.
-
-    This class wraps MCP client factories to provide a consistent interface
-    for managing MCP server connections.
-
-    Attributes:
-        client_factory: A callable that returns an MCP client instance
-        _client: Cached client instance
-    """
-
-    def __init__(self, client_factory: Callable[[], Any]):
-        """
-        Initialize MCPClient with a client factory.
-
-        Args:
-            client_factory: A callable that returns an MCP client instance
-        """
-        self.client_factory = client_factory
-        self._client = None
-
-    def start(self) -> Any:
-        """
-        Start the MCP client and return it.
-
-        Returns:
-            The MCP client instance
-        """
-        if self._client is None:
-            self._client = self.client_factory()
-        return self._client
-
-    def stop(self) -> None:
-        """Stop the MCP client."""
-        if self._client is not None:
-            if hasattr(self._client, "close"):
-                self._client.close()
-            elif hasattr(self._client, "stop"):
-                self._client.stop()
-            self._client = None
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
 
 class ToolsConfigValue(dict):
@@ -120,15 +65,15 @@ class ToolsConfigValue(dict):
 
         return True
 
-    def get_client(self) -> Optional[MCPClient]:
-        """Create and return an MCPClient based on the configuration.
+    def get_mcp_config(self) -> Optional[Dict[str, Any]]:
+        """Convert ToolsConfigValue to langchain-mcp-adapters configuration format.
 
         Supports two types of MCP server configurations:
         1. Command-based: Runs a local command with optional args and env vars
         2. URL-based: Connects to an SSE (Server-Sent Events) endpoint
 
         Returns:
-            MCPClient: An initialized MCPClient instance, or None if config is invalid.
+            Dict: Configuration dict compatible with MultiServerMCPClient, or None if invalid.
 
         Raises:
             ValueError: If the configuration format is invalid.
@@ -145,16 +90,20 @@ class ToolsConfigValue(dict):
             # Merge with environment variables
             env.update(os.environ)
 
-            return MCPClient(
-                lambda: stdio_client(
-                    StdioServerParameters(command=command, args=args, env=env)
-                )
-            )
+            return {
+                "transport": "stdio",
+                "command": command,
+                "args": args,
+                "env": env,
+            }
 
         elif "url" in self:
             # URL-based configuration
             url = self["url"]
-            return MCPClient(lambda: sse_client(url))
+            return {
+                "transport": "sse",
+                "url": url,
+            }
 
         else:
             return None
@@ -204,8 +153,23 @@ class ToolsConfig(object):
     def delete(self, name: str):
         self._configs.pop(name, None)
 
-    def get_clients(self):
-        return [c.get_client() for c in self._configs.values()]
+    def get_mcp_client(self) -> Optional[MultiServerMCPClient]:
+        """Create and return a MultiServerMCPClient from all configurations.
+
+        Returns:
+            MultiServerMCPClient: A client configured with all MCP servers, or None if no valid configs.
+        """
+        mcp_configs = {}
+        for name, config_value in self._configs.items():
+            if isinstance(config_value, ToolsConfigValue):
+                mcp_config = config_value.get_mcp_config()
+                if mcp_config:
+                    mcp_configs[name] = mcp_config
+
+        if not mcp_configs:
+            return None
+
+        return MultiServerMCPClient(mcp_configs)
 
     def get_errors(self):
         """Get list of errors encountered during configuration loading.

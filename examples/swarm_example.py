@@ -14,8 +14,7 @@ from typing import List
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 
-from fivcadvisor.adapters import LangGraphSwarmAdapter, create_langchain_swarm
-from fivcadvisor.agents import create_default_agent
+from fivcadvisor.agents import create_default_agent, create_swarm
 
 
 # Define some example tools
@@ -75,7 +74,7 @@ async def main():
     )
     
     # Create the swarm
-    swarm = create_langchain_swarm(
+    swarm = create_swarm(
         agents=[researcher, analyst, writer],
         default_agent_name="Researcher",
     )

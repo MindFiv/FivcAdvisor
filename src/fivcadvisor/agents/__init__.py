@@ -1,5 +1,6 @@
 __all__ = [
     "create_default_agent",
+    "create_companion_agent",
     "create_tooling_agent",
     "create_consultant_agent",
     "create_planning_agent",
@@ -17,9 +18,13 @@ from uuid import uuid4
 # from typing import Callable
 
 from fivcadvisor import (
-    models,
     tools,
     utils,
+)
+from fivcadvisor.models import (
+    create_default_model,
+    create_chat_model,
+    create_reasoning_model,
 )
 from fivcadvisor.tasks.types import TaskTeam
 from fivcadvisor.agents.types import (
@@ -27,10 +32,11 @@ from fivcadvisor.agents.types import (
     AgentsRetriever,
     AgentsCreatorBase,
 )
-from fivcadvisor.adapters import (
-    LangGraphSwarmAdapter,
-    create_langchain_agent,
-)
+from fivcadvisor.agents.types.langchain_agent import create_langchain_agent
+from fivcadvisor.agents.types.swarm import LangGraphSwarm
+
+# Backward compatibility alias
+LangGraphSwarmAdapter = LangGraphSwarm
 
 
 @agent_creator("Generic")
@@ -72,7 +78,7 @@ def create_default_agent(*args, **kwargs) -> Any:
         kwargs["tools"] = tools.default_retriever.get_all()
 
     if "model" not in kwargs:
-        kwargs["model"] = models.create_default_model()
+        kwargs["model"] = create_default_model()
 
     # Use LangChain Agent adapter instead of Strands Agent
     agent = create_langchain_agent(*args, **kwargs)
@@ -88,7 +94,7 @@ def create_companion_agent(*args, **kwargs) -> Any:
         "system_prompt", "You are a companion, or even a close friend of the user. "
     )
     if "model" not in kwargs:
-        kwargs["model"] = models.create_chat_model()
+        kwargs["model"] = create_chat_model()
 
     if "tools" not in kwargs:
         kwargs["tools"] = tools.default_retriever.get_all()
@@ -110,7 +116,7 @@ def create_tooling_agent(*args, **kwargs) -> Any:
     )
 
     if "model" not in kwargs:
-        kwargs["model"] = models.create_reasoning_model()
+        kwargs["model"] = create_reasoning_model()
 
     return create_default_agent(*args, **kwargs)
 
@@ -130,7 +136,7 @@ def create_consultant_agent(*args, **kwargs) -> Any:
         """,
     )
     if "model" not in kwargs:
-        kwargs["model"] = models.create_reasoning_model()
+        kwargs["model"] = create_reasoning_model()
 
     return create_default_agent(*args, **kwargs)
 

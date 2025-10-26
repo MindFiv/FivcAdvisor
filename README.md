@@ -71,7 +71,9 @@ src/fivcadvisor/
 ├── app/             # Streamlit web interface
 ├── embeddings/      # Vector database and embeddings
 │   └── types/       # Embedding database types
-├── models.py        # LLM model factories
+├── models/          # LLM model factories and providers
+│   ├── __init__.py  # Model creation functions
+│   └── providers.py # Provider implementations
 ├── schemas.py       # Pydantic data schemas
 ├── settings/        # Configuration management
 ├── tasks.py         # Task execution functions

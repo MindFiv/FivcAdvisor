@@ -44,15 +44,28 @@ mcpServers:
         finally:
             os.unlink(config_path)
 
-    def test_get_clients(self):
-        """Test getting clients."""
+    def test_get_mcp_client(self):
+        """Test getting MCP client."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = os.path.join(tmpdir, "test.yaml")
             config = ToolsConfig(config_path)
 
-            clients = config.get_clients()
+            # Empty config should return None
+            client = config.get_mcp_client()
+            assert client is None
 
-            assert isinstance(clients, list)
+    def test_get_mcp_client_with_config(self):
+        """Test getting MCP client with valid configuration."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = os.path.join(tmpdir, "test.yaml")
+            config = ToolsConfig(config_path)
+
+            # Add a valid configuration
+            config.set("test_server", {"command": "python", "args": ["test.py"]})
+
+            # Should return a MultiServerMCPClient
+            client = config.get_mcp_client()
+            assert client is not None
 
     def test_load_yaml_file_method(self):
         """Test _load_yaml_file method."""
@@ -327,26 +340,31 @@ class TestToolsConfigValue:
         config = ToolsConfigValue({"url": 123})
         assert config.validate() is False
 
-    def test_get_client_command_based(self):
-        """Test get_client returns MCPClient for command-based config."""
+    def test_get_mcp_config_command_based(self):
+        """Test get_mcp_config returns config dict for command-based config."""
         config = ToolsConfigValue({"command": "python", "args": ["test.py"]})
-        client = config.get_client()
-        assert client is not None
+        mcp_config = config.get_mcp_config()
+        assert mcp_config is not None
+        assert mcp_config["transport"] == "stdio"
+        assert mcp_config["command"] == "python"
+        assert mcp_config["args"] == ["test.py"]
 
-    def test_get_client_url_based(self):
-        """Test get_client returns MCPClient for URL-based config."""
+    def test_get_mcp_config_url_based(self):
+        """Test get_mcp_config returns config dict for URL-based config."""
         config = ToolsConfigValue({"url": "http://localhost:8000"})
-        client = config.get_client()
-        assert client is not None
+        mcp_config = config.get_mcp_config()
+        assert mcp_config is not None
+        assert mcp_config["transport"] == "sse"
+        assert mcp_config["url"] == "http://localhost:8000"
 
-    def test_get_client_invalid_config(self):
-        """Test get_client returns None for invalid config."""
+    def test_get_mcp_config_invalid_config(self):
+        """Test get_mcp_config returns None for invalid config."""
         config = ToolsConfigValue({"args": ["test.py"]})
-        client = config.get_client()
-        assert client is None
+        mcp_config = config.get_mcp_config()
+        assert mcp_config is None
 
-    def test_get_client_with_env_vars(self):
-        """Test get_client merges environment variables."""
+    def test_get_mcp_config_with_env_vars(self):
+        """Test get_mcp_config includes environment variables."""
         config = ToolsConfigValue(
             {
                 "command": "python",
@@ -354,8 +372,10 @@ class TestToolsConfigValue:
                 "env": {"CUSTOM_VAR": "custom_value"},
             }
         )
-        client = config.get_client()
-        assert client is not None
+        mcp_config = config.get_mcp_config()
+        assert mcp_config is not None
+        assert "CUSTOM_VAR" in mcp_config["env"]
+        assert mcp_config["env"]["CUSTOM_VAR"] == "custom_value"
 
 
 class TestToolsConfigSet:

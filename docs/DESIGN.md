@@ -66,7 +66,7 @@ FivcAdvisor follows a modular architecture with clear separation of concerns:
 | **Agents** | Specialized agents for different tasks | `src/fivcadvisor/agents/` |
 | **Agent Types** | Runtime models, repositories, monitors | `src/fivcadvisor/agents/types/` |
 | **Tools** | Tool management and retrieval system | `src/fivcadvisor/tools/` |
-| **Models** | LLM model factories and configuration | `src/fivcadvisor/models.py` |
+| **Models** | LLM model factories and providers | `src/fivcadvisor/models/` |
 | **Tasks** | Task execution and orchestration | `src/fivcadvisor/tasks/` |
 | **App** | Streamlit web interface | `src/fivcadvisor/app/` |
 | **Embeddings** | Vector database for semantic search | `src/fivcadvisor/embeddings/` |
