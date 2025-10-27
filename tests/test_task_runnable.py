@@ -31,8 +31,13 @@ class MockRunnable(Runnable):
         self.last_query = None
         self.last_kwargs = None
 
+    @property
     def id(self) -> str:
         return self._id
+
+    @property
+    def name(self) -> str:
+        return "MockRunnable"
 
     def run(self, query: str, **kwargs) -> BaseModel:
         """Mock run method that captures query and kwargs."""
@@ -61,8 +66,13 @@ class StringReturningMockRunnable(Runnable):
         self.last_query = None
         self.last_kwargs = None
 
+    @property
     def id(self) -> str:
         return self._id
+
+    @property
+    def name(self) -> str:
+        return "StringReturningMockRunnable"
 
     def run(self, query: str, **kwargs) -> str:
         """Mock run method that returns JSON string."""
@@ -126,31 +136,31 @@ class TestTaskRunnableID:
     """Test TaskRunnable ID delegation."""
 
     def test_id_delegation(self):
-        """Test that id() delegates to underlying runnable."""
+        """Test that id delegates to underlying runnable."""
         mock_runnable = MockRunnable(runnable_id="test-id-456")
         task = TaskRunnable(query="Test", runnable=mock_runnable)
 
-        assert task.id() == "test-id-456"
+        assert task.id == "test-id-456"
 
     def test_id_consistency(self):
-        """Test that id() returns consistent value."""
+        """Test that id returns consistent value."""
         mock_runnable = MockRunnable(runnable_id="consistent-id")
         task = TaskRunnable(query="Test", runnable=mock_runnable)
 
-        id1 = task.id()
-        id2 = task.id()
+        id1 = task.id
+        id2 = task.id
         assert id1 == id2 == "consistent-id"
 
     def test_id_with_different_runnables(self):
-        """Test id() with different underlying runnables."""
+        """Test id with different underlying runnables."""
         runnable1 = MockRunnable(runnable_id="id-1")
         runnable2 = MockRunnable(runnable_id="id-2")
 
         task1 = TaskRunnable(query="Test", runnable=runnable1)
         task2 = TaskRunnable(query="Test", runnable=runnable2)
 
-        assert task1.id() == "id-1"
-        assert task2.id() == "id-2"
+        assert task1.id == "id-1"
+        assert task2.id == "id-2"
 
 
 class TestTaskRunnableRun:
@@ -286,8 +296,13 @@ class TestTaskRunnableIntegration:
             def __init__(self, response_type):
                 self.response_type = response_type
 
+            @property
             def id(self) -> str:
                 return "custom-mock"
+
+            @property
+            def name(self) -> str:
+                return "CustomMockRunnable"
 
             def run(self, query: str, **kwargs) -> BaseModel:
                 if self.response_type == "assessment":
@@ -328,8 +343,13 @@ class TestTaskRunnableResponseParsing:
         """Test TaskRunnable with underlying agent returning TaskRequirement."""
 
         class RequirementMockRunnable(Runnable):
+            @property
             def id(self) -> str:
                 return "req-mock"
+
+            @property
+            def name(self) -> str:
+                return "RequirementMockRunnable"
 
             def run(self, query: str, **kwargs):
                 return TaskRequirement(tools=["tool1", "tool2", "tool3"])
@@ -398,8 +418,13 @@ class TestTaskRunnableResponseParsing:
 
         # Test with TaskAssessment from agent
         class AssessmentMockRunnable(Runnable):
+            @property
             def id(self) -> str:
                 return "assess-mock"
+
+            @property
+            def name(self) -> str:
+                return "AssessmentMockRunnable"
 
             def run(self, query: str, **kwargs):
                 return TaskAssessment(require_planning=True, reasoning="Test")
@@ -414,8 +439,13 @@ class TestTaskRunnableResponseParsing:
 
         # Test with TaskRequirement from agent
         class RequirementMockRunnable(Runnable):
+            @property
             def id(self) -> str:
                 return "req-mock"
+
+            @property
+            def name(self) -> str:
+                return "RequirementMockRunnable"
 
             def run(self, query: str, **kwargs):
                 return TaskRequirement(tools=["tool1"])

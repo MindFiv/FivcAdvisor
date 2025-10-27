@@ -311,6 +311,7 @@ class TaskMonitorManager(object):
             **kwargs,
         )
         task_team = await task_team.run_async()
+        print(task_team)
         task_runtime = TaskRuntime(
             query=query,
             team=task_team,

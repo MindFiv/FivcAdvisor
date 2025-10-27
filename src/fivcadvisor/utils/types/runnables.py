@@ -41,6 +41,13 @@ class Runnable(ABC):
         Unique identifier for the runnable.
         """
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """
+        Name of the runnable.
+        """
+
     @abstractmethod
     async def run_async(self, *args: Any, **kwargs: Any) -> Any:
         """

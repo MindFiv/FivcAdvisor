@@ -33,6 +33,7 @@ from typing import Optional, Any, List, Callable, Type, Union
 from uuid import uuid4
 
 from langchain.agents import create_agent
+from langchain_core.messages import HumanMessage, AnyMessage
 from langchain_core.tools import BaseTool
 from langchain_core.language_models import BaseChatModel
 from pydantic import BaseModel
@@ -49,6 +50,10 @@ class AgentsRunnable(Runnable):
     synchronous and asynchronous invocation with proper message formatting
     and output extraction.
 
+    The agent supports two input modes:
+    - String queries: Automatically converted to HumanMessage
+    - Message history: Direct list of AnyMessage objects for multi-turn conversations
+
     Attributes:
         _id: Unique identifier for the runnable
         _agent: The underlying LangChain agent (compiled state graph)
@@ -59,6 +64,7 @@ class AgentsRunnable(Runnable):
     Example:
         >>> from fivcadvisor.agents.types import AgentsRunnable
         >>> from langchain_openai import ChatOpenAI
+        >>> from langchain_core.messages import HumanMessage, AIMessage
         >>>
         >>> # Create a model
         >>> model = ChatOpenAI(model="gpt-4o-mini")
@@ -71,8 +77,17 @@ class AgentsRunnable(Runnable):
         ...     system_prompt="You are a helpful assistant"
         ... )
         >>>
-        >>> # Run synchronously
+        >>> # Run with string query
         >>> result = agent.run("What is 2+2?")
+        >>> print(result)
+        >>>
+        >>> # Run with message history
+        >>> messages = [
+        ...     HumanMessage(content="What is 2+2?"),
+        ...     AIMessage(content="2+2 equals 4"),
+        ...     HumanMessage(content="What about 3+3?")
+        ... ]
+        >>> result = agent.run(messages)
         >>> print(result)
         >>>
         >>> # Run asynchronously
@@ -152,7 +167,24 @@ class AgentsRunnable(Runnable):
         """
         return self._id
 
-    def run(self, query: str, **kwargs: Any) -> Union[BaseModel, str]:
+    @property
+    def name(self) -> str:
+        """
+        Get the name of this runnable.
+
+        Returns:
+            The runnable name
+
+        Example:
+            >>> agent = AgentsRunnable(agent_name="MyAgent", model=model, tools=[])
+            >>> print(agent.name)
+            'MyAgent'
+        """
+        return self._name
+
+    def run(
+        self, query: str | List[AnyMessage], **kwargs: Any
+    ) -> Union[BaseModel, str]:
         """
         Execute the agent synchronously.
 
@@ -165,7 +197,9 @@ class AgentsRunnable(Runnable):
         - If response_model is None: Returns the response as a string
 
         Args:
-            query: The user query to process
+            query: The user query to process. Can be either:
+                   - A string: Will be converted to a HumanMessage
+                   - A list of AnyMessage: Will be used directly as the message history
             **kwargs: Additional arguments passed to the agent
 
         Returns:
@@ -181,6 +215,17 @@ class AgentsRunnable(Runnable):
             >>> print(result)
             '4'
 
+            >>> # With message history
+            >>> from langchain_core.messages import HumanMessage, AIMessage
+            >>> messages = [
+            ...     HumanMessage(content="What is 2+2?"),
+            ...     AIMessage(content="2+2 equals 4"),
+            ...     HumanMessage(content="What about 3+3?")
+            ... ]
+            >>> result = agent.run(messages)
+            >>> print(result)
+            '3+3 equals 6'
+
             >>> # With response_model
             >>> from pydantic import BaseModel
             >>> class Answer(BaseModel):
@@ -190,32 +235,17 @@ class AgentsRunnable(Runnable):
             >>> print(result.value)
             4
         """
-        try:
-            # LangGraph agent expects messages in the input
-            result = self._agent.invoke({"messages": [("user", query)]}, **kwargs)
+        inputs = [HumanMessage(content=query)] if isinstance(query, str) else query
+        output = self._agent.invoke(self._agent.InputType(messages=inputs))
+        if "structured_response" in output:
+            return output["structured_response"]
 
-            # Extract output from result
-            # LangGraph returns messages in the result
-            output = self._extract_output(result)
+        output = output["messages"][-1]
+        return output.text
 
-            # Call callback handler if provided
-            if self._callback_handler:
-                try:
-                    self._callback_handler(result={"output": output})
-                except TypeError:
-                    self._callback_handler(output=output, agent=self)
-
-            return output
-        except Exception as e:
-            error_msg = f"Agent error: {str(e)}"
-            if self._callback_handler:
-                try:
-                    self._callback_handler(result={"error": error_msg})
-                except TypeError:
-                    pass
-            return error_msg
-
-    async def run_async(self, query: str, **kwargs: Any) -> Union[BaseModel, str]:
+    async def run_async(
+        self, query: str | List[AnyMessage], **kwargs: Any
+    ) -> Union[BaseModel, str]:
         """
         Execute the agent asynchronously.
 
@@ -228,7 +258,9 @@ class AgentsRunnable(Runnable):
         - If response_model is None: Returns the response as a string
 
         Args:
-            query: The user query to process
+            query: The user query to process. Can be either:
+                   - A string: Will be converted to a HumanMessage
+                   - A list of AnyMessage: Will be used directly as the message history
             **kwargs: Additional arguments passed to the agent
 
         Returns:
@@ -245,6 +277,17 @@ class AgentsRunnable(Runnable):
             >>> print(result)
             '4'
 
+            >>> # With message history
+            >>> from langchain_core.messages import HumanMessage, AIMessage
+            >>> messages = [
+            ...     HumanMessage(content="What is 2+2?"),
+            ...     AIMessage(content="2+2 equals 4"),
+            ...     HumanMessage(content="What about 3+3?")
+            ... ]
+            >>> result = asyncio.run(agent.run_async(messages))
+            >>> print(result)
+            '3+3 equals 6'
+
             >>> # With response_model
             >>> from pydantic import BaseModel
             >>> class Answer(BaseModel):
@@ -254,75 +297,13 @@ class AgentsRunnable(Runnable):
             >>> print(result.value)
             4
         """
-        try:
-            # LangGraph agent expects messages in the input
-            result = await self._agent.ainvoke(
-                {"messages": [("user", query)]}, **kwargs
-            )
+        inputs = [HumanMessage(content=query)] if isinstance(query, str) else query
+        output = await self._agent.ainvoke(self._agent.InputType(messages=inputs))
+        if "structured_response" in output:
+            return output["structured_response"]
 
-            # Extract output from result
-            output = self._extract_output(result)
-
-            # Call callback handler if provided
-            if self._callback_handler:
-                try:
-                    self._callback_handler(result={"output": output})
-                except TypeError:
-                    self._callback_handler(output=output, agent=self)
-
-            return output
-        except Exception as e:
-            error_msg = f"Agent error: {str(e)}"
-            if self._callback_handler:
-                try:
-                    self._callback_handler(result={"error": error_msg})
-                except TypeError:
-                    pass
-            return error_msg
-
-    def _extract_output(self, result: Any) -> Union[BaseModel, str]:
-        """
-        Extract output from agent result.
-
-        Handles both dict results with 'messages' key and other formats.
-        Extracts the content from the last message in the result.
-
-        When response_format is configured in create_agent, the output may be
-        a Pydantic model instance. Otherwise, it's extracted as a string from
-        the message content.
-
-        Args:
-            result: The result from agent invocation (typically a dict with 'messages' key)
-
-        Returns:
-            Union[BaseModel, str]: Extracted output as either a Pydantic model instance
-                                   or a string, depending on the agent's response_format
-
-        Example:
-            >>> result = {"messages": [AIMessage(content="Hello!")]}
-            >>> output = agent._extract_output(result)
-            >>> print(output)
-            'Hello!'
-
-            >>> # With response_format
-            >>> result = {"messages": [MyModel(field="value")]}
-            >>> output = agent._extract_output(result)
-            >>> print(output.field)
-            'value'
-        """
-        if isinstance(result, dict) and "messages" in result:
-            messages = result["messages"]
-            if messages:
-                # Get the last message
-                last_msg = messages[-1]
-                if hasattr(last_msg, "content"):
-                    return last_msg.content
-                else:
-                    return str(last_msg)
-            else:
-                return str(result)
-        else:
-            return str(result)
+        output = output["messages"][-1]
+        return output.text
 
 
 class AgentsSwarmRunnable(Runnable):
@@ -610,9 +591,16 @@ class AgentsSwarmRunnable(Runnable):
 
             result = self._app.invoke(initial_state, config=kwargs.get("config"))
 
-            # Extract output from result
-            output = self._extract_output(result)
-            return output
+            # Extract the last message content
+            if isinstance(result, dict) and "messages" in result:
+                messages = result["messages"]
+                if messages:
+                    last_msg = messages[-1]
+                    if isinstance(last_msg, dict):
+                        return last_msg.get("content", str(last_msg))
+                    elif hasattr(last_msg, "content"):
+                        return last_msg.content
+            return str(result)
         except Exception as e:
             error_msg = f"Swarm error: {str(e)}"
             return error_msg
@@ -650,47 +638,19 @@ class AgentsSwarmRunnable(Runnable):
 
             result = await self._app.ainvoke(initial_state, config=kwargs.get("config"))
 
-            # Extract output from result
-            output = self._extract_output(result)
-            return output
+            # Extract the last message content
+            if isinstance(result, dict) and "messages" in result:
+                messages = result["messages"]
+                if messages:
+                    last_msg = messages[-1]
+                    if isinstance(last_msg, dict):
+                        return last_msg.get("content", str(last_msg))
+                    elif hasattr(last_msg, "content"):
+                        return last_msg.content
+            return str(result)
         except Exception as e:
             error_msg = f"Swarm error: {str(e)}"
             return error_msg
-
-    def _extract_output(self, result: Any) -> str:
-        """
-        Extract output from swarm result.
-
-        Handles both dict results with 'messages' key and other formats.
-        Extracts the content from the last message in the result.
-
-        Args:
-            result: The result from swarm invocation (typically a dict with 'messages' key)
-
-        Returns:
-            Extracted output as a string
-
-        Example:
-            >>> result = {"messages": [{"role": "assistant", "content": "Hello!"}]}
-            >>> output = swarm._extract_output(result)
-            >>> print(output)
-            'Hello!'
-        """
-        if isinstance(result, dict) and "messages" in result:
-            messages = result["messages"]
-            if messages:
-                # Get the last message
-                last_msg = messages[-1]
-                if isinstance(last_msg, dict):
-                    return last_msg.get("content", str(last_msg))
-                elif hasattr(last_msg, "content"):
-                    return last_msg.content
-                else:
-                    return str(last_msg)
-            else:
-                return str(result)
-        else:
-            return str(result)
 
     def __call__(self, query: str, **kwargs: Any) -> str:
         """

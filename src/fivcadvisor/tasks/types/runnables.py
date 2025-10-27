@@ -75,6 +75,19 @@ class TaskRunnable(Runnable):
         """
         return self._runnable.id
 
+    @property
+    def name(self) -> str:
+        """
+        Get the name of this runnable.
+
+        Returns the name of the underlying runnable, ensuring consistent
+        naming across the task execution pipeline.
+
+        Returns:
+            str: The name of the underlying runnable.
+        """
+        return self._runnable.name
+
     def run(self, **kwargs: Any) -> Union[BaseModel, str]:
         """
         Execute the task synchronously.

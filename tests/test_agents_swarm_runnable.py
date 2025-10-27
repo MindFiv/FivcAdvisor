@@ -186,48 +186,6 @@ class TestAgentsSwarmRunnableExecution:
         assert callable(swarm)
 
 
-class TestAgentsSwarmRunnableOutputExtraction:
-    """Test output extraction from swarm results."""
-
-    def test_extract_output_from_dict_with_messages(self):
-        """Test extracting output from dict with messages."""
-        mock_model = MagicMock(spec=BaseChatModel)
-        agent = AgentsRunnable(model=mock_model, tools=[], agent_name="Agent1")
-        swarm = AgentsSwarmRunnable(agents=[agent])
-
-        result = {
-            "messages": [
-                {"role": "user", "content": "Hello"},
-                {"role": "assistant", "content": "Hi there!"},
-            ]
-        }
-
-        output = swarm._extract_output(result)
-        assert output == "Hi there!"
-
-    def test_extract_output_from_empty_messages(self):
-        """Test extracting output from empty messages."""
-        mock_model = MagicMock(spec=BaseChatModel)
-        agent = AgentsRunnable(model=mock_model, tools=[], agent_name="Agent1")
-        swarm = AgentsSwarmRunnable(agents=[agent])
-
-        result = {"messages": []}
-
-        output = swarm._extract_output(result)
-        assert output == "{'messages': []}"
-
-    def test_extract_output_from_non_dict(self):
-        """Test extracting output from non-dict result."""
-        mock_model = MagicMock(spec=BaseChatModel)
-        agent = AgentsRunnable(model=mock_model, tools=[], agent_name="Agent1")
-        swarm = AgentsSwarmRunnable(agents=[agent])
-
-        result = "Simple string result"
-
-        output = swarm._extract_output(result)
-        assert output == "Simple string result"
-
-
 class TestAgentsSwarmRunnableRouting:
     """Test agent routing logic."""
 

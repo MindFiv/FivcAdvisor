@@ -67,7 +67,7 @@ async def main():
     print("\n4️⃣ Executing task...")
 
     try:
-        result = await swarm.invoke_async(query)
+        result = await swarm.run_async(query)
         print(f"\n✅ Task completed!")
         print(f"   Result: {result}")
     except Exception as e:

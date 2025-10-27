@@ -11,9 +11,11 @@ Tests verify:
 - Runnable interface compliance
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import tool
+from langchain_core.messages import AIMessage, HumanMessage
+from pydantic import BaseModel
 
 from fivcadvisor.agents.types import AgentsRunnable
 
@@ -99,7 +101,9 @@ class TestAgentsRunnableExecution:
         """Test that run method exists and is callable."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.invoke.return_value = {"messages": [("assistant", "Test response")]}
+        mock_agent.invoke.return_value = {
+            "messages": [AIMessage(content="Test response")]
+        }
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(model=mock_model, tools=[], agent_name="TestAgent")
@@ -124,7 +128,9 @@ class TestAgentsRunnableExecution:
         """Test that AgentsRunnable is callable via __call__."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.invoke.return_value = {"messages": [("assistant", "Test response")]}
+        mock_agent.invoke.return_value = {
+            "messages": [AIMessage(content="Test response")]
+        }
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(model=mock_model, tools=[], agent_name="TestAgent")
@@ -167,7 +173,9 @@ class TestAgentsRunnableCallbackHandling:
         """Test that callback handler is called on successful execution."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.invoke.return_value = {"messages": [("assistant", "Test response")]}
+        mock_agent.invoke.return_value = {
+            "messages": [AIMessage(content="Test response")]
+        }
         mock_create_agent.return_value = mock_agent
 
         callback_handler = MagicMock()
@@ -181,6 +189,431 @@ class TestAgentsRunnableCallbackHandling:
         # Note: callback is called with result
         result = agent.run("test query")
         assert result is not None
+
+
+class TestAgentsRunnableStructuredResponse:
+    """Test AgentsRunnable structured response handling."""
+
+    def test_init_with_response_model(self):
+        """Test initialization with response_model parameter."""
+
+        class TestResponse(BaseModel):
+            answer: str
+            confidence: float
+
+        mock_model = MagicMock(spec=BaseChatModel)
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+            response_model=TestResponse,
+        )
+
+        assert agent._agent is not None
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_returns_structured_response(self, mock_create_agent):
+        """Test that run() returns structured response when available."""
+
+        class TestResponse(BaseModel):
+            answer: str
+            confidence: float
+
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+
+        # Mock agent returns structured_response in output
+        test_response = TestResponse(answer="Test answer", confidence=0.95)
+        mock_agent.invoke.return_value = {"structured_response": test_response}
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+            response_model=TestResponse,
+        )
+
+        result = agent.run("test query")
+
+        assert result == test_response
+        assert isinstance(result, TestResponse)
+        assert result.answer == "Test answer"
+        assert result.confidence == 0.95
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_async_returns_structured_response(self, mock_create_agent):
+        """Test that run_async() returns structured response when available."""
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        class TestResponse(BaseModel):
+            answer: str
+            confidence: float
+
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+
+        # Mock agent returns structured_response in output
+        test_response = TestResponse(answer="Async answer", confidence=0.85)
+        mock_agent.ainvoke = AsyncMock(
+            return_value={"structured_response": test_response}
+        )
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+            response_model=TestResponse,
+        )
+
+        # Test the async call
+        async def test_async():
+            result = await agent.run_async("test query")
+            assert result == test_response
+            assert isinstance(result, TestResponse)
+            assert result.answer == "Async answer"
+            assert result.confidence == 0.85
+
+        asyncio.run(test_async())
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_falls_back_to_message_text_without_structured_response(
+        self, mock_create_agent
+    ):
+        """Test that run() falls back to message text when structured_response is not present."""
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+
+        # Mock agent returns only messages, no structured_response
+        mock_agent.invoke.return_value = {
+            "messages": [AIMessage(content="Plain text response")]
+        }
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+        )
+
+        result = agent.run("test query")
+
+        assert result == "Plain text response"
+        assert isinstance(result, str)
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_with_multiple_messages_returns_last_message(self, mock_create_agent):
+        """Test that run() returns the last message when multiple messages are present."""
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+
+        # Mock agent returns multiple messages
+        mock_agent.invoke.return_value = {
+            "messages": [
+                AIMessage(content="First response"),
+                AIMessage(content="Second response"),
+                AIMessage(content="Final response"),
+            ]
+        }
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+        )
+
+        result = agent.run("test query")
+
+        assert result == "Final response"
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_structured_response_takes_precedence_over_messages(
+        self, mock_create_agent
+    ):
+        """Test that structured_response takes precedence over messages."""
+
+        class TestResponse(BaseModel):
+            answer: str
+
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+
+        # Mock agent returns both structured_response and messages
+        test_response = TestResponse(answer="Structured answer")
+        mock_agent.invoke.return_value = {
+            "structured_response": test_response,
+            "messages": [AIMessage(content="This should be ignored")],
+        }
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+            response_model=TestResponse,
+        )
+
+        result = agent.run("test query")
+
+        # Should return structured_response, not the message
+        assert result == test_response
+        assert isinstance(result, TestResponse)
+        assert result.answer == "Structured answer"
+
+
+class TestAgentsRunnableMessageHistory:
+    """Test AgentsRunnable message history support."""
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_with_string_query(self, mock_create_agent):
+        """Test that run() works with string query."""
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+        mock_agent.invoke.return_value = {"messages": [AIMessage(content="Response")]}
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+        )
+
+        result = agent.run("test query")
+
+        assert result == "Response"
+        # Verify that invoke was called with HumanMessage
+        mock_agent.invoke.assert_called_once()
+        call_args = mock_agent.invoke.call_args
+        assert call_args is not None
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_with_message_list(self, mock_create_agent):
+        """Test that run() works with list of messages."""
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+        mock_agent.invoke.return_value = {
+            "messages": [AIMessage(content="Response to history")]
+        }
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+        )
+
+        # Create message history
+        messages = [
+            HumanMessage(content="First question"),
+            AIMessage(content="First answer"),
+            HumanMessage(content="Follow-up question"),
+        ]
+
+        result = agent.run(messages)
+
+        assert result == "Response to history"
+        # Verify that invoke was called with the message list
+        mock_agent.invoke.assert_called_once()
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_with_empty_message_list(self, mock_create_agent):
+        """Test that run() works with empty message list."""
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+        mock_agent.invoke.return_value = {
+            "messages": [AIMessage(content="Default response")]
+        }
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+        )
+
+        result = agent.run([])
+
+        assert result == "Default response"
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_with_single_message(self, mock_create_agent):
+        """Test that run() works with single message in list."""
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+        mock_agent.invoke.return_value = {
+            "messages": [AIMessage(content="Single message response")]
+        }
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+        )
+
+        messages = [HumanMessage(content="Single question")]
+        result = agent.run(messages)
+
+        assert result == "Single message response"
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_async_with_string_query(self, mock_create_agent):
+        """Test that run_async() works with string query."""
+        import asyncio
+
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+        mock_agent.ainvoke = AsyncMock(
+            return_value={"messages": [AIMessage(content="Async response")]}
+        )
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+        )
+
+        async def test_async():
+            result = await agent.run_async("test query")
+            assert result == "Async response"
+
+        asyncio.run(test_async())
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_async_with_message_list(self, mock_create_agent):
+        """Test that run_async() works with list of messages."""
+        import asyncio
+
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+        mock_agent.ainvoke = AsyncMock(
+            return_value={"messages": [AIMessage(content="Async history response")]}
+        )
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+        )
+
+        async def test_async():
+            messages = [
+                HumanMessage(content="First question"),
+                AIMessage(content="First answer"),
+                HumanMessage(content="Follow-up question"),
+            ]
+            result = await agent.run_async(messages)
+            assert result == "Async history response"
+
+        asyncio.run(test_async())
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_with_message_list_and_structured_response(self, mock_create_agent):
+        """Test that run() with message list returns structured response when available."""
+
+        class TestResponse(BaseModel):
+            answer: str
+            confidence: float
+
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+
+        test_response = TestResponse(answer="Structured answer", confidence=0.9)
+        mock_agent.invoke.return_value = {"structured_response": test_response}
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+            response_model=TestResponse,
+        )
+
+        messages = [
+            HumanMessage(content="Question 1"),
+            AIMessage(content="Answer 1"),
+            HumanMessage(content="Question 2"),
+        ]
+
+        result = agent.run(messages)
+
+        assert result == test_response
+        assert isinstance(result, TestResponse)
+        assert result.answer == "Structured answer"
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_async_with_message_list_and_structured_response(
+        self, mock_create_agent
+    ):
+        """Test that run_async() with message list returns structured response when available."""
+        import asyncio
+
+        class TestResponse(BaseModel):
+            answer: str
+            confidence: float
+
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+
+        test_response = TestResponse(answer="Async structured answer", confidence=0.85)
+        mock_agent.ainvoke = AsyncMock(
+            return_value={"structured_response": test_response}
+        )
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+            response_model=TestResponse,
+        )
+
+        async def test_async():
+            messages = [
+                HumanMessage(content="Question 1"),
+                AIMessage(content="Answer 1"),
+                HumanMessage(content="Question 2"),
+            ]
+            result = await agent.run_async(messages)
+            assert result == test_response
+            assert isinstance(result, TestResponse)
+
+        asyncio.run(test_async())
+
+    @patch("fivcadvisor.agents.types.runnables.create_agent")
+    def test_run_with_mixed_message_types(self, mock_create_agent):
+        """Test that run() works with mixed message types in history."""
+        mock_model = MagicMock(spec=BaseChatModel)
+        mock_agent = MagicMock()
+        mock_agent.invoke.return_value = {
+            "messages": [AIMessage(content="Mixed response")]
+        }
+        mock_create_agent.return_value = mock_agent
+
+        agent = AgentsRunnable(
+            model=mock_model,
+            tools=[],
+            agent_name="TestAgent",
+        )
+
+        # Create message history with different message types
+        messages = [
+            HumanMessage(content="User question 1"),
+            AIMessage(content="Assistant answer 1"),
+            HumanMessage(content="User question 2"),
+            AIMessage(content="Assistant answer 2"),
+            HumanMessage(content="User question 3"),
+        ]
+
+        result = agent.run(messages)
+
+        assert result == "Mixed response"
 
 
 class TestAgentsRunnableIntegration:
