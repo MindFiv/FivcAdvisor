@@ -41,7 +41,12 @@ class TestAgentsMonitorManager:
 
             # Mock tools retriever and agent creator
             mock_tools_retriever = Mock()
-            mock_tools_retriever.retrieve.return_value = ["tool1", "tool2"]
+            # Create mock tools with name attribute
+            mock_tool1 = Mock()
+            mock_tool1.name = "tool1"
+            mock_tool2 = Mock()
+            mock_tool2.name = "tool2"
+            mock_tools_retriever.retrieve.return_value = [mock_tool1, mock_tool2]
 
             mock_agent = MagicMock()
             mock_agent_creator = Mock(return_value=mock_agent)
@@ -66,7 +71,11 @@ class TestAgentsMonitorManager:
             assert "agent_id" in call_kwargs
             assert "callback_handler" in call_kwargs
             assert "tools" in call_kwargs
-            assert call_kwargs["tools"] == ["tool1", "tool2"]
+            # Verify tools were passed (check names)
+            tools = call_kwargs["tools"]
+            assert len(tools) == 2
+            assert tools[0].name == "tool1"
+            assert tools[1].name == "tool2"
             assert isinstance(call_kwargs["callback_handler"], AgentsMonitor)
 
             # Verify agent runtime was persisted

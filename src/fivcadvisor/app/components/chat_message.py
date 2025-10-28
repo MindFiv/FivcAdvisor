@@ -2,10 +2,13 @@ import re
 
 import streamlit as st
 from langchain_core.messages import BaseMessage
-from fivcadvisor.events import MessageDictAdapter
+from pydantic import BaseModel
 from streamlit.delta_generator import DeltaGenerator
 
-from fivcadvisor.agents.types import AgentsRuntime, AgentsRuntimeToolCall
+from fivcadvisor.agents.types import (
+    AgentsRuntime,
+    AgentsRuntimeToolCall,
+)
 
 
 class ChatMessage(object):
@@ -154,59 +157,54 @@ class ChatMessage(object):
         placeholder = placeholder.container()
 
         if self.runtime.query:
-            c = placeholder.chat_message("user")
-            c.text(self.runtime.query)
+            chat_user = placeholder.chat_message("user")
+            chat_user.text(self.runtime.query)
 
-        c = placeholder.chat_message("assistant")
+        chat_ai = placeholder.chat_message("assistant")
 
         # Render tool calls if any
         if self.runtime.tool_calls:
             for tool_call in self.runtime.tool_calls.values():
-                self.render_tool_call(tool_call, c)
+                self.render_tool_call(tool_call, chat_ai)
 
         # Render message or streaming text
-        if self.runtime.reply:
-            self.render_message(self.runtime.reply, c)
+        if self.runtime.completed_at is not None:
+            self.render_message(self.runtime.reply, chat_ai)
         else:
-            self.render_streaming(self.runtime.streaming_text, c)
+            self.render_streaming(self.runtime.streaming_text, chat_ai)
 
     @staticmethod
     def render_message(
-        message: BaseMessage,
+        message: BaseMessage | BaseModel,
         placeholder: DeltaGenerator,
     ):
         # Wrap message in adapter for dict-like access
-        msg = MessageDictAdapter(message)
-        # msg_role = msg["role"]
-        msg_content = msg["content"]
+        if isinstance(message, BaseMessage):
+            msg_text = message.text
+        elif isinstance(message, BaseModel):
+            msg_text = message.model_dump_json()
+        else:
+            msg_text = str(message)
 
-        for msg_block in msg_content:
-            if "text" in msg_block:
-                msg_block_text = msg_block["text"]
+        # Extract thinking content and clean text (not streaming for completed messages)
+        cleaned_text, thinking_contents, _ = ChatMessage.extract_thinking_content(
+            msg_text, is_streaming=False
+        )
 
-                # Extract thinking content and clean text (not streaming for completed messages)
-                cleaned_text, thinking_contents, _ = (
-                    ChatMessage.extract_thinking_content(
-                        msg_block_text, is_streaming=False
-                    )
+        # Render thinking content in expanders if any
+        for i, thinking_content in enumerate(thinking_contents):
+            if thinking_content:  # Only render non-empty thinking content
+                expander_title = (
+                    f"🧠 **Thinking** {i + 1}"
+                    if len(thinking_contents) > 1
+                    else "🧠 **Thinking**"
                 )
+                with placeholder.expander(expander_title, expanded=False):
+                    st.markdown(thinking_content, unsafe_allow_html=True)
 
-                # Render thinking content in expanders if any
-                for i, thinking_content in enumerate(thinking_contents):
-                    if thinking_content:  # Only render non-empty thinking content
-                        expander_title = (
-                            f"🧠 **Thinking** {i + 1}"
-                            if len(thinking_contents) > 1
-                            else "🧠 **Thinking**"
-                        )
-                        with placeholder.expander(expander_title, expanded=False):
-                            st.markdown(thinking_content, unsafe_allow_html=True)
-
-                # Render the main content (without thinking tags)
-                if (
-                    cleaned_text
-                ):  # Only render if there's content after removing thinking tags
-                    placeholder.markdown(cleaned_text, unsafe_allow_html=True)
+        # Render the main content (without thinking tags)
+        if cleaned_text:  # Only render if there's content after removing thinking tags
+            placeholder.markdown(cleaned_text, unsafe_allow_html=True)
 
     @staticmethod
     def render_tool_call(
@@ -216,7 +214,7 @@ class ChatMessage(object):
         try:
             tool_name = tool_call.tool_name
             tool_id = tool_call.tool_use_id
-            tool_input = tool_call.tool_input
+            # tool_input = tool_call.tool_input
             tool_result = tool_call.tool_result
             status = tool_call.status
 
@@ -238,16 +236,16 @@ class ChatMessage(object):
                     st.caption(f"Tool ID: `{tool_id}`")
 
                 # Show timing information if available
-                if tool_call.duration is not None:
-                    st.caption(f"Duration: {tool_call.duration:.3f}s")
+                # if tool_call.duration is not None:
+                #     st.caption(f"Duration: {tool_call.duration:.3f}s")
 
                 # Show tool input parameters
-                if tool_input:
-                    st.caption("Parameters:")
-                    # Use st.json for nice formatting of the input parameters
-                    st.json(tool_input)
-                else:
-                    st.info("No parameters provided")
+                # if tool_input:
+                #     st.caption("Parameters:")
+                #     # Use st.json for nice formatting of the input parameters
+                #     st.json(tool_input)
+                # else:
+                #     st.info("No parameters provided")
 
                 # Show tool result if available
                 if tool_result is not None:

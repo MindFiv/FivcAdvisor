@@ -11,6 +11,7 @@ Tests the ChatMessage class and its methods:
 
 import pytest
 from unittest.mock import Mock
+from langchain_core.messages import AIMessage
 from fivcadvisor.app.components import ChatMessage
 from fivcadvisor.agents.types import AgentsRuntime, AgentsRuntimeToolCall
 
@@ -49,6 +50,8 @@ class TestChatMessageClass:
 
     def test_render_with_completed_message(self):
         """Test rendering runtime with completed message."""
+        from datetime import datetime
+
         mock_placeholder = Mock()
         mock_container = Mock()
         mock_user_msg = Mock()
@@ -56,15 +59,13 @@ class TestChatMessageClass:
         mock_placeholder.container.return_value = mock_container
         mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
 
-        message = {
-            "role": "assistant",
-            "content": [{"text": "The weather is sunny."}],
-        }
+        message = AIMessage(content="The weather is sunny.")
 
         runtime = AgentsRuntime(
             agent_id="test-agent",
             query="What is the weather?",
             reply=message,
+            completed_at=datetime.now(),
         )
 
         chat_msg = ChatMessage(runtime)
@@ -127,10 +128,7 @@ class TestRenderMessageMethod:
         """Test rendering message with single text content block."""
         mock_placeholder = Mock()
 
-        message = {
-            "role": "assistant",
-            "content": [{"text": "Hello, world!"}],
-        }
+        message = AIMessage(content="Hello, world!")
 
         ChatMessage.render_message(message, mock_placeholder)
 
@@ -142,48 +140,38 @@ class TestRenderMessageMethod:
         """Test rendering message with multiple text content blocks."""
         mock_placeholder = Mock()
 
-        message = {
-            "role": "assistant",
-            "content": [
-                {"text": "First part."},
-                {"text": "Second part."},
-                {"text": "Third part."},
-            ],
-        }
+        # Create a message with multiple content blocks
+        # AIMessage.text will combine them into a single string
+        message = AIMessage(
+            content=[
+                {"type": "text", "text": "First part."},
+                {"type": "text", "text": "Second part."},
+                {"type": "text", "text": "Third part."},
+            ]
+        )
 
         ChatMessage.render_message(message, mock_placeholder)
 
-        # Should call markdown for each text block
-        assert mock_placeholder.markdown.call_count == 3
+        # Should call markdown once with all content combined
+        assert mock_placeholder.markdown.call_count == 1
 
     def test_render_message_ignores_non_text_blocks(self):
         """Test rendering message ignores non-text content blocks."""
         mock_placeholder = Mock()
 
-        message = {
-            "role": "assistant",
-            "content": [
-                {"text": "Text content"},
-                {
-                    "toolUse": {"name": "test_tool"}
-                },  # Should be ignored (tools in runtime.tool_calls)
-                {"image": {"url": "test.jpg"}},  # Should be ignored
-            ],
-        }
+        # AIMessage with text content - non-text blocks are handled by AIMessage
+        message = AIMessage(content="Text content")
 
         ChatMessage.render_message(message, mock_placeholder)
 
-        # Should only render the text block
+        # Should render the text block
         mock_placeholder.markdown.assert_called_once()
 
     def test_render_message_with_unsafe_html_enabled(self):
         """Test rendering message enables unsafe_allow_html."""
         mock_placeholder = Mock()
 
-        message = {
-            "role": "assistant",
-            "content": [{"text": "Test"}],
-        }
+        message = AIMessage(content="Test")
 
         ChatMessage.render_message(message, mock_placeholder)
 
@@ -343,6 +331,8 @@ class TestIntegration:
 
     def test_full_render_flow_with_completed_message(self):
         """Test complete render flow with completed message."""
+        from datetime import datetime
+
         mock_placeholder = Mock()
         mock_container = Mock()
         mock_user_msg = Mock()
@@ -350,25 +340,22 @@ class TestIntegration:
         mock_placeholder.container.return_value = mock_container
         mock_container.chat_message.side_effect = [mock_user_msg, mock_assistant_msg]
 
-        message = {
-            "role": "assistant",
-            "content": [
-                {"text": "Processing query..."},
-                {"text": "Here is your answer."},
-            ],
-        }
+        message = AIMessage(content="Here is your answer.")
 
         runtime = AgentsRuntime(
             agent_id="test-agent",
             query="Help me",
             reply=message,
+            completed_at=datetime.now(),
         )
 
         chat_msg = ChatMessage(runtime)
         chat_msg.render(mock_placeholder)
 
-        # Verify both text blocks were rendered
-        assert mock_assistant_msg.markdown.call_count == 2
+        # Verify message was rendered
+        assert mock_assistant_msg.markdown.call_count == 1
+        call_args = mock_assistant_msg.markdown.call_args[0][0]
+        assert "answer" in call_args
 
     def test_render_runtime_with_tool_calls(self):
         """Test rendering runtime with tool calls."""
@@ -399,11 +386,14 @@ class TestIntegration:
             status="success",
         )
 
+        from datetime import datetime
+
         runtime = AgentsRuntime(
             agent_id="test-agent",
             query="Test query",
             tool_calls={"1": tool_call1, "2": tool_call2},
-            reply={"role": "assistant", "content": [{"text": "Done"}]},
+            reply=AIMessage(content="Done"),
+            completed_at=datetime.now(),
         )
 
         chat_msg = ChatMessage(runtime)

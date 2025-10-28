@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from fivcadvisor.tasks.types import TaskRunnable
 from fivcadvisor.tasks.types.base import TaskAssessment, TaskRequirement, TaskTeam
 from fivcadvisor.utils import Runnable
+from fivcadvisor.agents.types.monitors import AgentsMonitor
 
 
 class MockRunnable(Runnable):
@@ -39,13 +40,17 @@ class MockRunnable(Runnable):
     def name(self) -> str:
         return "MockRunnable"
 
-    def run(self, query: str, **kwargs) -> BaseModel:
+    def run(
+        self, query: str, monitor: AgentsMonitor | None = None, **kwargs
+    ) -> BaseModel:
         """Mock run method that captures query and kwargs."""
         self.last_query = query
         self.last_kwargs = kwargs
         return TaskAssessment(require_planning=True, reasoning="Mock response")
 
-    async def run_async(self, query: str, **kwargs) -> BaseModel:
+    async def run_async(
+        self, query: str, monitor: AgentsMonitor | None = None, **kwargs
+    ) -> BaseModel:
         """Mock async run method that captures query and kwargs."""
         self.last_query = query
         self.last_kwargs = kwargs
@@ -74,13 +79,15 @@ class StringReturningMockRunnable(Runnable):
     def name(self) -> str:
         return "StringReturningMockRunnable"
 
-    def run(self, query: str, **kwargs) -> str:
+    def run(self, query: str, monitor: AgentsMonitor | None = None, **kwargs) -> str:
         """Mock run method that returns JSON string."""
         self.last_query = query
         self.last_kwargs = kwargs
         return json.dumps(self.response_data)
 
-    async def run_async(self, query: str, **kwargs) -> str:
+    async def run_async(
+        self, query: str, monitor: AgentsMonitor | None = None, **kwargs
+    ) -> str:
         """Mock async run method that returns JSON string."""
         self.last_query = query
         self.last_kwargs = kwargs

@@ -1,23 +1,36 @@
 """
 Agent execution monitor for tracking single-agent execution.
 
-This module provides AgentsMonitor class for tracking agent execution state
-through callback events. AgentsMonitor captures streaming text chunks and
-tool call events in an AgentsRuntime object, providing a framework-agnostic
-interface for monitoring agent activity.
+This module provides monitoring and management classes for agent execution:
 
-This module also provides AgentsMonitorManager class for managing and monitoring
-multiple agent executions. AgentsMonitorManager uses AgentsRuntimeRepository for
-persistence and AgentsMonitor for tracking individual agent execution.
+Core Classes:
+    - AgentsMonitor: Tracks single agent execution through callback events
+    - AgentsMonitorManager: Manages multiple agent executions with persistence
 
-The monitor uses a unified callback pattern where a single on_event callback
-receives the complete AgentsRuntime state after each event, allowing UI
-components to access all execution data in one place.
+Features:
+    - Real-time streaming text accumulation
+    - Tool call event capture with status tracking
+    - Unified callback pattern for execution events
+    - Framework-agnostic design (no UI dependencies)
+    - Graceful error handling for callbacks
+    - Automatic persistence via AgentsRuntimeRepository
+    - Conversation history management
+    - Multi-turn agent support
+
+Callback Pattern:
+    The monitor uses a unified callback pattern where a single on_event callback
+    receives the complete AgentsRuntime state after each event, allowing UI
+    components to access all execution data in one place.
+
+Integration with AgentsRunnable:
+    AgentsMonitor integrates with AgentsRunnable through callback_handler parameter,
+    capturing execution events and maintaining runtime state. The monitor receives
+    string responses from AgentsRunnable and stores them in the runtime.
 
 Key Features:
     - Unified callback-based execution tracking via AgentsRuntime
     - Real-time streaming message accumulation
-    - Tool call event capture with status tracking (toolUse and toolResult)
+    - Tool call event capture with status tracking
     - Framework-agnostic design (no UI dependencies)
     - Graceful error handling for callbacks
     - Cleanup method for resetting state between executions
@@ -26,17 +39,12 @@ Key Features:
 """
 
 from datetime import datetime
-from typing import Any, Optional, List, Callable, cast, Dict
+from typing import Any, Optional, List, Callable, Tuple
 from uuid import uuid4
-from warnings import warn
-from langchain_core.messages import BaseMessage
 
-from fivcadvisor.events import (
-    StreamEvent,
-    AgentResult,
-    SlidingWindowConversationManager,
-    MessageDictAdapter,
-)
+from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.messages import BaseMessageChunk, AIMessageChunk, ToolMessage
+
 from fivcadvisor import agents, tools
 from fivcadvisor.agents.types.base import (
     AgentsRuntime,
@@ -48,31 +56,47 @@ from fivcadvisor.agents.types.repositories import (
 )
 
 
-class AgentsMonitor(object):
+class AgentsMonitor(BaseCallbackHandler):
     """
     Agent execution monitor for tracking single-agent execution.
 
     Tracks agent execution through callback events, capturing streaming text
-    chunks and tool call events in an AgentsRuntime object. Provides real-time
+    chunks and execution state in an AgentsRuntime object. Provides real-time
     callbacks for UI updates while maintaining framework-agnostic design.
 
-    The monitor uses a unified callback pattern where a single on_event callback
-    receives the complete runtime state after each event, allowing UI components
-    to access all execution data (streaming text, tool calls, status) in one place.
+    Integration with AgentsRunnable:
+    The monitor is passed as callback_handler to AgentsRunnable and receives
+    execution events through the __call__ method with different modes:
+    - "start": Execution started
+    - "messages": Streaming message chunks
+    - "values": Final output values (including structured_response or messages)
+    - "updates": State updates
+    - "finish": Execution completed
+
+    All events are accumulated in an AgentsRuntime object that tracks:
+    - Streaming text accumulation
+    - Tool call execution with status tracking
+    - Overall execution status
+    - Final reply (string or structured response)
+
+    Properties:
+        id: Unique identifier from the runtime
+        is_completed: Whether execution is complete
+        status: Current execution status
+        tool_calls: List of all tool calls from the runtime
 
     Usage:
         >>> from fivcadvisor.agents.types import AgentsMonitor, AgentsRuntime
         >>> from fivcadvisor import agents
         >>>
-        >>> # Create monitor with unified event callback
+        >>> # Create monitor with optional event callback
         >>> def on_event(runtime: AgentsRuntime):
         ...     # Access streaming text
         ...     print(f"Streaming: {runtime.streaming_text}", end="", flush=True)
         ...
-        ...     # Access tool calls
-        ...     for tool_call in runtime.tool_calls.values():
-        ...         if tool_call.status == "executing":
-        ...             print(f"Tool: {tool_call.tool_name}")
+        ...     # Access final reply
+        ...     if runtime.reply:
+        ...         print(f"Reply: {runtime.reply}")
         >>>
         >>> monitor = AgentsMonitor(on_event=on_event)
         >>>
@@ -80,7 +104,7 @@ class AgentsMonitor(object):
         >>> agent = agents.create_companion_agent(callback_handler=monitor)
         >>>
         >>> # Execute and monitor automatically tracks execution
-        >>> result = agent("What is 2+2?")
+        >>> result = agent.run("What is 2+2?")
         >>>
         >>> # Access accumulated state via tool_calls property
         >>> tools = monitor.tool_calls
@@ -88,9 +112,13 @@ class AgentsMonitor(object):
         >>> # Reset for next execution with new callback
         >>> monitor.cleanup(on_event=on_event)
 
-    Callback Signature:
-        - on_event: Callable[[AgentsRuntime], None] - Called with complete runtime state
-          after each streaming chunk or tool event
+    Callback Events:
+        The monitor receives events through __call__ method with different modes:
+        - "start": Execution started, initializes runtime state
+        - "messages": Streaming message chunks, accumulates streaming_text
+        - "values": Final output values, stores reply (string or structured response)
+        - "updates": State updates, clears streaming_text
+        - "finish": Execution completed, marks status as COMPLETED
     """
 
     @property
@@ -136,175 +164,86 @@ class AgentsMonitor(object):
                 self._runtime.agent_id or "unknown", self._runtime
             )
 
-    def __call__(self, **kwargs: Any) -> None:
-        """
-        Callback handler for agent events.
-
-        This method is called by the agent with various event types:
-        - event: StreamEvent with streaming text chunks
-        - message: Message with tool use/result events
-
-        Args:
-            **kwargs: Event data from the agent
-        """
-        if self._runtime.status == AgentsStatus.PENDING:
-            self._runtime.status = AgentsStatus.EXECUTING
-            self._runtime.started_at = datetime.now()
-            self._repo.update_agent_runtime(
-                self._runtime.agent_id or "unknown", self._runtime
-            )
-
-        # Handle streaming events
-        if "event" in kwargs:
-            self._on_stream_event(cast(StreamEvent, kwargs["event"]))
-
-        # Handle message events (tool calls)
-        elif "message" in kwargs:
-            self._on_message_event(cast(BaseMessage, kwargs["message"]))
-
-        elif "result" in kwargs:
-            self._on_complete_event(cast(AgentResult, kwargs["result"]))
-
-    def _on_stream_event(self, event: StreamEvent) -> None:
-        """
-        Handle streaming text events.
-
-        Parses StreamEvent objects to extract text chunks and accumulates
-        them into the runtime's streaming_text field. Invokes on_event callback
-        if registered, passing the complete runtime state.
-
-        Args:
-            event: StreamEvent object from Strands containing contentBlockDelta
-                   or contentBlockStart events
-        """
-        try:
-            # Parse streaming event structure
-            # StreamEvent format: {"contentBlockDelta": {"delta": {"text": str}}}
-            if "contentBlockDelta" in event:
-                chunk = event["contentBlockDelta"].get("delta", {})
-                chunk = chunk and chunk.get("text")
-                if chunk and isinstance(chunk, str):
-                    # Accumulate text chunk
-                    self._runtime.streaming_text += chunk
-                    if self._on_event:
-                        self._on_event(self._runtime)
-
-            if "contentBlockStart" in event:
-                # New message starting, clear the current message
-                self._runtime.streaming_text = ""
-                if self._on_event:
-                    self._on_event(self._runtime)
-
-        except Exception as e:
-            # Gracefully handle parsing errors
-            warn(
-                f"Error parsing stream event: {e}",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-
-    def _on_message_event(self, message: BaseMessage) -> None:
-        """
-        Handle message events containing tool calls.
-
-        Parses Message objects to extract tool use and result events, creating
-        or updating AgentsRuntimeToolCall instances in the runtime. Invokes
-        on_event callback if registered, passing the complete runtime state.
-
-        Args:
-            message: Message object from LangChain containing toolUse or toolResult
-                     content blocks
-        """
-        try:
-            # Parse message structure using adapter for dict-like access
-            # Message format: {"role": str, "content": List[...]}
-            msg_dict = MessageDictAdapter(message)
-            content = msg_dict.get("content", [])
-
-            for block in content:
-                if "toolUse" in block:
-                    tool_use = cast(Dict[str, Any], block["toolUse"])
-                    tool_use_id = tool_use.get("toolUseId")
-                    tool_call = AgentsRuntimeToolCall(
-                        tool_use_id=tool_use_id,
-                        tool_name=tool_use.get("name"),
-                        tool_input=tool_use.get("input"),
-                        started_at=datetime.now(),
-                        status=AgentsStatus.EXECUTING,
-                    )
-                    self._runtime.tool_calls[tool_use_id] = tool_call
-                    self._repo.update_agent_runtime_tool_call(
-                        self._runtime.agent_id or "unknown",
-                        self._runtime.agent_run_id,
-                        tool_call,
-                    )
-
-                    if self._on_event:
-                        self._on_event(self._runtime)
-
-                if "toolResult" in block:
-                    tool_result = cast(Dict[str, Any], block["toolResult"])
-                    tool_use_id = tool_result.get("toolUseId")
-                    tool_call = self._runtime.tool_calls.get(tool_use_id)
-                    if not tool_call:
-                        warn(
-                            f"Tool result received for unknown tool call: {tool_use_id}",
-                            RuntimeWarning,
-                            stacklevel=2,
-                        )
-                        continue
-
-                    tool_call.status = tool_result.get("status")
-                    tool_call.tool_result = tool_result.get("content")
-                    tool_call.completed_at = datetime.now()
-
-                    self._repo.update_agent_runtime_tool_call(
-                        self._runtime.agent_id or "unknown",
-                        self._runtime.agent_run_id,
-                        tool_call,
-                    )
-
-                    if self._on_event:
-                        self._on_event(self._runtime)
-
-        except Exception as e:
-            # Gracefully handle parsing errors
-            warn(
-                f"Error parsing message event: {e}",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-
-    def _on_complete_event(self, result: AgentResult) -> None:
-        """
-        Handle agent completion event.
-
-        Updates the runtime's status and completion timestamp. Invokes
-        on_event callback if registered, passing the complete runtime state.
-
-        Args:
-            result: AgentResult object from Strands containing final output
-                   or a dict with 'message' and 'output' keys
-        """
-        # Handle both AgentResult objects and dict results from LangChain adapter
-        if isinstance(result, dict):
-            # LangChain adapter format: {"message": Message, "output": str}
-            message = result.get("message")
-            if message:
-                self._runtime.reply = message
-        else:
-            # Strands format: AgentResult with message attribute
-            self._runtime.reply = result.message
-
-        self._runtime.status = AgentsStatus.COMPLETED
-        self._runtime.completed_at = datetime.now()
-
-        self._repo.update_agent_runtime(
-            self._runtime.agent_id or "unknown", self._runtime
-        )
+    def on_start(self):
+        self._runtime.reply = None
+        self._runtime.status = AgentsStatus.EXECUTING
+        self._runtime.started_at = datetime.now()
+        self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
 
         if self._on_event:
             self._on_event(self._runtime)
+
+    def on_finish(self):
+        self._runtime.status = AgentsStatus.COMPLETED
+        self._runtime.completed_at = datetime.now()
+        self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
+
+        if self._on_event:
+            self._on_event(self._runtime)
+
+    def on_updates(self, event: dict[str, Any]):
+        # print(f"on_updates {event}")
+        self._runtime.streaming_text = ""
+
+    def on_values(self, event: dict[str, Any]):
+        if "structured_response" in event:
+            self._runtime.reply = event["structured_response"]
+
+        elif "messages" in event:
+            self._runtime.reply = event["messages"][-1]
+
+        self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
+
+        if self._on_event:
+            self._on_event(self._runtime)
+
+    def on_messages(self, event: Tuple[BaseMessageChunk, dict]):
+        msg, _ = event
+
+        if isinstance(msg, AIMessageChunk):
+            self._runtime.streaming_text += msg.text
+
+        elif isinstance(msg, ToolMessage):
+            tool_call = AgentsRuntimeToolCall(
+                tool_use_id=msg.tool_call_id,
+                tool_name=msg.name,
+                # tool_input=msg.input,
+                tool_result=msg.content,
+                started_at=datetime.now(),
+                completed_at=datetime.now(),
+                status=msg.status,
+            )
+            # print(msg.model_dump_json())
+            self._runtime.tool_calls[tool_call.tool_use_id] = tool_call
+            self._repo.update_agent_runtime_tool_call(
+                self._runtime.agent_id or "unknown",
+                self._runtime.agent_run_id,
+                tool_call,
+            )
+
+        # self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
+
+        if self._on_event:
+            self._on_event(self._runtime)
+
+    def __call__(self, mode: str, event: Any) -> None:
+        try:
+            if mode == "messages":
+                self.on_messages(event)
+            elif mode == "values":
+                self.on_values(event)
+            elif mode == "updates":
+                self.on_updates(event)
+            elif mode == "start":
+                self.on_start()
+            elif mode == "finish":
+                self.on_finish()
+
+        except Exception as e:
+            # Gracefully handle callback exceptions
+            import traceback
+
+            print(f"Error in monitor callback: {e} {traceback.format_exc()}")
 
     @property
     def tool_calls(self) -> List[AgentsRuntimeToolCall]:
@@ -413,7 +352,6 @@ class AgentsMonitorManager(object):
         assert runtime_repo is not None, "runtime_repo is required"
 
         self._repo = runtime_repo
-        self._conversation_manager = SlidingWindowConversationManager(window_size=30)
 
     def create_agent_runtime(
         self,
@@ -486,10 +424,8 @@ class AgentsMonitorManager(object):
 
         # Retrieve tools according to query
         agent_tools = tools_retriever.retrieve(query)
-        tool_names = [
-            i.tool_name if hasattr(i, "tool_name") else str(i) for i in agent_tools
-        ]
-        print(f"Agent Tools: {tool_names} for query: {query}")
+        agent_tool_names = [i.name for i in agent_tools]
+        print(f"Agent Tools: {agent_tool_names} for query: {query}")
 
         # Generate unique agent ID
         agent_id = agent_id or str(uuid4())
@@ -521,7 +457,6 @@ class AgentsMonitorManager(object):
             agent_id=agent_id,
             agent_name=agent_creator.name,
             messages=agent_messages,
-            conversation_manager=self._conversation_manager,
             callback_handler=agent_monitor,
             tools=agent_tools,
             **kwargs,

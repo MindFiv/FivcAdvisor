@@ -25,7 +25,10 @@ async def main():
     print("\n" + "=" * 50)
 
     # Create a companion agent
-    agent = agents.create_companion_agent()
+    from fivcadvisor.agents.types import AgentsMonitor
+    agent_monitor = AgentsMonitor()
+    agent = agents.create_companion_agent(
+        callback_handler=agent_monitor)
     print(f"Agent ID: {agent.id}")
     print(f"Agent Name: {agent.name}")
     print()
@@ -35,7 +38,7 @@ async def main():
     print("-" * 50)
     query = "What time is it now?"
     print(f"Query: {query}")
-    result = agent.run(query)
+    result = agent.run(query=query)
     print(f"Result: {result}")
     print()
 
@@ -44,7 +47,7 @@ async def main():
     print("-" * 50)
     query = "Tell me a fun fact about AI"
     print(f"Query: {query}")
-    result = await agent.run_async(query)
+    result = await agent.run_async(query=query)
     print(f"Result: {result}")
     print()
 
@@ -59,7 +62,7 @@ async def main():
 
     for query in queries:
         print(f"Query: {query}")
-        result = agent(query)
+        result = agent(query=query)
         print(f"Result: {result}\n")
 
 

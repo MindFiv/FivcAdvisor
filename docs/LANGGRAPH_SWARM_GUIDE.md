@@ -163,19 +163,18 @@ agent = create_default_agent(
 
 ## Integration with TaskTeam
 
-For automatic swarm creation from a TaskTeam:
+For automatic swarm creation from a TaskTeam, use the `create_langchain_swarm` adapter:
 
 ```python
-from fivcadvisor.agents import create_generic_agent_swarm
+from fivcadvisor.adapters import create_langchain_swarm
 from fivcadvisor.tasks.types import TaskTeam
 from fivcadvisor.tools import ToolsRetriever
 
 team = TaskTeam(specialists=[...])
 retriever = ToolsRetriever()
 
-swarm = create_generic_agent_swarm(
-    team=team,
-    tools_retriever=retriever,
+swarm = create_langchain_swarm(
+    agents=[...],  # Create agents from team specialists
 )
 ```
 
@@ -206,7 +205,7 @@ swarm = create_generic_agent_swarm(
 
 ## Examples
 
-See `examples/swarm_example.py` for complete working examples.
+For complete working examples, refer to the LangChain documentation and the `create_langchain_swarm` adapter implementation.
 
 ## Migration from Strands Swarm
 

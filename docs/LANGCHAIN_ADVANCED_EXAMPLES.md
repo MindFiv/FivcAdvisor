@@ -70,13 +70,16 @@ specialists = [
 
 team = TaskTeam(specialists=specialists)
 
-# Create swarm
+# Create swarm using the LangChain adapter
 async def main():
-    swarm = create_generic_agent_swarm(
-        team=team,
-        tools_retriever=lambda: []  # Add your tools here
-    )
-    
+    from fivcadvisor.adapters import create_langchain_swarm
+
+    # Create agents from team specialists
+    agents = [create_default_agent(name=s.name, system_prompt=s.backstory)
+              for s in team.specialists]
+
+    swarm = create_langchain_swarm(agents=agents)
+
     # Complex query that routes to appropriate agents
     result = await swarm.invoke_async(
         "Analyze our sales data and plan next quarter strategy"

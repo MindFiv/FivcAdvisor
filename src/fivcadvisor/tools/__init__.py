@@ -8,7 +8,9 @@ __all__ = [
     "ToolsLoader",
 ]
 
-from typing import Optional
+from typing import Optional, cast, List
+
+from langchain_core.tools import Tool
 
 from fivcadvisor.utils import create_lazy_value
 from fivcadvisor.tools.types import (
@@ -18,31 +20,30 @@ from fivcadvisor.tools.types import (
     ToolsBundleManager,
     ToolsLoader,
 )
+from fivcadvisor.tools.clock import get_clock
 
 
 def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **kwargs):
     """
     Register default tools with the tools retriever.
 
-    Note: Default tools from strands_tools have been removed.
-    Tools are now loaded from MCP servers using ToolsLoader.
+    Registers built-in tools like clock tools. Additional tools are loaded
+    from MCP servers using ToolsLoader.
 
     Args:
         tools_retriever: The ToolsRetriever instance to register tools with
         **kwargs: Additional arguments (ignored)
 
     Returns:
-        Empty list (no default tools registered)
+        List of registered tools
     """
     assert tools_retriever is not None
 
-    # Default tools from strands_tools are no longer available
-    # Tools should be loaded from MCP servers using ToolsLoader instead
-    # Example:
-    #   loader = ToolsLoader(retriever=tools_retriever)
-    #   loader.load()
+    # Register clock tool
+    tools = cast(List[Tool], [get_clock])
+    tools_retriever.add_batch(tools, tool_bundle="clock")
 
-    return []
+    return tools
 
 
 def _load_retriever() -> ToolsRetriever:

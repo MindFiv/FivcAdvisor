@@ -49,12 +49,11 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional, Dict, Any
 
-from langchain_core.messages import BaseMessage, AIMessage
+from langchain_core.messages import BaseMessage
 from pydantic import (
     BaseModel,
     Field,
     computed_field,
-    field_validator,
 )
 
 
@@ -379,25 +378,6 @@ class AgentsRuntime(BaseModel):
     error: Optional[str] = Field(
         default=None, description="Error message if execution failed"
     )
-
-    @field_validator("reply", mode="before")
-    @classmethod
-    def convert_reply_to_message(cls, v: Any) -> Optional[BaseMessage]:
-        """Convert dict to AIMessage if needed."""
-        if v is None:
-            return None
-        if isinstance(v, dict):
-            # Convert dict to AIMessage, preserving content structure
-            content = v.get("content", "")
-            if isinstance(content, list) and content:
-                # Preserve the list of content blocks
-                # AIMessage will store this as-is
-                return AIMessage(content=content)
-            elif isinstance(content, str):
-                return AIMessage(content=content)
-            else:
-                return AIMessage(content="")
-        return v
 
     @computed_field
     @property

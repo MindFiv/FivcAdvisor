@@ -17,16 +17,31 @@ class Runnable(ABC):
     in both synchronous and asynchronous contexts. Subclasses must implement both
     `run()` and `run_async()` methods to support different execution patterns.
 
+    Both methods accept keyword arguments for flexible parameter passing. Subclasses
+    may define additional parameters as needed (e.g., `query`, `monitor`, etc.).
+
+    Abstract Properties:
+        id: Unique identifier for the runnable
+        name: Human-readable name for the runnable
+
     Abstract Methods:
         run: Execute the runnable synchronously
         run_async: Execute the runnable asynchronously
 
     Example:
         >>> class MyRunnable(Runnable):
-        ...     def run(self, *args, **kwargs):
+        ...     @property
+        ...     def id(self) -> str:
+        ...         return "my-runnable"
+        ...
+        ...     @property
+        ...     def name(self) -> str:
+        ...         return "MyRunnable"
+        ...
+        ...     def run(self, **kwargs):
         ...         return "sync result"
         ...
-        ...     async def run_async(self, *args, **kwargs):
+        ...     async def run_async(self, **kwargs):
         ...         return "async result"
         ...
         >>> runnable = MyRunnable()
@@ -49,7 +64,7 @@ class Runnable(ABC):
         """
 
     @abstractmethod
-    async def run_async(self, *args: Any, **kwargs: Any) -> Any:
+    async def run_async(self, **kwargs: Any) -> Any:
         """
         Execute the runnable asynchronously (abstract method).
 
@@ -58,7 +73,6 @@ class Runnable(ABC):
         and concurrent execution.
 
         Args:
-            *args: Positional arguments to pass to the runnable
             **kwargs: Keyword arguments to pass to the runnable
 
         Returns:
@@ -66,7 +80,7 @@ class Runnable(ABC):
         """
 
     @abstractmethod
-    def run(self, *args: Any, **kwargs: Any) -> Any:
+    def run(self, **kwargs: Any) -> Any:
         """
         Execute the runnable synchronously (abstract method).
 
@@ -74,14 +88,13 @@ class Runnable(ABC):
         operation in a synchronous context, blocking until completion.
 
         Args:
-            *args: Positional arguments to pass to the runnable
             **kwargs: Keyword arguments to pass to the runnable
 
         Returns:
             The result of the synchronous execution
         """
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    def __call__(self, **kwargs: Any) -> Any:
         """
         Execute the runnable synchronously.
 
@@ -89,10 +102,12 @@ class Runnable(ABC):
         using the function call syntax. It simply delegates to the `run()` method.
 
         Args:
-            *args: Positional arguments to pass to the runnable
             **kwargs: Keyword arguments to pass to the runnable
 
         Returns:
             The result of the synchronous execution
+
+        Example:
+            >>> result = runnable(query="test")  # Equivalent to runnable.run(query="test")
         """
-        return self.run(*args, **kwargs)
+        return self.run(**kwargs)

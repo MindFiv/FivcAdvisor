@@ -19,11 +19,14 @@ import os
 
 import streamlit as st
 import asyncio
-from langchain_core.messages import AIMessage
 
-from fivcadvisor.app.utils import Chat, default_running_config
+from fivcadvisor.app.utils import (
+    Chat,
+    # default_running_config,
+)
 from fivcadvisor.app.components import ChatMessage
-from fivcadvisor.tasks import create_assessing_task
+
+# from fivcadvisor.tasks import create_assessing_task
 from .base import ViewBase, ViewNavigation
 from ...agents.types import AgentsRuntime
 
@@ -132,34 +135,35 @@ class ChatView(ViewBase):
             _, logo_col, _ = logo_placeholder.columns(3)
             logo_col.image(logo_path, caption="💬 FivcAdvisor At Your Service!")
 
+        # Create placeholder for streaming response
+        msg_new_placeholder = st.empty()
+
         # User input field
         if user_query := st.chat_input("Ask me anything..."):
             # Clear logo
             logo_placeholder.empty()
 
-            # Create placeholder for streaming response
-            msg_new_placeholder = st.empty()
-            msg_runtime = AgentsRuntime(
-                query=user_query,
-            )
-            ChatMessage(msg_runtime).render(msg_new_placeholder)
+            ChatMessage(
+                AgentsRuntime(
+                    query=user_query,
+                )
+            ).render(msg_new_placeholder)
 
             # Execute query with streaming callback
             is_new_chat = self.chat.id is None
 
-            assessment_task = create_assessing_task(
-                user_query,
-                tools_retriever=self.chat.tools_retriever,
-            )
-            # Assess query
-            assessment = asyncio.run(assessment_task.run_async())
-
-            if assessment.require_planning and default_running_config.get(
-                "enable_tasks"
-            ):
-                msg_runtime.reply = AIMessage(content=assessment.reasoning)
-                ChatMessage(msg_runtime).render(msg_new_placeholder)
-                return
+            # assessment_task = create_assessing_task(
+            #     user_query,
+            #     tools_retriever=self.chat.tools_retriever,
+            # )
+            # # Assess query
+            # assessment = asyncio.run(assessment_task.run_async())
+            # if assessment.require_planning and default_running_config.get(
+            #     "enable_tasks"
+            # ):
+            #     msg_runtime.reply = AIMessage(content=assessment.reasoning)
+            #     ChatMessage(msg_runtime).render(msg_new_placeholder)
+            #     return
 
             asyncio.run(
                 self.chat.ask(

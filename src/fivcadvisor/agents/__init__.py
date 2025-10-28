@@ -7,14 +7,13 @@ __all__ = [
     "create_research_agent",
     "create_engineering_agent",
     "create_evaluating_agent",
-    "create_generic_agent_swarm",
     "default_retriever",
     "default_agent",
     "AgentsCreatorBase",
     "AgentsRetriever",
 ]
 
-from typing import cast, List, Optional
+from typing import cast, List
 from uuid import uuid4
 
 from fivcadvisor import (
@@ -26,13 +25,11 @@ from fivcadvisor.models import (
     create_chat_model,
     create_reasoning_model,
 )
-from fivcadvisor.tasks.types import TaskTeam
 from fivcadvisor.agents.types import (
     agent_creator,
     AgentsRetriever,
     AgentsCreatorBase,
     AgentsRunnable,
-    AgentsSwarmRunnable,
 )
 from fivcadvisor.utils import Runnable
 
@@ -185,88 +182,6 @@ def create_evaluating_agent(*args, **kwargs) -> Runnable:
     return create_default_agent(*args, **kwargs)
 
 
-@agent_creator(name="Generic Swarm")
-def create_generic_agent_swarm(
-    *args,
-    team: Optional[TaskTeam] = None,
-    tools_retriever: Optional[tools.ToolsRetriever] = None,
-    **kwargs,
-) -> Runnable:
-    """
-    Create a generic swarm of agents.
-
-    This function creates a swarm of agents using AgentsSwarmRunnable for
-    multi-agent orchestration. The swarm enables dynamic agent routing,
-    message passing, and coordinated execution across specialized agents.
-
-    All agents in the swarm use AgentsRunnable for compatibility
-    with the LangChain ecosystem.
-
-    Args:
-        team: TaskTeam containing specialist definitions
-        tools_retriever: ToolsRetriever to fetch tools for each specialist
-        **kwargs: Additional arguments passed to agent creation
-
-    Returns:
-        AgentsSwarmRunnable instance for multi-agent orchestration
-
-    Raises:
-        RuntimeError: If team or tools_retriever is not provided
-
-    Example:
-        >>> from fivcadvisor.agents import create_generic_agent_swarm
-        >>> from fivcadvisor.tasks.types import TaskTeam, TaskRequirement
-        >>> from fivcadvisor import tools
-        >>>
-        >>> team = TaskTeam(specialists=[
-        ...     TaskRequirement(
-        ...         name="Researcher",
-        ...         backstory="You are a research specialist",
-        ...         tools=["search_tool"]
-        ...     ),
-        ...     TaskRequirement(
-        ...         name="Analyst",
-        ...         backstory="You are a data analyst",
-        ...         tools=["analysis_tool"]
-        ...     )
-        ... ])
-        >>>
-        >>> swarm = create_generic_agent_swarm(
-        ...     team=team,
-        ...     tools_retriever=tools.default_retriever
-        ... )
-        >>>
-        >>> result = await swarm.run_async("Analyze the latest trends")
-        >>> print(result)
-    """
-    if not team:
-        raise RuntimeError("team not provided")
-
-    if not tools_retriever:
-        raise RuntimeError("tools_retriever not provided")
-
-    s_agents = []
-    for s in team.specialists:
-        s_tools = tools_retriever.get_batch(s.tools)
-        s_tools = [t for t in s_tools if t is not None]
-        # create_default_agent now returns AgentsRunnable
-        s_agents.append(
-            create_default_agent(
-                name=s.name,
-                tools=s_tools,
-                system_prompt=s.backstory,
-                **kwargs,
-            )
-        )
-
-    # Create and return AgentsSwarmRunnable for multi-agent orchestration
-    return AgentsSwarmRunnable(
-        swarm_name=team.name if hasattr(team, "name") else "GenericSwarm",
-        agents=s_agents,
-        default_agent_name=s_agents[0]._name if s_agents else None,
-    )
-
-
 def _load_retriever() -> AgentsRetriever:
     retriever = AgentsRetriever()
     retriever.add_batch(
@@ -281,7 +196,6 @@ def _load_retriever() -> AgentsRetriever:
                 create_research_agent,
                 create_engineering_agent,
                 create_evaluating_agent,
-                create_generic_agent_swarm,
             ],
         )
     )

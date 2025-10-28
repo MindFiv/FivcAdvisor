@@ -59,21 +59,17 @@ result = await agent.invoke_async("Hello!")
 
 **Before (Strands)**:
 ```python
-from fivcadvisor.agents import create_generic_agent_swarm
-from fivcadvisor.tasks.types import TaskTeam
+from strands.multiagent import Swarm
 
-team = TaskTeam(specialists=[...])
-swarm = create_generic_agent_swarm(team=team, tools_retriever=retriever)
+swarm = Swarm(agents=[agent1, agent2])
 result = await swarm.invoke_async("Query")
 ```
 
-**After (LangChain)** - No changes needed!
+**After (LangChain)**:
 ```python
-from fivcadvisor.agents import create_generic_agent_swarm
-from fivcadvisor.tasks.types import TaskTeam
+from fivcadvisor.adapters import create_langchain_swarm
 
-team = TaskTeam(specialists=[...])
-swarm = create_generic_agent_swarm(team=team, tools_retriever=retriever)
+swarm = create_langchain_swarm(agents=[agent1, agent2])
 result = await swarm.invoke_async("Query")
 ```
 

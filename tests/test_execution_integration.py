@@ -20,7 +20,6 @@ class TestExecutionTaskIntegration:
         """Test that all required imports work"""
         assert hasattr(tasks, "create_planning_task")
         assert hasattr(tasks, "create_assessing_task")
-        assert hasattr(agents, "create_generic_agent_swarm")
         assert hasattr(tasks, "TaskTeam")
         assert hasattr(tasks, "TaskMonitor")
         assert hasattr(tasks, "TaskRuntimeStep")
@@ -89,17 +88,6 @@ class TestExecutionTaskIntegration:
         assert hasattr(task, "run")
         assert hasattr(task, "run_async")
 
-    def test_swarm_creator_signature(self):
-        """Test create_generic_agent_swarm signature"""
-        assert callable(agents.create_generic_agent_swarm)
-
-        # Check it's in the agent creator registry
-        retriever = agents.default_retriever
-        creator = retriever.get("Generic Swarm")
-
-        assert creator is not None
-        assert creator.name == "Generic Swarm"
-
     def test_workflow_components(self):
         """Test that all workflow components exist"""
         # Assessment
@@ -132,7 +120,6 @@ class TestExecutionTaskIntegration:
         assert "TaskMonitorManager" in tasks.__all__
 
         # Agents module
-        assert "create_generic_agent_swarm" in agents.__all__
         assert "create_default_agent" in agents.__all__
 
 
@@ -147,7 +134,6 @@ def run_tests():
     tests = [
         ("Imports", test_suite.test_imports),
         ("TaskTeam Creation", test_suite.test_task_team_creation),
-        ("Swarm Creator Signature", test_suite.test_swarm_creator_signature),
         ("Workflow Components", test_suite.test_workflow_components),
         ("Exports", test_suite.test_exports),
     ]

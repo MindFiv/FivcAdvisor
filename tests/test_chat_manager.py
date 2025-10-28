@@ -278,7 +278,7 @@ class TestChatAsk:
 
         # Mock create_briefing_task to avoid actual agent creation
         with patch(
-            "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            "fivcadvisor.app.utils.chats.create_briefing_task"
         ) as mock_briefing_task:
             # Mock the task to return a mock with run_async method
             mock_task = Mock()
@@ -320,7 +320,7 @@ class TestChatAsk:
 
         # Mock create_briefing_task to avoid actual agent creation
         with patch(
-            "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            "fivcadvisor.app.utils.chats.create_briefing_task"
         ) as mock_briefing_task:
             # Mock the task to return a mock with run_async method
             mock_task = Mock()
@@ -354,7 +354,7 @@ class TestChatAsk:
 
         # Mock create_briefing_task to avoid actual agent creation
         with patch(
-            "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            "fivcadvisor.app.utils.chats.create_briefing_task"
         ) as mock_briefing_task:
             # Mock the task to return a mock with run_async method
             mock_task = Mock()
@@ -556,7 +556,7 @@ class TestAgentExecutionMethodRegression:
 
         # Mock create_briefing_task
         with patch(
-            "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            "fivcadvisor.app.utils.chats.create_briefing_task"
         ) as mock_briefing_task:
             mock_task = Mock()
             mock_task.run_async = AsyncMock(return_value="Agent description")
@@ -591,7 +591,7 @@ class TestAgentExecutionMethodRegression:
 
         # Mock create_briefing_task
         with patch(
-            "fivcadvisor.app.utils.chats.tasks.create_briefing_task"
+            "fivcadvisor.app.utils.chats.create_briefing_task"
         ) as mock_briefing_task:
             mock_task = Mock()
             mock_task.run_async = AsyncMock(return_value="Agent description")

@@ -36,8 +36,11 @@ Example:
 from datetime import datetime, timezone
 from typing import Optional, Callable, List
 
-from fivcadvisor.events import AgentResult
-from fivcadvisor import agents, tools, tasks
+from langchain_core.messages import BaseMessage
+from pydantic import BaseModel
+
+from fivcadvisor import agents, tools
+from fivcadvisor.tasks import create_briefing_task
 from fivcadvisor.agents.types import (
     AgentsRuntime,
     AgentsMonitorManager,
@@ -319,7 +322,7 @@ class Chat(object):
         self,
         query: str,
         on_event: Optional[Callable[[AgentsRuntime], None]] = None,
-    ) -> AgentResult:
+    ) -> BaseMessage | BaseModel:
         """
         Send a query to the agent and get a response.
 
@@ -407,11 +410,10 @@ class Chat(object):
 
             # Execute agent
             agent_result = await agent.run_async(query)
-            print(agent_result)
             # Save agent metadata on first query
             if not self.runtime_meta:
                 agent_query = f"{query}\n{str(agent_result)}"
-                agent_desc = tasks.create_briefing_task(
+                agent_desc = create_briefing_task(
                     agent_query,
                     tools_retriever=self.tools_retriever,
                 )

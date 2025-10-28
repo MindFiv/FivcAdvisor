@@ -20,16 +20,7 @@ Key Features:
 
 from functools import cached_property
 from typing import Any, Optional, List, Callable, Dict
-from datetime import datetime
 
-from fivcadvisor.events.hooks import (
-    HookRegistry,
-    HookEvent,
-    AgentInitializedEvent,
-    BeforeInvocationEvent,
-    AfterInvocationEvent,
-    MessageAddedEvent,
-)
 from fivcadvisor import agents, tools
 from fivcadvisor.tasks.types.base import (
     TaskTeam,
@@ -153,46 +144,6 @@ class TaskMonitor(object):
         if not runtime:
             self._repo.update_task_runtime(self._runtime)
 
-    def register_hooks(self, registry: HookRegistry, **kwargs: Any) -> None:
-        registry.add_callback(AgentInitializedEvent, self._on_hook_event)
-        registry.add_callback(BeforeInvocationEvent, self._on_hook_event)
-        registry.add_callback(AfterInvocationEvent, self._on_hook_event)
-        registry.add_callback(MessageAddedEvent, self._on_hook_event)
-
-    def _on_hook_event(self, event: HookEvent) -> None:
-        should_save_runtime = False
-        agent = event.agent
-        agent_id = agent.agent_id
-        step = self.steps.get(agent.agent_id)
-        if not step:
-            # ensure event exists
-            step = TaskRuntimeStep(
-                id=agent_id,
-                agent_name=agent.name,
-                status=TaskStatus.PENDING,
-                messages=[*agent.messages],
-            )
-            self.steps[step.id] = step
-
-        if isinstance(event, BeforeInvocationEvent):
-            step.status = TaskStatus.EXECUTING
-            step.started_at = datetime.now()
-
-        elif isinstance(event, AfterInvocationEvent):
-            step.status = TaskStatus.COMPLETED
-            step.completed_at = datetime.now()
-            should_save_runtime = True
-
-        elif isinstance(event, MessageAddedEvent):
-            step.messages.append(event.message)
-
-        if should_save_runtime:
-            self._repo.update_task_runtime(self._runtime.sync())
-        self._repo.update_task_runtime_step(self.id, step)
-
-        if self._on_event:
-            self._on_event(self._runtime)
-
     def get_step(self, agent_id: str) -> Optional[TaskRuntimeStep]:
         """
         Get execution step for a specific agent.
@@ -311,7 +262,6 @@ class TaskMonitorManager(object):
             **kwargs,
         )
         task_team = await task_team.run_async()
-        print(task_team)
         task_runtime = TaskRuntime(
             query=query,
             team=task_team,

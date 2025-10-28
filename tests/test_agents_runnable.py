@@ -5,13 +5,14 @@ Tests verify:
 - AgentsRunnable initialization with various parameters
 - Synchronous execution via run() method
 - Asynchronous execution via run_async() method
-- Callback handler support
 - Tool handling and conversion
 - Error handling and edge cases
 - Runnable interface compliance
+- Message history support (string queries and message lists)
+- Structured response handling with response_model
 """
 
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import tool
 from langchain_core.messages import AIMessage, HumanMessage
@@ -46,20 +47,6 @@ class TestAgentsRunnableInitialization:
         )
 
         assert agent._system_prompt == system_prompt
-
-    def test_init_with_callback_handler(self):
-        """Test AgentsRunnable initialization with callback handler."""
-        mock_model = MagicMock(spec=BaseChatModel)
-        callback_handler = MagicMock()
-
-        agent = AgentsRunnable(
-            model=mock_model,
-            tools=[],
-            agent_name="TestAgent",
-            callback_handler=callback_handler,
-        )
-
-        assert agent._callback_handler == callback_handler
 
     def test_init_generates_unique_ids(self):
         """Test that each AgentsRunnable gets a unique ID."""
@@ -101,9 +88,11 @@ class TestAgentsRunnableExecution:
         """Test that run method exists and is callable."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.invoke.return_value = {
-            "messages": [AIMessage(content="Test response")]
-        }
+        # Mock stream method instead of invoke
+        mock_agent.stream.return_value = [
+            ("values", {"messages": [AIMessage(content="Test response")]})
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(model=mock_model, tools=[], agent_name="TestAgent")
@@ -128,9 +117,10 @@ class TestAgentsRunnableExecution:
         """Test that AgentsRunnable is callable via __call__."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.invoke.return_value = {
-            "messages": [AIMessage(content="Test response")]
-        }
+        mock_agent.stream.return_value = [
+            ("values", {"messages": [AIMessage(content="Test response")]})
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(model=mock_model, tools=[], agent_name="TestAgent")
@@ -163,32 +153,6 @@ class TestAgentsRunnableToolHandling:
         )
 
         assert agent._agent is not None
-
-
-class TestAgentsRunnableCallbackHandling:
-    """Test AgentsRunnable callback handler support."""
-
-    @patch("fivcadvisor.agents.types.runnables.create_agent")
-    def test_callback_handler_called_on_success(self, mock_create_agent):
-        """Test that callback handler is called on successful execution."""
-        mock_model = MagicMock(spec=BaseChatModel)
-        mock_agent = MagicMock()
-        mock_agent.invoke.return_value = {
-            "messages": [AIMessage(content="Test response")]
-        }
-        mock_create_agent.return_value = mock_agent
-
-        callback_handler = MagicMock()
-        agent = AgentsRunnable(
-            model=mock_model,
-            tools=[],
-            agent_name="TestAgent",
-            callback_handler=callback_handler,
-        )
-
-        # Note: callback is called with result
-        result = agent.run("test query")
-        assert result is not None
 
 
 class TestAgentsRunnableStructuredResponse:
@@ -225,7 +189,10 @@ class TestAgentsRunnableStructuredResponse:
 
         # Mock agent returns structured_response in output
         test_response = TestResponse(answer="Test answer", confidence=0.95)
-        mock_agent.invoke.return_value = {"structured_response": test_response}
+        mock_agent.stream.return_value = [
+            ("values", {"structured_response": test_response})
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -246,7 +213,6 @@ class TestAgentsRunnableStructuredResponse:
     def test_run_async_returns_structured_response(self, mock_create_agent):
         """Test that run_async() returns structured response when available."""
         import asyncio
-        from unittest.mock import AsyncMock
 
         class TestResponse(BaseModel):
             answer: str
@@ -257,9 +223,12 @@ class TestAgentsRunnableStructuredResponse:
 
         # Mock agent returns structured_response in output
         test_response = TestResponse(answer="Async answer", confidence=0.85)
-        mock_agent.ainvoke = AsyncMock(
-            return_value={"structured_response": test_response}
-        )
+
+        async def mock_astream(*args, **kwargs):
+            yield ("values", {"structured_response": test_response})
+
+        mock_agent.astream = mock_astream
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -288,9 +257,10 @@ class TestAgentsRunnableStructuredResponse:
         mock_agent = MagicMock()
 
         # Mock agent returns only messages, no structured_response
-        mock_agent.invoke.return_value = {
-            "messages": [AIMessage(content="Plain text response")]
-        }
+        mock_agent.stream.return_value = [
+            ("values", {"messages": [AIMessage(content="Plain text response")]})
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -311,13 +281,19 @@ class TestAgentsRunnableStructuredResponse:
         mock_agent = MagicMock()
 
         # Mock agent returns multiple messages
-        mock_agent.invoke.return_value = {
-            "messages": [
-                AIMessage(content="First response"),
-                AIMessage(content="Second response"),
-                AIMessage(content="Final response"),
-            ]
-        }
+        mock_agent.stream.return_value = [
+            (
+                "values",
+                {
+                    "messages": [
+                        AIMessage(content="First response"),
+                        AIMessage(content="Second response"),
+                        AIMessage(content="Final response"),
+                    ]
+                },
+            )
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -344,10 +320,16 @@ class TestAgentsRunnableStructuredResponse:
 
         # Mock agent returns both structured_response and messages
         test_response = TestResponse(answer="Structured answer")
-        mock_agent.invoke.return_value = {
-            "structured_response": test_response,
-            "messages": [AIMessage(content="This should be ignored")],
-        }
+        mock_agent.stream.return_value = [
+            (
+                "values",
+                {
+                    "structured_response": test_response,
+                    "messages": [AIMessage(content="This should be ignored")],
+                },
+            )
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -373,7 +355,10 @@ class TestAgentsRunnableMessageHistory:
         """Test that run() works with string query."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.invoke.return_value = {"messages": [AIMessage(content="Response")]}
+        mock_agent.stream.return_value = [
+            ("values", {"messages": [AIMessage(content="Response")]})
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -385,19 +370,18 @@ class TestAgentsRunnableMessageHistory:
         result = agent.run("test query")
 
         assert result == "Response"
-        # Verify that invoke was called with HumanMessage
-        mock_agent.invoke.assert_called_once()
-        call_args = mock_agent.invoke.call_args
-        assert call_args is not None
+        # Verify that stream was called
+        mock_agent.stream.assert_called_once()
 
     @patch("fivcadvisor.agents.types.runnables.create_agent")
     def test_run_with_message_list(self, mock_create_agent):
         """Test that run() works with list of messages."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.invoke.return_value = {
-            "messages": [AIMessage(content="Response to history")]
-        }
+        mock_agent.stream.return_value = [
+            ("values", {"messages": [AIMessage(content="Response to history")]})
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -416,17 +400,18 @@ class TestAgentsRunnableMessageHistory:
         result = agent.run(messages)
 
         assert result == "Response to history"
-        # Verify that invoke was called with the message list
-        mock_agent.invoke.assert_called_once()
+        # Verify that stream was called with the message list
+        mock_agent.stream.assert_called_once()
 
     @patch("fivcadvisor.agents.types.runnables.create_agent")
     def test_run_with_empty_message_list(self, mock_create_agent):
         """Test that run() works with empty message list."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.invoke.return_value = {
-            "messages": [AIMessage(content="Default response")]
-        }
+        mock_agent.stream.return_value = [
+            ("values", {"messages": [AIMessage(content="Default response")]})
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -444,9 +429,10 @@ class TestAgentsRunnableMessageHistory:
         """Test that run() works with single message in list."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.invoke.return_value = {
-            "messages": [AIMessage(content="Single message response")]
-        }
+        mock_agent.stream.return_value = [
+            ("values", {"messages": [AIMessage(content="Single message response")]})
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -467,9 +453,12 @@ class TestAgentsRunnableMessageHistory:
 
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.ainvoke = AsyncMock(
-            return_value={"messages": [AIMessage(content="Async response")]}
-        )
+
+        async def mock_astream(*args, **kwargs):
+            yield ("values", {"messages": [AIMessage(content="Async response")]})
+
+        mock_agent.astream = mock_astream
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -491,9 +480,15 @@ class TestAgentsRunnableMessageHistory:
 
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.ainvoke = AsyncMock(
-            return_value={"messages": [AIMessage(content="Async history response")]}
-        )
+
+        async def mock_astream(*args, **kwargs):
+            yield (
+                "values",
+                {"messages": [AIMessage(content="Async history response")]},
+            )
+
+        mock_agent.astream = mock_astream
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -525,7 +520,10 @@ class TestAgentsRunnableMessageHistory:
         mock_agent = MagicMock()
 
         test_response = TestResponse(answer="Structured answer", confidence=0.9)
-        mock_agent.invoke.return_value = {"structured_response": test_response}
+        mock_agent.stream.return_value = [
+            ("values", {"structured_response": test_response})
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -562,9 +560,12 @@ class TestAgentsRunnableMessageHistory:
         mock_agent = MagicMock()
 
         test_response = TestResponse(answer="Async structured answer", confidence=0.85)
-        mock_agent.ainvoke = AsyncMock(
-            return_value={"structured_response": test_response}
-        )
+
+        async def mock_astream(*args, **kwargs):
+            yield ("values", {"structured_response": test_response})
+
+        mock_agent.astream = mock_astream
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(
@@ -591,9 +592,10 @@ class TestAgentsRunnableMessageHistory:
         """Test that run() works with mixed message types in history."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
-        mock_agent.invoke.return_value = {
-            "messages": [AIMessage(content="Mixed response")]
-        }
+        mock_agent.stream.return_value = [
+            ("values", {"messages": [AIMessage(content="Mixed response")]})
+        ]
+        mock_agent.InputType = MagicMock(return_value={"messages": []})
         mock_create_agent.return_value = mock_agent
 
         agent = AgentsRunnable(

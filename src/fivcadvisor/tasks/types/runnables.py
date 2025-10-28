@@ -93,8 +93,8 @@ class TaskRunnable(Runnable):
         Execute the task synchronously.
 
         Prepends the task query to the execution and delegates to the
-        underlying runnable's run method. The query is passed as the
-        first positional argument.
+        underlying runnable's run method. The query is passed as a keyword
+        argument to the underlying runnable.
 
         The return type depends on the underlying runnable's response_model:
         - If the runnable has a response_model: Returns a Pydantic model instance
@@ -102,7 +102,8 @@ class TaskRunnable(Runnable):
 
         Args:
             **kwargs: Additional keyword arguments to pass to the underlying
-                     runnable's run method.
+                     runnable's run method. The task query is automatically
+                     prepended as the 'query' parameter.
 
         Returns:
             Union[BaseModel, str]: The execution result from the underlying runnable.
@@ -118,15 +119,15 @@ class TaskRunnable(Runnable):
             >>> result = task.run()  # Returns TaskAssessment
             >>> print(result.require_planning)
         """
-        return self._runnable.run(self._query, **kwargs)
+        return self._runnable.run(query=self._query, **kwargs)
 
     async def run_async(self, **kwargs: Any) -> Union[BaseModel, str]:
         """
         Execute the task asynchronously.
 
         Prepends the task query to the execution and delegates to the
-        underlying runnable's run_async method. The query is passed as the
-        first positional argument.
+        underlying runnable's run_async method. The query is passed as a
+        keyword argument to the underlying runnable.
 
         This method is useful for non-blocking execution in async contexts,
         such as web servers or concurrent task processing.
@@ -137,7 +138,8 @@ class TaskRunnable(Runnable):
 
         Args:
             **kwargs: Additional keyword arguments to pass to the underlying
-                     runnable's run_async method.
+                     runnable's run_async method. The task query is automatically
+                     prepended as the 'query' parameter.
 
         Returns:
             Union[BaseModel, str]: The execution result from the underlying runnable.
@@ -153,4 +155,4 @@ class TaskRunnable(Runnable):
             >>> result = await task.run_async()  # Returns TaskTeam
             >>> print(len(result.specialists))
         """
-        return await self._runnable.run_async(self._query, **kwargs)
+        return await self._runnable.run_async(query=self._query, **kwargs)
