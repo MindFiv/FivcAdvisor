@@ -285,7 +285,7 @@ class TestChatAsk:
             mock_task.run_async = AsyncMock(return_value="Agent description")
             mock_briefing_task.return_value = mock_task
 
-            result = await manager.ask("test query")
+            result = await manager.ask_async("test query")
 
         assert result == "test response"
         assert manager.running is False  # Should be reset after execution
@@ -327,7 +327,7 @@ class TestChatAsk:
             mock_task.run_async = AsyncMock(return_value="Agent description")
             mock_briefing_task.return_value = mock_task
 
-            result = await manager.ask("test query")
+            result = await manager.ask_async("test query")
 
         assert result == "test response"
         # Should NOT save agent metadata (already exists)
@@ -361,7 +361,7 @@ class TestChatAsk:
             mock_task.run_async = AsyncMock(return_value="Agent description")
             mock_briefing_task.return_value = mock_task
 
-            await manager.ask("query", on_event=mock_callback)
+            await manager.ask_async("query", on_event=mock_callback)
 
         # Verify callback was passed to create_agent_runtime
         call_kwargs = manager.monitor_manager.create_agent_runtime.call_args[1]
@@ -375,7 +375,7 @@ class TestChatAsk:
         manager.running = True
 
         with pytest.raises(ValueError) as exc_info:
-            await manager.ask("test query")
+            await manager.ask_async("test query")
 
         assert "already processing" in str(exc_info.value).lower()
 
@@ -396,7 +396,7 @@ class TestChatAsk:
         manager.monitor_manager.create_agent_runtime = Mock(return_value=mock_agent)
 
         with pytest.raises(Exception):
-            await manager.ask("query")
+            await manager.ask_async("query")
 
         # Running should be reset even after exception
         assert manager.running is False
@@ -563,7 +563,7 @@ class TestAgentExecutionMethodRegression:
             mock_briefing_task.return_value = mock_task
 
             # This should work without AttributeError
-            result = await manager.ask("test query")
+            result = await manager.ask_async("test query")
 
         # Verify run_async was called (not invoke_async)
         mock_agent.run_async.assert_called_once_with("test query")
@@ -599,7 +599,7 @@ class TestAgentExecutionMethodRegression:
 
             # This should raise an error because run_async is not available
             with pytest.raises((AttributeError, TypeError)):
-                await manager.ask("test query")
+                await manager.ask_async("test query")
 
 
 if __name__ == "__main__":

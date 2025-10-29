@@ -23,7 +23,7 @@ from langchain_core.tools import tool
 
 
 @tool
-def get_clock(
+def clock(
     mode: Literal[
         "time", "date", "datetime", "timezone", "time_in_tz", "unix", "info"
     ] = "datetime",
@@ -57,17 +57,17 @@ def get_clock(
         Formatted time/date string or error message
 
     Examples:
-        >>> get_clock()
+        >>> clock()
         '2024-10-28 14:30:45'
-        >>> get_clock(mode="time")
+        >>> clock(mode="time")
         '14:30:45'
-        >>> get_clock(mode="date", format="%A, %B %d, %Y")
+        >>> clock(mode="date", format="%A, %B %d, %Y")
         'Monday, October 28, 2024'
-        >>> get_clock(mode="time_in_tz", timezone_name="America/New_York")
+        >>> clock(mode="time_in_tz", timezone_name="America/New_York")
         '2024-10-28 10:30:45'
-        >>> get_clock(mode="unix")
+        >>> clock(mode="unix")
         '1729094445'
-        >>> get_clock(mode="info")
+        >>> clock(mode="info")
         'Date: 2024-10-28, Time: 14:30:45, Timezone: UTC-07:00 (PDT), Unix: 1729094445'
     """
     try:

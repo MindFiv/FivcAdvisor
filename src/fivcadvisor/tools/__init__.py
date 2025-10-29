@@ -20,7 +20,7 @@ from fivcadvisor.tools.types import (
     ToolsBundleManager,
     ToolsLoader,
 )
-from fivcadvisor.tools.clock import get_clock
+from fivcadvisor.tools.clock import clock
 
 
 def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **kwargs):
@@ -40,7 +40,7 @@ def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **k
     assert tools_retriever is not None
 
     # Register clock tool
-    tools = cast(List[Tool], [get_clock])
+    tools = cast(List[Tool], [clock])
     tools_retriever.add_batch(tools, tool_bundle="clock")
 
     return tools

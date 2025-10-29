@@ -166,7 +166,7 @@ class ChatView(ViewBase):
             #     return
 
             asyncio.run(
-                self.chat.ask(
+                self.chat.ask_async(
                     user_query,
                     on_event=lambda rt: ChatMessage(rt).render(msg_new_placeholder),
                 )

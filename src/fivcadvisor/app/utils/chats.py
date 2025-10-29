@@ -27,7 +27,7 @@ Example:
     >>> chat = Chat(tools_retriever=tools.default_retriever)
     >>>
     >>> # Send a query
-    >>> result = await chat.ask("What is the weather?")
+    >>> result = await chat.ask_async("What is the weather?")
     >>>
     >>> # List conversation history
     >>> history = chat.list_history()
@@ -90,7 +90,7 @@ class Chat(object):
         >>> async def handle_stream(runtime):
         ...     print(f"Streaming: {runtime.streaming_text}")
         >>>
-        >>> result = await chat.ask(
+        >>> result = await chat.ask_async(
         ...     "What is 2+2?",
         ...     on_event=handle_stream
         ... )
@@ -282,8 +282,8 @@ class Chat(object):
 
         Example:
             >>> chat = Chat(tools_retriever=tools.default_retriever)
-            >>> await chat.ask("What is 2+2?")
-            >>> await chat.ask("What is 3+3?")
+            >>> await chat.ask_async("What is 2+2?")
+            >>> await chat.ask_async("What is 3+3?")
             >>>
             >>> # Get all completed conversations
             >>> history = chat.list_history()
@@ -318,7 +318,7 @@ class Chat(object):
             completed_agent_runtimes.append(runtime)
         return completed_agent_runtimes
 
-    async def ask(
+    async def ask_async(
         self,
         query: str,
         on_event: Optional[Callable[[AgentsRuntime], None]] = None,
@@ -358,7 +358,7 @@ class Chat(object):
             >>> chat = Chat(tools_retriever=tools.default_retriever)
             >>>
             >>> # Simple query without streaming
-            >>> result = await chat.ask("What is the capital of France?")
+            >>> result = await chat.ask_async("What is the capital of France?")
             >>> print(result.message)
             >>>
             >>> # Query with streaming callback
@@ -367,7 +367,7 @@ class Chat(object):
             ...     for tool_call in runtime.tool_calls.values():
             ...         print(f"Tool: {tool_call.tool_name}")
             >>>
-            >>> result = await chat.ask(
+            >>> result = await chat.ask_async(
             ...     "Search for Python tutorials",
             ...     on_event=on_stream
             ... )
@@ -495,7 +495,7 @@ class ChatManager(object):
         >>>
         >>> # Create a new chat
         >>> new_chat = manager.add_chat()
-        >>> await new_chat.ask("Hello!")
+        >>> await new_chat.ask_async("Hello!")
         >>>
         >>> # Create manager with custom repository
         >>> from fivcadvisor.agents.types.repositories import FileAgentsRuntimeRepository
@@ -573,9 +573,9 @@ class ChatManager(object):
             >>>
             >>> # Create some chats
             >>> chat1 = manager.add_chat()
-            >>> await chat1.ask("Hello")
+            >>> await chat1.ask_async("Hello")
             >>> chat2 = manager.add_chat()
-            >>> await chat2.ask("Hi there")
+            >>> await chat2.ask_async("Hi there")
             >>>
             >>> # List all chats
             >>> all_chats = manager.list_chats()

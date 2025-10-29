@@ -76,11 +76,11 @@ class TestChatMonitorIntegration:
                 mock_briefing_task.return_value = mock_task
 
                 # First execution - should call briefing task to create agent metadata
-                await manager.ask("query 1")
+                await manager.ask_async("query 1")
                 assert mock_briefing_task.call_count == 1
 
                 # Second execution - should NOT call briefing task (metadata already exists)
-                await manager.ask("query 2")
+                await manager.ask_async("query 2")
                 assert mock_briefing_task.call_count == 1  # Still 1, not 2
 
 
@@ -144,7 +144,7 @@ class TestMonitorWithMockAgent:
                 mock_briefing_task.return_value = mock_task
 
                 # Pass callback to ask method
-                await manager.ask("test", on_event=on_event)
+                await manager.ask_async("test", on_event=on_event)
 
         # Verify streaming was captured
         assert len(captured_runtimes) == 2
@@ -209,7 +209,7 @@ class TestMonitorWithMockAgent:
                 mock_briefing_task.return_value = mock_task
 
                 # Pass callback to ask method
-                await manager.ask("test", on_event=on_event)
+                await manager.ask_async("test", on_event=on_event)
 
         # Verify tool events were captured
         assert len(captured_runtimes) == 2
@@ -285,7 +285,7 @@ class TestMonitorWithMockAgent:
                 mock_briefing_task.return_value = mock_task
 
                 # Pass callback to ask method
-                await manager.ask("test", on_event=on_event)
+                await manager.ask_async("test", on_event=on_event)
 
         # Verify both types of events were captured
         assert len(captured_runtimes) == 4  # 2 streaming + 2 tool events
@@ -351,7 +351,7 @@ class TestMonitorErrorHandling:
                 mock_briefing_task.return_value = mock_task
 
                 # Should not raise exception despite failing callback
-                result = await manager.ask("test", on_event=failing_callback)
+                result = await manager.ask_async("test", on_event=failing_callback)
 
                 # Execution should complete successfully
                 assert result is not None
@@ -418,7 +418,7 @@ class TestMonitorStateManagement:
                 mock_task = Mock()
                 mock_task.run_async = AsyncMock(return_value="Agent description")
                 mock_briefing_task.return_value = mock_task
-                await manager.ask("query 1", on_event=on_event_first)
+                await manager.ask_async("query 1", on_event=on_event_first)
 
         # Second execution
         with patch.object(
@@ -432,7 +432,7 @@ class TestMonitorStateManagement:
                 mock_task = Mock()
                 mock_task.run_async = AsyncMock(return_value="Agent description")
                 mock_briefing_task.return_value = mock_task
-                await manager.ask("query 2", on_event=on_event_second)
+                await manager.ask_async("query 2", on_event=on_event_second)
 
         # State should be isolated between runs
         assert captured_first[0] == "First response"
