@@ -84,6 +84,48 @@ class ToolsRetriever(object):
     def get_all(self) -> List[BaseTool]:
         return list(self.tools.values())
 
+    def delete(self, name: str):
+        """
+        Delete a tool from the retriever.
+
+        Removes the tool from:
+        - self.tools dictionary
+        - embedding collection (by metadata)
+        - bundle manager (if it's in a bundle)
+
+        Args:
+            name: The name of the tool to delete
+
+        Raises:
+            ValueError: If the tool doesn't exist
+        """
+        if name not in self.tools:
+            raise ValueError(f"Tool not found: {name}")
+
+        # Remove from tools dictionary
+        del self.tools[name]
+
+        # Remove from embedding collection by searching and deleting
+        # We need to find all documents with this tool's metadata and delete them
+        all_docs = self.collection.collection.get()
+        ids_to_delete = [
+            doc_id
+            for doc_id, metadata in zip(all_docs["ids"], all_docs["metadatas"])
+            if metadata and metadata.get("__tool__") == name
+        ]
+
+        if ids_to_delete:
+            self.collection.collection.delete(ids=ids_to_delete)
+
+        # Remove from bundle manager
+        bundle = self.bundle_manager.get_bundle_by_tool(name)
+        if bundle:
+            del bundle.tools[name]
+            # Also update the tool_to_bundle mapping
+            del self.bundle_manager._tool_to_bundle[name]
+
+        print(f"Deleted tool '{name}'. Total Docs {self.collection.count()} in ToolsRetriever")
+
     @property
     def retrieve_min_score(self):
         return self.min_score

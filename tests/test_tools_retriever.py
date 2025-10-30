@@ -332,6 +332,96 @@ class TestToolsRetriever:
         # LangChain tools have invoke method instead of being directly callable
         assert hasattr(tool, "invoke")
 
+    def test_delete_tool(self, mock_embedding_db):
+        """Test deleting a tool."""
+        retriever = ToolsRetriever(db=mock_embedding_db)
+
+        tool = Mock()
+        tool.name = "test_tool"
+        tool.description = "A test tool"
+
+        retriever.add(tool)
+        assert "test_tool" in retriever.tools
+
+        # Mock the collection.get() to return documents with the tool's metadata
+        mock_embedding_db.get_collection.return_value.collection.get = Mock(
+            return_value={
+                "ids": ["id1", "id2"],
+                "metadatas": [
+                    {"__tool__": "test_tool"},
+                    {"__tool__": "test_tool"},
+                ],
+            }
+        )
+
+        retriever.delete("test_tool")
+
+        assert "test_tool" not in retriever.tools
+        # Verify delete was called on the collection
+        mock_embedding_db.get_collection.return_value.collection.delete.assert_called_once_with(
+            ids=["id1", "id2"]
+        )
+
+    def test_delete_nonexistent_tool(self, mock_embedding_db):
+        """Test deleting a nonexistent tool raises ValueError."""
+        retriever = ToolsRetriever(db=mock_embedding_db)
+
+        with pytest.raises(ValueError, match="Tool not found"):
+            retriever.delete("nonexistent")
+
+    def test_delete_tool_from_bundle(self, mock_embedding_db):
+        """Test deleting a tool that's in a bundle."""
+        retriever = ToolsRetriever(db=mock_embedding_db)
+
+        tool = Mock()
+        tool.name = "test_tool"
+        tool.description = "A test tool"
+
+        retriever.add(tool, tool_bundle="test_bundle")
+
+        # Verify tool is in bundle
+        bundle = retriever.bundle_manager.get_bundle("test_bundle")
+        assert "test_tool" in bundle.get_tool_names()
+
+        # Mock the collection.get() to return documents
+        mock_embedding_db.get_collection.return_value.collection.get = Mock(
+            return_value={
+                "ids": ["id1"],
+                "metadatas": [{"__tool__": "test_tool"}],
+            }
+        )
+
+        retriever.delete("test_tool")
+
+        # Verify tool is removed from bundle
+        assert "test_tool" not in bundle.get_tool_names()
+        # Verify tool_to_bundle mapping is updated
+        assert retriever.bundle_manager.get_bundle_by_tool("test_tool") is None
+
+    def test_delete_tool_with_no_embedding_docs(self, mock_embedding_db):
+        """Test deleting a tool that has no embedding documents."""
+        retriever = ToolsRetriever(db=mock_embedding_db)
+
+        tool = Mock()
+        tool.name = "test_tool"
+        tool.description = "A test tool"
+
+        retriever.add(tool)
+
+        # Mock the collection.get() to return no matching documents
+        mock_embedding_db.get_collection.return_value.collection.get = Mock(
+            return_value={
+                "ids": ["id1"],
+                "metadatas": [{"__tool__": "other_tool"}],
+            }
+        )
+
+        retriever.delete("test_tool")
+
+        assert "test_tool" not in retriever.tools
+        # delete should not be called if no matching docs
+        mock_embedding_db.get_collection.return_value.collection.delete.assert_not_called()
+
 
 if __name__ == "__main__":
     pytest.main([__file__])
