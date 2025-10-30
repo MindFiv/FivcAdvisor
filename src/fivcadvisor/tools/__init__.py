@@ -1,6 +1,7 @@
 __all__ = [
     "register_default_tools",
     "default_retriever",
+    "default_loader",
     "ToolsConfig",
     "ToolsRetriever",
     "ToolsBundle",
@@ -52,12 +53,15 @@ def _load_retriever() -> ToolsRetriever:
     retriever = ToolsRetriever()
     register_default_tools(tools_retriever=retriever)
 
-    # Load MCP tools using ToolsLoader
-    loader = ToolsLoader(tools_retriever=retriever)
-    loader.load()
+    # # Load MCP tools using ToolsLoader
+    # loader = ToolsLoader(tools_retriever=retriever)
+    # loader.load()
 
     print(f"Registered Tools: {[t.name for t in retriever.get_all()]}")
     return retriever
 
 
 default_retriever = create_lazy_value(_load_retriever)
+default_loader = create_lazy_value(
+    lambda: ToolsLoader(tools_retriever=default_retriever)
+)

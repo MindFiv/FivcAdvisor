@@ -134,7 +134,7 @@ class ToolsConfig(object):
     Supports parsing server configurations and saving them back to disk.
     """
 
-    def __init__(self, config_file: str = "mcp.yaml"):
+    def __init__(self, config_file: str = "mcp.yaml", load: bool = True):
         """Initialize ToolsConfig with a configuration file.
 
         Args:
@@ -144,7 +144,8 @@ class ToolsConfig(object):
         self._errors = []
         self._config_file = os.path.abspath(os.path.join(os.getcwd(), config_file))
         self._configs: Dict[str, ToolsConfigValue] = {}
-        self.load()
+        if load:
+            self.load()
 
     def list(self) -> List[str]:
         return list(self._configs.keys())

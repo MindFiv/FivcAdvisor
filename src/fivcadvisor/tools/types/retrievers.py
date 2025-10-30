@@ -124,7 +124,9 @@ class ToolsRetriever(object):
             print(f"Warning: Failed to remove tool from bundle: {e}")
             # Tool is not in any bundle, which is fine
 
-        print(f"Removed tool '{name}'. Total Docs {self.collection.count()} in ToolsRetriever")
+        print(
+            f"Removed tool '{name}'. Total Docs {self.collection.count()} in ToolsRetriever"
+        )
 
     @property
     def retrieve_min_score(self):
