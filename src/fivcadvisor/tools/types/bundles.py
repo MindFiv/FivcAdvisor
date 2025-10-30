@@ -177,6 +177,33 @@ class ToolsBundleManager:
         bundle.add_tool(tool)
         self._tool_to_bundle[tool.name] = bundle_name
 
+    def remove_tool_from_bundle(self, tool_name: str) -> None:
+        """
+        Remove a tool from its bundle and update the mapping.
+
+        Args:
+            tool_name: Name of the tool to remove
+
+        Raises:
+            ValueError: If tool is not in any bundle
+        """
+        bundle_name = self._tool_to_bundle.get(tool_name)
+        if bundle_name is None:
+            raise ValueError(f"Tool '{tool_name}' is not in any bundle")
+
+        bundle = self.get_bundle(bundle_name)
+        if bundle is None:
+            # This shouldn't happen, but handle it gracefully
+            del self._tool_to_bundle[tool_name]
+            return
+
+        # Remove tool from bundle
+        if tool_name in bundle.tools:
+            del bundle.tools[tool_name]
+
+        # Update mapping
+        del self._tool_to_bundle[tool_name]
+
     def get_bundle(self, bundle_name: str) -> Optional[ToolsBundle]:
         """
         Get a bundle by name.

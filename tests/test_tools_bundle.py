@@ -257,6 +257,53 @@ class TestToolsBundleManager:
         assert len(manager.get_all_bundles()) == 0
         assert len(manager.get_bundle_names()) == 0
 
+    def test_remove_tool_from_bundle(self, manager):
+        """Test removing a tool from a bundle."""
+        manager.create_bundle("test_bundle")
+
+        tool1 = Mock()
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
+
+        tool2 = Mock()
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
+
+        manager.add_tool_to_bundle("test_bundle", tool1)
+        manager.add_tool_to_bundle("test_bundle", tool2)
+
+        bundle = manager.get_bundle("test_bundle")
+        assert len(bundle) == 2
+        assert "tool1" in bundle.get_tool_names()
+
+        # Remove tool1
+        manager.remove_tool_from_bundle("tool1")
+
+        assert len(bundle) == 1
+        assert "tool1" not in bundle.get_tool_names()
+        assert "tool2" in bundle.get_tool_names()
+        assert manager.get_bundle_by_tool("tool1") is None
+
+    def test_remove_tool_not_in_bundle(self, manager):
+        """Test removing a tool that's not in any bundle raises ValueError."""
+        with pytest.raises(ValueError, match="not in any bundle"):
+            manager.remove_tool_from_bundle("nonexistent_tool")
+
+    def test_remove_tool_updates_mapping(self, manager):
+        """Test that removing a tool updates the tool_to_bundle mapping."""
+        manager.create_bundle("test_bundle")
+
+        tool = Mock()
+        tool.name = "test_tool"
+        tool.description = "A test tool"
+
+        manager.add_tool_to_bundle("test_bundle", tool)
+        assert manager.get_bundle_by_tool("test_tool") is not None
+
+        manager.remove_tool_from_bundle("test_tool")
+
+        assert manager.get_bundle_by_tool("test_tool") is None
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

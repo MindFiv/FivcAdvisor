@@ -117,12 +117,12 @@ class ToolsRetriever(object):
         if ids_to_delete:
             self.collection.collection.delete(ids=ids_to_delete)
 
-        # Remove from bundle manager
-        bundle = self.bundle_manager.get_bundle_by_tool(name)
-        if bundle:
-            del bundle.tools[name]
-            # Also update the tool_to_bundle mapping
-            del self.bundle_manager._tool_to_bundle[name]
+        # Remove from bundle manager if it's in a bundle
+        try:
+            self.bundle_manager.remove_tool_from_bundle(name)
+        except ValueError as e:
+            # Tool is not in any bundle, which is fine
+            pass
 
         print(f"Deleted tool '{name}'. Total Docs {self.collection.count()} in ToolsRetriever")
 
