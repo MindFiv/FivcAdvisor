@@ -8,9 +8,7 @@ __all__ = [
     "ToolsLoader",
 ]
 
-from typing import Optional, cast, List
-
-from langchain_core.tools import BaseTool
+from typing import Optional
 
 from fivcadvisor.utils import create_lazy_value
 from fivcadvisor.tools.types import (
@@ -40,7 +38,7 @@ def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **k
     assert tools_retriever is not None
 
     # Register clock tool
-    tools = cast(List[BaseTool], [clock])
+    tools = [clock]
     tools_retriever.add_batch(tools, tool_bundle="clock")
 
     return tools

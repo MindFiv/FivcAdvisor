@@ -49,11 +49,17 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional, Dict, Any
 
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import (
+    BaseMessage,
+    message_to_dict,
+    messages_from_dict,
+)
 from pydantic import (
     BaseModel,
     Field,
     computed_field,
+    field_serializer,
+    field_validator,
 )
 
 
@@ -332,6 +338,47 @@ class AgentsRuntime(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
+
+    @field_serializer("reply", when_used="json")
+    def serialize_reply(self, value: Optional[BaseMessage]) -> Optional[Dict[str, Any]]:
+        """
+        Serialize BaseMessage to dict for JSON persistence.
+
+        Converts BaseMessage objects to dictionaries using LangChain's
+        message_to_dict function to ensure proper serialization.
+        """
+        if value is None:
+            return None
+        return message_to_dict(value)
+
+    @field_validator("reply", mode="before")
+    @classmethod
+    def deserialize_reply(cls, value: Any) -> Optional[BaseMessage]:
+        """
+        Deserialize dict back to BaseMessage.
+
+        Converts dictionaries back to BaseMessage objects using LangChain's
+        messages_from_dict function. Handles both already-deserialized
+        BaseMessage objects and dict representations.
+        """
+        if value is None:
+            return None
+
+        # If it's already a BaseMessage, return as-is
+        if isinstance(value, BaseMessage):
+            return value
+
+        # If it's a dict, convert it back to BaseMessage
+        if isinstance(value, dict):
+            try:
+                messages = messages_from_dict([value])
+                return messages[0] if messages else None
+            except Exception as e:
+                print(f"Warning: Failed to deserialize message dict: {e}")
+                # If conversion fails, return None to avoid breaking the model
+                return None
+
+        return None
 
     @computed_field
     @property

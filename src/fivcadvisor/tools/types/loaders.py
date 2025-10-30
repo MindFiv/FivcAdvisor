@@ -52,10 +52,12 @@ class ToolsLoader(object):
         Uses langchain-mcp-adapters to connect to MCP servers and load their tools,
         organizing them by bundle and registering with the retriever.
         """
-        client = MultiServerMCPClient({
-            server_name: self.config.get(server_name).connection for
-            server_name in self.config.list()
-        })
+        client = MultiServerMCPClient(
+            {
+                server_name: self.config.get(server_name).connection
+                for server_name in self.config.list()
+            }
+        )
 
         for bundle_name in client.connections:
             print(f"Connected to {bundle_name}")
@@ -63,8 +65,7 @@ class ToolsLoader(object):
                 async with client.session(bundle_name) as session:
                     tools = await load_mcp_tools(session)
                     if tools:
-                        self.tools_retriever.add_batch(
-                            tools, tool_bundle=bundle_name)
+                        self.tools_retriever.add_batch(tools, tool_bundle=bundle_name)
             except Exception as e:
                 print(f"Error loading tools from {bundle_name}: {e}")
                 continue

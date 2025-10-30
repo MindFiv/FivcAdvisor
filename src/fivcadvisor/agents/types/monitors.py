@@ -43,7 +43,12 @@ from typing import Any, Optional, List, Callable, Tuple
 from uuid import uuid4
 
 from langchain_core.callbacks import BaseCallbackHandler
-from langchain_core.messages import BaseMessageChunk, AIMessageChunk, ToolMessage
+from langchain_core.messages import (
+    BaseMessageChunk,
+    AIMessageChunk,
+    ToolMessage,
+    BaseMessage,
+)
 
 from fivcadvisor import agents, tools
 from fivcadvisor.agents.types.base import (
@@ -190,7 +195,26 @@ class AgentsMonitor(BaseCallbackHandler):
             self._runtime.reply = event["structured_response"]
 
         elif "messages" in event:
-            self._runtime.reply = event["messages"][-1]
+            last_message = event["messages"][-1]
+            # Ensure the message is a BaseMessage instance
+            if isinstance(last_message, BaseMessage):
+                self._runtime.reply = last_message
+            elif isinstance(last_message, dict):
+                # If it's a dict, try to convert it to BaseMessage
+                from langchain_core.messages import messages_from_dict
+
+                try:
+                    messages = messages_from_dict([last_message])
+                    if messages:
+                        self._runtime.reply = messages[0]
+                except Exception as e:
+                    # Log error but don't fail - just skip setting reply
+                    print(
+                        f"Warning: Failed to convert message dict to BaseMessage: {e}"
+                    )
+            else:
+                # Unknown message type, skip
+                print(f"Warning: Unknown message type: {type(last_message)}")
 
         self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
 

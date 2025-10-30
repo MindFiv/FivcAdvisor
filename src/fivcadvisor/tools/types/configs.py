@@ -58,7 +58,9 @@ class ToolsConfigValue(dict):
             command = self.get("command")
             if not isinstance(command, str) or not command:
                 if raise_exception:
-                    raise ValueError("ToolsConfigValue 'command' must be a non-empty string")
+                    raise ValueError(
+                        "ToolsConfigValue 'command' must be a non-empty string"
+                    )
                 return False
 
             args = self.get("args")
@@ -78,7 +80,9 @@ class ToolsConfigValue(dict):
             url = self.get("url")
             if not isinstance(url, str) or not url:
                 if raise_exception:
-                    raise ValueError("ToolsConfigValue 'url' must be a non-empty string")
+                    raise ValueError(
+                        "ToolsConfigValue 'url' must be a non-empty string"
+                    )
                 return False
 
         # Validate optional bundle field
@@ -92,7 +96,6 @@ class ToolsConfigValue(dict):
 
     @property
     def connection(self) -> Optional[Connection]:
-
         if not self.validate():
             return None
 
@@ -143,12 +146,6 @@ class ToolsConfig(object):
         self._configs: Dict[str, ToolsConfigValue] = {}
         self.load()
 
-        if self._errors:
-            print(
-                f"Errors loading config: {self._errors},"
-                f" in directory: {os.getcwd()}"
-            )
-
     def list(self) -> List[str]:
         return list(self._configs.keys())
 
@@ -158,7 +155,9 @@ class ToolsConfig(object):
     def set(self, name: str, config: ToolsConfigValue | dict) -> bool:
         if not isinstance(config, ToolsConfigValue):
             if not isinstance(config, dict):
-                raise ValueError(f"Config must be a dict or ToolsConfigValue, got {type(config).__name__}")
+                raise ValueError(
+                    f"Config must be a dict or ToolsConfigValue, got {type(config).__name__}"
+                )
             config = ToolsConfigValue(config)
 
         if not config.validate():
@@ -199,9 +198,7 @@ class ToolsConfig(object):
         self._configs.clear()
         configs = self._load_file(filename)
         if self._errors:
-            print(
-                f"Errors loading config: {self._errors},"
-            )
+            print(f"Errors loading config: {self._errors},")
         else:
             for k, v in configs.items():
                 try:
