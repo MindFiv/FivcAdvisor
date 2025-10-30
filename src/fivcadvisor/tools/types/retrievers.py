@@ -84,9 +84,9 @@ class ToolsRetriever(object):
     def get_all(self) -> List[BaseTool]:
         return list(self.tools.values())
 
-    def delete(self, name: str):
+    def remove(self, name: str):
         """
-        Delete a tool from the retriever.
+        Remove a tool from the retriever.
 
         Removes the tool from:
         - self.tools dictionary
@@ -94,7 +94,7 @@ class ToolsRetriever(object):
         - bundle manager (if it's in a bundle)
 
         Args:
-            name: The name of the tool to delete
+            name: The name of the tool to remove
 
         Raises:
             ValueError: If the tool doesn't exist
@@ -121,10 +121,10 @@ class ToolsRetriever(object):
         try:
             self.bundle_manager.remove_tool_from_bundle(name)
         except ValueError as e:
+            print(f"Warning: Failed to remove tool from bundle: {e}")
             # Tool is not in any bundle, which is fine
-            pass
 
-        print(f"Deleted tool '{name}'. Total Docs {self.collection.count()} in ToolsRetriever")
+        print(f"Removed tool '{name}'. Total Docs {self.collection.count()} in ToolsRetriever")
 
     @property
     def retrieve_min_score(self):
