@@ -37,6 +37,7 @@ class ToolsLoader(object):
 
         self.config = ToolsConfig(config_file=config_file)
         self.tools_retriever = tools_retriever
+        self.tools_names = set()
 
     def load(self):
         """Load tools synchronously.
@@ -66,6 +67,7 @@ class ToolsLoader(object):
                     tools = await load_mcp_tools(session)
                     if tools:
                         self.tools_retriever.add_batch(tools, tool_bundle=bundle_name)
+                        self.tools_names.update({t.name for t in tools})
             except Exception as e:
                 print(f"Error loading tools from {bundle_name}: {e}")
                 continue
@@ -73,4 +75,6 @@ class ToolsLoader(object):
     def cleanup(self):
         """Clean up resources."""
         # MultiServerMCPClient handles cleanup automatically
-        self.tools_retriever.cleanup()
+        for tool_name in self.tools_names:
+            self.tools_retriever.remove(tool_name)
+        self.tools_names.clear()
