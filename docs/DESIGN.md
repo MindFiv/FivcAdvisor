@@ -295,9 +295,23 @@ all_tools = tools.default_retriever.get_all()
 # Get specific tools
 selected_tools = tools.default_retriever.get_batch(["calculator", "python_repl"])
 
-# Search for relevant tools
+# Search for relevant tools (returns bundles as-is)
 relevant_tools = tools.default_retriever.retrieve("I need to calculate something")
+
+# Search and expand bundles into individual tools
+expanded_tools = tools.default_retriever.retrieve("I need to calculate something", expand=True)
 ```
+
+#### Tool Bundles
+
+Tools from MCP servers are automatically organized into **bundles** by server. When retrieving tools:
+
+- **`expand=False` (default)**: Returns `ToolsBundle` objects that group related tools
+- **`expand=True`**: Expands bundles and returns individual tools
+
+This is useful for:
+- **Bundle mode**: When you want to treat a server's tools as a cohesive unit
+- **Expanded mode**: When you need individual tools for fine-grained control
 
 ---
 

@@ -447,7 +447,7 @@ class AgentsMonitorManager(object):
         assert agent_creator is not None
 
         # Retrieve tools according to query
-        agent_tools = tools_retriever.retrieve(query)
+        agent_tools = tools_retriever.retrieve(query, expand=True)
         agent_tool_names = [i.name for i in agent_tools]
         print(f"Agent Tools: {agent_tool_names} for query: {query}")
 

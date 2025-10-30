@@ -236,10 +236,16 @@ loader.load()
 ```python
 from fivcadvisor.tools import default_retriever
 
-# List all tools
+# List all tools (including bundles)
 tools = default_retriever.get_all()
 for tool in tools:
     print(f"- {tool.name}: {tool.description}")
+
+# Search for tools (returns bundles as-is)
+relevant_tools = default_retriever.retrieve("calculate math")
+
+# Search and expand bundles into individual tools
+expanded_tools = default_retriever.retrieve("calculate math", expand=True)
 ```
 
 ### Monitor Connections

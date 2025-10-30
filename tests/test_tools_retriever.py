@@ -299,6 +299,52 @@ class TestToolsRetriever:
         # LangChain tools have invoke method instead of being directly callable
         assert hasattr(tool, "invoke")
 
+    def test_to_tool_invoke_no_recursion_error(self, mock_embedding_db):
+        """Test that to_tool() result can be invoked without recursion error.
+
+        Regression test for issue where str(self.retrieve(query)) caused infinite
+        recursion when ToolsBundle objects were in the results due to circular
+        references in Pydantic models.
+        """
+        from fivcadvisor.tools.types.bundles import ToolsBundle
+
+        retriever = ToolsRetriever(db=mock_embedding_db)
+
+        # Create mock tools
+        tool1 = Mock()
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
+
+        tool2 = Mock()
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
+
+        # Create a bundle (which can cause recursion issues)
+        bundle = ToolsBundle("bundle1", [tool1, tool2])
+        retriever.add(bundle)
+
+        # Mock search results
+        retriever.collection.search = Mock(
+            return_value=[
+                {
+                    "text": "Bundle description",
+                    "metadata": {"__tool__": "bundle1"},
+                    "score": 0.9,
+                },
+            ]
+        )
+
+        # Convert to tool
+        tool = retriever.to_tool()
+
+        # Invoke the tool - this should NOT raise RecursionError
+        result = tool.invoke({"query": "test query"})
+
+        # Result should be a string representation of tool metadata
+        assert isinstance(result, str)
+        assert "bundle1" in result
+        assert "Tool 1" in result or "tool1" in result
+
     def test_remove_tool(self, mock_embedding_db):
         """Test removing a tool."""
         retriever = ToolsRetriever(db=mock_embedding_db)
@@ -359,6 +405,134 @@ class TestToolsRetriever:
         assert "test_tool" not in retriever.tools
         # delete should not be called if no matching docs
         mock_embedding_db.get_collection.return_value.collection.delete.assert_not_called()
+
+    def test_retrieve_with_expand_false(self, mock_embedding_db):
+        """Test retrieve with expand=False returns bundles as-is."""
+        from fivcadvisor.tools.types.bundles import ToolsBundle
+
+        retriever = ToolsRetriever(db=mock_embedding_db)
+
+        # Create mock tools
+        tool1 = Mock()
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
+
+        tool2 = Mock()
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
+
+        # Create a bundle
+        bundle = ToolsBundle("bundle1", [tool1, tool2])
+
+        retriever.add(bundle)
+
+        # Mock search results
+        retriever.collection.search = Mock(
+            return_value=[
+                {
+                    "text": "Bundle description",
+                    "metadata": {"__tool__": "bundle1"},
+                    "score": 0.9,
+                },
+            ]
+        )
+
+        # Retrieve with expand=False (default)
+        results = retriever.retrieve("query", expand=False)
+
+        assert len(results) == 1
+        assert isinstance(results[0], ToolsBundle)
+        assert results[0].name == "bundle1"
+
+    def test_retrieve_with_expand_true(self, mock_embedding_db):
+        """Test retrieve with expand=True expands bundles into individual tools."""
+        from fivcadvisor.tools.types.bundles import ToolsBundle
+
+        retriever = ToolsRetriever(db=mock_embedding_db)
+
+        # Create mock tools
+        tool1 = Mock()
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
+
+        tool2 = Mock()
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
+
+        # Create a bundle
+        bundle = ToolsBundle("bundle1", [tool1, tool2])
+
+        retriever.add(bundle)
+
+        # Mock search results
+        retriever.collection.search = Mock(
+            return_value=[
+                {
+                    "text": "Bundle description",
+                    "metadata": {"__tool__": "bundle1"},
+                    "score": 0.9,
+                },
+            ]
+        )
+
+        # Retrieve with expand=True
+        results = retriever.retrieve("query", expand=True)
+
+        # Should expand the bundle and return individual tools
+        assert len(results) == 2
+        assert tool1 in results
+        assert tool2 in results
+
+    def test_retrieve_mixed_tools_and_bundles_with_expand(self, mock_embedding_db):
+        """Test retrieve with mixed tools and bundles when expand=True."""
+        from fivcadvisor.tools.types.bundles import ToolsBundle
+
+        retriever = ToolsRetriever(db=mock_embedding_db)
+
+        # Create mock tools
+        tool1 = Mock()
+        tool1.name = "tool1"
+        tool1.description = "Tool 1"
+
+        tool2 = Mock()
+        tool2.name = "tool2"
+        tool2.description = "Tool 2"
+
+        tool3 = Mock()
+        tool3.name = "tool3"
+        tool3.description = "Tool 3"
+
+        # Create a bundle
+        bundle = ToolsBundle("bundle1", [tool1, tool2])
+
+        # Add bundle and regular tool
+        retriever.add(bundle)
+        retriever.add(tool3)
+
+        # Mock search results
+        retriever.collection.search = Mock(
+            return_value=[
+                {
+                    "text": "Bundle description",
+                    "metadata": {"__tool__": "bundle1"},
+                    "score": 0.9,
+                },
+                {
+                    "text": "Tool 3",
+                    "metadata": {"__tool__": "tool3"},
+                    "score": 0.8,
+                },
+            ]
+        )
+
+        # Retrieve with expand=True
+        results = retriever.retrieve("query", expand=True)
+
+        # Should expand bundle and include regular tool
+        assert len(results) == 3
+        assert tool1 in results
+        assert tool2 in results
+        assert tool3 in results
 
 
 if __name__ == "__main__":

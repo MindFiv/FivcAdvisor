@@ -133,11 +133,15 @@ class TestToolsLoaderLoad:
                 tools_retriever=mock_retriever, config_file=config_path
             )
 
-            # Create mock tools
+            # Create mock tools with description
+            from fivcadvisor.tools.types.bundles import ToolsBundle
+
             mock_tool1 = Mock()
             mock_tool1.name = "tool1"
+            mock_tool1.description = "Tool 1 description"
             mock_tool2 = Mock()
             mock_tool2.name = "tool2"
+            mock_tool2.description = "Tool 2 description"
 
             with patch(
                 "fivcadvisor.tools.types.loaders.MultiServerMCPClient"
@@ -154,10 +158,12 @@ class TestToolsLoaderLoad:
 
                 await loader.load_async()
 
-                # Verify tools were added
-                mock_retriever.add_batch.assert_called_once()
-                call_args = mock_retriever.add_batch.call_args
-                assert call_args[0][0] == [mock_tool1, mock_tool2]
+                # Verify bundle was added (not add_batch)
+                mock_retriever.add.assert_called_once()
+                call_args = mock_retriever.add.call_args
+                bundle = call_args[0][0]
+                assert isinstance(bundle, ToolsBundle)
+                assert bundle.name == "test_server"
 
                 # Verify tools_bundles was updated
                 assert "test_server" in loader.tools_bundles
@@ -202,7 +208,7 @@ class TestToolsLoaderCleanup:
     """Test ToolsLoader cleanup method."""
 
     def test_cleanup_removes_all_tools(self):
-        """Test cleanup removes all tracked tools."""
+        """Test cleanup removes all tracked bundles."""
         mock_retriever = Mock(spec=ToolsRetriever)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -220,8 +226,11 @@ class TestToolsLoaderCleanup:
 
             loader.cleanup()
 
-            # Verify remove was called for each tool
-            assert mock_retriever.remove.call_count == 3
+            # Verify remove was called for each bundle (not each tool)
+            assert mock_retriever.remove.call_count == 2
+            # Verify the bundle names were passed to remove
+            mock_retriever.remove.assert_any_call("bundle1")
+            mock_retriever.remove.assert_any_call("bundle2")
 
             # Verify tools_bundles was cleared
             assert loader.tools_bundles == {}
@@ -250,7 +259,7 @@ class TestToolsLoaderCleanup:
             os.unlink(config_path)
 
     def test_cleanup_calls_remove_method(self):
-        """Test that cleanup uses the remove() method (not delete())."""
+        """Test that cleanup uses the remove() method with bundle names."""
         mock_retriever = Mock(spec=ToolsRetriever)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -266,8 +275,8 @@ class TestToolsLoaderCleanup:
 
             loader.cleanup()
 
-            # Verify remove method was called (not delete)
-            mock_retriever.remove.assert_called_once_with("tool1")
+            # Verify remove method was called with bundle name (not tool name)
+            mock_retriever.remove.assert_called_once_with("bundle1")
         finally:
             os.unlink(config_path)
 
@@ -290,9 +299,10 @@ class TestToolsLoaderIncrementalUpdates:
                 tools_retriever=mock_retriever, config_file=config_path
             )
 
-            # Create mock tools
+            # Create mock tools with description
             mock_tool1 = Mock()
             mock_tool1.name = "tool1"
+            mock_tool1.description = "Tool 1 description"
 
             with patch(
                 "fivcadvisor.tools.types.loaders.MultiServerMCPClient"
@@ -353,8 +363,8 @@ class TestToolsLoaderIncrementalUpdates:
 
                 await loader.load_async()
 
-                # Verify old bundle was removed
-                mock_retriever.remove.assert_called_once_with("old_tool")
+                # Verify old bundle was removed by bundle name
+                mock_retriever.remove.assert_called_once_with("old_server")
                 assert "old_server" not in loader.tools_bundles
                 # server1 won't be in tools_bundles if no tools were loaded
         finally:
@@ -388,6 +398,7 @@ class TestToolsLoaderPersistentConnections:
                 # Mock get_tools to return the tool
                 mock_tool = Mock()
                 mock_tool.name = "test_tool"
+                mock_tool.description = "Test tool description"
 
                 async def mock_get_tools(*args, **kwargs):
                     return [mock_tool]
@@ -403,7 +414,7 @@ class TestToolsLoaderPersistentConnections:
 
                 # Verify tools are loaded and registered
                 assert "test_server" in loader.tools_bundles
-                mock_retriever.add_batch.assert_called_once()
+                mock_retriever.add.assert_called_once()
         finally:
             os.unlink(config_path)
 
@@ -431,8 +442,10 @@ class TestToolsLoaderPersistentConnections:
 
             await loader.cleanup_async()
 
-            # Verify tools were removed
-            assert mock_retriever.remove.call_count == 3
+            # Verify bundles were removed (2 bundles, not 3 tools)
+            assert mock_retriever.remove.call_count == 2
+            mock_retriever.remove.assert_any_call("server1")
+            mock_retriever.remove.assert_any_call("server2")
 
             # Verify state was cleared
             assert loader.tools_bundles == {}

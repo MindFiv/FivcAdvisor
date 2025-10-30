@@ -62,8 +62,10 @@ class TestAgentsMonitorManager:
             assert agent is not None
             assert agent == mock_agent
 
-            # Verify tools were retrieved
-            mock_tools_retriever.retrieve.assert_called_once_with("Test query")
+            # Verify tools were retrieved with expand=True
+            mock_tools_retriever.retrieve.assert_called_once_with(
+                "Test query", expand=True
+            )
 
             # Verify agent creator was called with correct parameters
             mock_agent_creator.assert_called_once()

@@ -3,11 +3,39 @@ from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
 from langchain_core.tools import BaseTool, tool as make_tool
 from fivcadvisor import embeddings
+from fivcadvisor.tools.types.bundles import ToolsBundle
 
 
 class ToolsRetriever(object):
-    """
-    A retriever for tools.
+    """A semantic search-based retriever for tools.
+
+    ToolsRetriever manages a collection of tools and provides semantic search capabilities
+    to find the most relevant tools for a given query. It uses embeddings to create a
+    searchable index of tool descriptions and supports both individual tools and ToolsBundle
+    objects.
+
+    Key Features:
+        - Semantic search using embeddings to find relevant tools
+        - Support for both individual tools and ToolsBundle objects
+        - Optional bundle expansion to get individual tools from bundles
+        - Configurable search parameters (max_num, min_score)
+        - Proper error handling for duplicate tools and missing descriptions
+        - Integration with embedding database for efficient search
+
+    The retriever stores tools in an embedding collection indexed by their descriptions,
+    allowing for semantic similarity matching rather than keyword matching.
+
+    Attributes:
+        max_num: Maximum number of tools to return in search results (default: 10)
+        min_score: Minimum similarity score for search results (default: 0.0)
+        tools: Dictionary mapping tool names to BaseTool instances
+        collection: EmbeddingCollection for semantic search
+
+    Example:
+        >>> retriever = ToolsRetriever()
+        >>> retriever.add(my_tool)
+        >>> tools = retriever.retrieve("get weather information")
+        >>> tools_expanded = retriever.retrieve("get weather", expand=True)
     """
 
     def __init__(
@@ -32,11 +60,23 @@ class ToolsRetriever(object):
         self.collection.clear()
 
     def add(self, tool: BaseTool, **kwargs):
-        """
-        Add a tool to the retriever.
+        """Add a tool to the retriever.
+
+        Adds a tool (or ToolsBundle) to the retriever's collection. The tool's description
+        is indexed in the embedding collection for semantic search. Enables error handling
+        on the tool if not already enabled.
 
         Args:
-            tool: The tool to add
+            tool: The BaseTool or ToolsBundle instance to add
+            **kwargs: Additional keyword arguments (ignored)
+
+        Raises:
+            ValueError: If tool name is duplicate or description is empty
+
+        Note:
+            - Automatically enables handle_tool_error on the tool
+            - Prints the total document count after adding
+            - Works with both individual tools and ToolsBundle objects
         """
 
         if not tool.handle_tool_error:
@@ -59,7 +99,18 @@ class ToolsRetriever(object):
         print(f"Total Docs {self.collection.count()} in ToolsRetriever")
 
     def add_batch(self, tools: List[BaseTool], **kwargs):
-        """Add multiple tools."""
+        """Add multiple tools to the retriever.
+
+        Convenience method that adds multiple tools by calling add() for each tool.
+
+        Args:
+            tools: List of BaseTool instances to add
+            **kwargs: Additional keyword arguments (passed to add())
+
+        Note:
+            - Stops on first error (raises ValueError if any tool is invalid)
+            - Each tool is added individually with full validation
+        """
         for tool in tools:
             self.add(tool)
 
@@ -127,19 +178,40 @@ class ToolsRetriever(object):
     def retrieve(
         self,
         query: str,
-        *args,
+        expand: bool = False,
         **kwargs,
     ) -> List[BaseTool]:
-        """
-        Retrieve tools for a query.
+        """Retrieve tools for a query using semantic search.
+
+        Performs semantic search on tool descriptions using embeddings to find the most
+        relevant tools for the given query. Supports optional bundle expansion to get
+        individual tools from ToolsBundle objects.
+
+        Search Process:
+            1. Searches the embedding collection for similar tool descriptions
+            2. Filters results by minimum score threshold (retrieve_min_score)
+            3. Limits results to maximum number (retrieve_max_num)
+            4. Optionally expands ToolsBundle objects into individual tools
 
         Args:
-            query: The query string
-            *args: Additional positional arguments
-            **kwargs: Additional keyword arguments
+            query: The query string describing the desired tool functionality
+            expand: Whether to expand ToolsBundle objects into individual tools
+                   - False (default): Returns bundles as-is
+                   - True: Expands bundles to return all contained tools
+            **kwargs: Additional keyword arguments (ignored)
 
         Returns:
-            List of relevant tools
+            List of BaseTool instances matching the query, sorted by relevance
+
+        Example:
+            >>> retriever.retrieve("get weather")  # Returns bundles
+            >>> retriever.retrieve("get weather", expand=True)  # Returns individual tools
+
+        Note:
+            - Results are filtered by retrieve_min_score
+            - Limited to retrieve_max_num results
+            - Bundle expansion is useful when you need individual tools
+            - Without expansion, bundles can be used to group related tools
         """
         sources = self.collection.search(
             query,
@@ -151,7 +223,18 @@ class ToolsRetriever(object):
             for src in sources
             if src["score"] >= self.retrieve_min_score
         )
-        tools = [self.get(name) for name in tool_names]
+
+        if not expand:
+            return [self.get(name) for name in tool_names]
+
+        # expand bundles if need be
+        tools = []
+        for name in tool_names:
+            tool = self.get(name)
+            if isinstance(tool, ToolsBundle):
+                tools.extend(tool.get_all())
+            else:
+                tools.append(tool)
 
         return tools
 
@@ -163,11 +246,33 @@ class ToolsRetriever(object):
         query: str = Field(description="The task to find the best tool for")
 
     def to_tool(self):
-        """Convert the retriever to a tool."""
+        """Convert the retriever to a LangChain tool.
+
+        Creates a LangChain tool that wraps the retrieve() method, allowing the retriever
+        to be used as a tool within agent systems. The tool returns a string representation
+        of the retrieved tools.
+
+        Returns:
+            A LangChain tool that can be used in agent systems
+
+        Example:
+            >>> retriever = ToolsRetriever()
+            >>> tool = retriever.to_tool()
+            >>> # Use tool in an agent
+            >>> agent.tools.append(tool)
+
+        Note:
+            - The returned tool uses retrieve() without expand parameter
+            - Results are converted to string for compatibility
+            - Useful for creating a "tool discovery" tool in agent systems
+        """
 
         @make_tool
         def tools_retriever(query: str) -> str:
             """Use this tool to retrieve the best tools for a given task"""
-            return str(self.retrieve(query))
+            # Use __call__ to get tool metadata (name and description) instead of
+            # the full BaseTool objects, which can cause infinite recursion when
+            # converting to string due to circular references in Pydantic models
+            return str(self(query))
 
         return tools_retriever

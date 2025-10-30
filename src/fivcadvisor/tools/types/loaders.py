@@ -4,6 +4,7 @@ from typing import Optional
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
+from fivcadvisor.tools.types.bundles import ToolsBundle
 from fivcadvisor.tools.types.configs import ToolsConfig
 from fivcadvisor.tools.types.retrievers import ToolsRetriever
 
@@ -11,20 +12,34 @@ from fivcadvisor.tools.types.retrievers import ToolsRetriever
 class ToolsLoader(object):
     """Loader for MCP tools using langchain-mcp-adapters.
 
-    This class manages loading tools from MCP servers configured in ToolsConfig
-    and registering them with a ToolsRetriever. It supports incremental updates,
-    automatically adding new bundles and removing tools from bundles that are
-    no longer configured.
+    ToolsLoader manages the complete lifecycle of loading tools from MCP (Model Context Protocol)
+    servers configured in ToolsConfig and registering them with a ToolsRetriever. It provides
+    both synchronous and asynchronous interfaces for loading and cleaning up tools.
 
-    Sessions are created within async with blocks for proper lifecycle management,
-    ensuring clean resource handling and avoiding async generator cleanup issues.
+    Key Features:
+        - Loads tools from multiple MCP servers configured in a YAML file
+        - Organizes tools into ToolsBundle objects for better management
+        - Supports incremental updates: automatically adds new bundles and removes old ones
+        - Maintains a persistent MCP client for efficient resource usage
+        - Provides proper async context management for session lifecycle
+        - Handles errors gracefully, continuing to load other bundles if one fails
+
+    The loader tracks which tools belong to which bundle, allowing for efficient cleanup
+    and updates when the configuration changes.
 
     Attributes:
         config: ToolsConfig instance for loading MCP server configurations
         tools_retriever: ToolsRetriever instance to register tools with
-        tools_bundles: Dictionary mapping bundle names to sets of tool names
-        client: Persistent MultiServerMCPClient instance
-        sessions: Dictionary for session tracking (kept for compatibility)
+        tools_bundles: Dictionary mapping bundle names (server names) to sets of tool names
+                      Example: {"weather_server": {"get_weather", "get_forecast"}}
+        client: Persistent MultiServerMCPClient instance for connecting to MCP servers
+
+    Example:
+        >>> retriever = ToolsRetriever()
+        >>> loader = ToolsLoader(tools_retriever=retriever, config_file="mcp.yaml")
+        >>> await loader.load_async()  # Load all configured tools
+        >>> # ... use tools ...
+        >>> await loader.cleanup_async()  # Clean up resources
     """
 
     def __init__(
@@ -59,18 +74,32 @@ class ToolsLoader(object):
         self.client: Optional[MultiServerMCPClient] = None
 
     async def load_async(self):
-        """Load tools from configured MCP servers and register them.
+        """Load tools from configured MCP servers and register them asynchronously.
 
-        Performs incremental updates:
-        - Loads config from file
-        - Creates persistent MCP client
-        - Connects to MCP servers and loads their tools
-        - Adds new bundles and their tools to the retriever
-        - Removes tools from bundles that are no longer configured
+        This method performs the complete loading process:
 
-        The method handles errors gracefully, continuing to load other bundles
-        if one fails. Sessions are created within async with blocks for proper
-        lifecycle management.
+        1. Loads configuration from the YAML file
+        2. Creates a persistent MultiServerMCPClient for all configured servers
+        3. Determines which bundles are new and which should be removed
+        4. Removes tools from bundles that are no longer in the configuration
+        5. Loads tools from new bundles and wraps them in ToolsBundle objects
+        6. Registers each ToolsBundle with the ToolsRetriever
+
+        Incremental Updates:
+            - Only loads tools from newly configured servers
+            - Only removes tools from servers that are no longer configured
+            - Preserves existing tools from unchanged servers
+
+        Error Handling:
+            - Prints configuration errors but continues execution
+            - Catches exceptions when loading individual bundles
+            - Continues loading other bundles even if one fails
+            - Prints error messages for failed bundles
+
+        Note:
+            - Sessions are managed within async contexts for proper lifecycle
+            - The MCP client is stored persistently for the application lifetime
+            - Empty bundles (servers with no tools) are skipped
         """
         self.config.load()
         errors = self.config.get_errors()
@@ -93,8 +122,8 @@ class ToolsLoader(object):
 
         # Remove tools from bundles that are no longer configured
         for bundle_name in bundle_names_to_remove:
-            for tool_name in self.tools_bundles.pop(bundle_name, set()):
-                self.tools_retriever.remove(tool_name)
+            self.tools_bundles.pop(bundle_name, None)
+            self.tools_retriever.remove(bundle_name)
 
         # Load tools for new bundles using proper async context management
 
@@ -102,9 +131,11 @@ class ToolsLoader(object):
             try:
                 # Use async with for proper session lifecycle management
                 tools = await self.client.get_tools(server_name=bundle_name)
-                if tools:
-                    self.tools_retriever.add_batch(tools)
-                    self.tools_bundles.setdefault(bundle_name, {t.name for t in tools})
+                if not tools:
+                    continue
+
+                self.tools_retriever.add(ToolsBundle(bundle_name, tools))
+                self.tools_bundles.setdefault(bundle_name, {t.name for t in tools})
 
             except Exception as e:
                 print(f"Error loading tools from {bundle_name}: {e}")
@@ -119,15 +150,25 @@ class ToolsLoader(object):
         asyncio.run(self.load_async())
 
     async def cleanup_async(self):
-        """Asynchronously clean up MCP resources.
+        """Asynchronously clean up MCP resources and state.
 
-        Removes all loaded tools from the retriever and clears the client reference.
-        This should be called when the application is shutting down.
+        This method performs complete cleanup:
+
+        1. Removes all loaded tool bundles from the ToolsRetriever
+        2. Clears the tools_bundles tracking dictionary
+        3. Releases the MCP client reference
+
+        This should be called when the application is shutting down to ensure
+        proper resource cleanup and prevent resource leaks.
+
+        Note:
+            - Removes bundles by their bundle name (server name)
+            - Clears all internal state tracking
+            - Does not explicitly close the MCP client (handled by garbage collection)
         """
         # Remove all tracked tools from the retriever
-        for tool_bundle in self.tools_bundles.values():
-            for tool_name in tool_bundle:
-                self.tools_retriever.remove(tool_name)
+        for bundle_name in self.tools_bundles.keys():
+            self.tools_retriever.remove(bundle_name)
 
         # Clear the bundle tracking and client reference
         self.tools_bundles.clear()
