@@ -219,9 +219,6 @@ from fivcadvisor.tools.types.configs import ToolsConfig, ToolsConfigValue
 # Load configuration from YAML or JSON
 config = ToolsConfig("mcp.yaml")
 
-# Get MCP clients
-clients = config.get_clients()
-
 # Check for errors during loading
 errors = config.get_errors()
 
@@ -243,6 +240,9 @@ servers = config.list()
 
 # Get a specific server configuration
 server_config = config.get("my_server")
+
+# Get connection object for a server
+connection = server_config.connection
 ```
 
 **Configuration Value Validation:**
@@ -256,6 +256,7 @@ config = ToolsConfigValue({
     "args": ["server.py"],
     "env": {"VAR": "value"}  # optional
 })
+connection = config.connection  # Returns StdioConnection
 ```
 
 2. **URL-based** (SSE):
@@ -263,12 +264,13 @@ config = ToolsConfigValue({
 config = ToolsConfigValue({
     "url": "http://localhost:8000"
 })
+connection = config.connection  # Returns SSEConnection
 ```
 
 **API Details:**
 
-- `validate()` - Validates configuration structure and required fields
-- `get_client()` - Creates and returns an MCPClient instance
+- `validate(raise_exception=False)` - Validates configuration structure and required fields
+- `connection` - Property that returns a Connection object (StdioConnection or SSEConnection)
 - `set(name, config)` - Adds/updates a configuration (accepts dict or ToolsConfigValue)
 - `get(name)` - Retrieves a specific configuration
 - `delete(name)` - Removes a configuration

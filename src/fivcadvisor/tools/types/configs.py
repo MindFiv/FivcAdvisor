@@ -1,24 +1,35 @@
 import os
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 
-from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_mcp_adapters.sessions import (
+    Connection,
+    StdioConnection,
+    # StreamableHttpConnection,
+    SSEConnection,
+)
 
 
 class ToolsConfigValue(dict):
+    """
+    Configuration value for a single MCP server.
+
+    This class extends dict to provide additional validation and conversion
+    methods for MCP server configurations. It supports two types of
+    configurations:
+    1. Command-based: Runs a local command with optional args and env vars
+    2. URL-based: Connects to an SSE (Server-Sent Events) endpoint
+    """
+
     def __init__(self, *args, **kwargs):
         """Initialize ToolsConfigValue, ensuring it's initialized with a dict.
 
         Raises:
             ValueError: If the value cannot be converted to a dict.
         """
-        # Handle case where a non-dict value is passed
-        if args and not isinstance(args[0], dict):
-            raise ValueError(
-                f"ToolsConfigValue must be initialized with a dict, got {type(args[0]).__name__}"
-            )
         super().__init__(*args, **kwargs)
+        self.validate(raise_exception=True)
 
-    def validate(self) -> bool:
+    def validate(self, raise_exception: bool = False) -> bool:
         """Validate that the configuration has required fields.
 
         A valid configuration must have either:
@@ -29,6 +40,8 @@ class ToolsConfigValue(dict):
             bool: True if configuration is valid, False otherwise.
         """
         if not isinstance(self, dict):
+            if raise_exception:
+                raise ValueError("ToolsConfigValue must be initialized with a dict")
             return False
 
         # Must have either 'command' or 'url'
@@ -36,48 +49,50 @@ class ToolsConfigValue(dict):
         has_url = "url" in self
 
         if not (has_command or has_url):
+            if raise_exception:
+                raise ValueError("ToolsConfigValue must have 'command' or 'url' key")
             return False
 
         # If command-based, validate command and optional args/env
         if has_command:
             command = self.get("command")
             if not isinstance(command, str) or not command:
+                if raise_exception:
+                    raise ValueError("ToolsConfigValue 'command' must be a non-empty string")
                 return False
 
             args = self.get("args")
             if args is not None and not isinstance(args, list):
+                if raise_exception:
+                    raise ValueError("ToolsConfigValue 'args' must be a list")
                 return False
 
             env = self.get("env")
             if env is not None and not isinstance(env, dict):
+                if raise_exception:
+                    raise ValueError("ToolsConfigValue 'env' must be a dict")
                 return False
 
         # If URL-based, validate URL
         if has_url:
             url = self.get("url")
             if not isinstance(url, str) or not url:
+                if raise_exception:
+                    raise ValueError("ToolsConfigValue 'url' must be a non-empty string")
                 return False
 
         # Validate optional bundle field
         bundle = self.get("bundle")
         if bundle is not None and not isinstance(bundle, str):
+            if raise_exception:
+                raise ValueError("ToolsConfigValue 'bundle' must be a string")
             return False
 
         return True
 
-    def get_mcp_config(self) -> Optional[Dict[str, Any]]:
-        """Convert ToolsConfigValue to langchain-mcp-adapters configuration format.
+    @property
+    def connection(self) -> Optional[Connection]:
 
-        Supports two types of MCP server configurations:
-        1. Command-based: Runs a local command with optional args and env vars
-        2. URL-based: Connects to an SSE (Server-Sent Events) endpoint
-
-        Returns:
-            Dict: Configuration dict compatible with MultiServerMCPClient, or None if invalid.
-
-        Raises:
-            ValueError: If the configuration format is invalid.
-        """
         if not self.validate():
             return None
 
@@ -90,20 +105,20 @@ class ToolsConfigValue(dict):
             # Merge with environment variables
             env.update(os.environ)
 
-            return {
-                "transport": "stdio",
-                "command": command,
-                "args": args,
-                "env": env,
-            }
+            return StdioConnection(
+                transport="stdio",
+                command=command,
+                args=args,
+                env=env,
+            )
 
         elif "url" in self:
             # URL-based configuration
             url = self["url"]
-            return {
-                "transport": "sse",
-                "url": url,
-            }
+            return SSEConnection(
+                transport="sse",
+                url=url,
+            )
 
         else:
             return None
@@ -142,6 +157,8 @@ class ToolsConfig(object):
 
     def set(self, name: str, config: ToolsConfigValue | dict) -> bool:
         if not isinstance(config, ToolsConfigValue):
+            if not isinstance(config, dict):
+                raise ValueError(f"Config must be a dict or ToolsConfigValue, got {type(config).__name__}")
             config = ToolsConfigValue(config)
 
         if not config.validate():
@@ -152,24 +169,6 @@ class ToolsConfig(object):
 
     def delete(self, name: str):
         self._configs.pop(name, None)
-
-    def get_mcp_client(self) -> Optional[MultiServerMCPClient]:
-        """Create and return a MultiServerMCPClient from all configurations.
-
-        Returns:
-            MultiServerMCPClient: A client configured with all MCP servers, or None if no valid configs.
-        """
-        mcp_configs = {}
-        for name, config_value in self._configs.items():
-            if isinstance(config_value, ToolsConfigValue):
-                mcp_config = config_value.get_mcp_config()
-                if mcp_config:
-                    mcp_configs[name] = mcp_config
-
-        if not mcp_configs:
-            return None
-
-        return MultiServerMCPClient(mcp_configs)
 
     def get_errors(self):
         """Get list of errors encountered during configuration loading.
@@ -196,28 +195,19 @@ class ToolsConfig(object):
             filename = self._config_file
 
         # Clear configs but preserve any errors from _load_file
+        self._errors.clear()
         self._configs.clear()
-
         configs = self._load_file(filename)
-
-        for k, v in configs.items():
-            # Store all configs as-is (can be dicts or ToolsConfigValue)
-            # Only validate if it's a dict that looks like an MCP config
-            if isinstance(v, dict):
-                # Try to validate as MCP config
+        if self._errors:
+            print(
+                f"Errors loading config: {self._errors},"
+            )
+        else:
+            for k, v in configs.items():
                 try:
-                    config_value = ToolsConfigValue(v)
-                    if config_value.validate():
-                        self._configs[k] = config_value
-                    else:
-                        # Store as regular dict if not a valid MCP config
-                        self._configs[k] = v
-                except ValueError:
-                    # Store as regular dict if can't be converted to ToolsConfigValue
-                    self._configs[k] = v
-            else:
-                # Non-dict values are stored as-is
-                self._configs[k] = v
+                    self.set(k, v)
+                except ValueError as e:
+                    self._errors.append(e)
 
     def _load_yaml_file(self, filename):
         """Load configuration from a YAML file.

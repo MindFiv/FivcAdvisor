@@ -8,7 +8,7 @@ coordinated tool retrieval and expansion.
 
 from typing import List, Optional, Dict, Set, Callable, Any
 from dataclasses import dataclass, field
-from langchain_core.tools import Tool
+from langchain_core.tools import BaseTool
 
 
 @dataclass
@@ -28,13 +28,13 @@ class ToolsBundle:
     bundle_name: str
     """Unique identifier for this bundle"""
 
-    tools: Dict[str, Tool] = field(default_factory=dict)
+    tools: Dict[str, BaseTool] = field(default_factory=dict)
     """Mapping of tool_name -> Tool"""
 
     metadata: Dict[str, Any] = field(default_factory=dict)
     """Additional metadata about the bundle"""
 
-    def add_tool(self, tool: Tool) -> None:
+    def add_tool(self, tool: BaseTool) -> None:
         """
         Add a tool to this bundle.
 
@@ -50,7 +50,7 @@ class ToolsBundle:
             )
         self.tools[tool.name] = tool
 
-    def add_tools(self, tools: List[Tool]) -> None:
+    def add_tools(self, tools: List[BaseTool]) -> None:
         """
         Add multiple tools to this bundle.
 
@@ -60,7 +60,7 @@ class ToolsBundle:
         for tool in tools:
             self.add_tool(tool)
 
-    def get_tool(self, tool_name: str) -> Optional[Tool]:
+    def get_tool(self, tool_name: str) -> Optional[BaseTool]:
         """
         Get a tool by name from this bundle.
 
@@ -72,7 +72,7 @@ class ToolsBundle:
         """
         return self.tools.get(tool_name)
 
-    def get_all_tools(self) -> List[Tool]:
+    def get_all_tools(self) -> List[BaseTool]:
         """
         Get all tools in this bundle.
 
@@ -159,7 +159,7 @@ class ToolsBundleManager:
         for tool_name in bundle.get_tool_names():
             self._tool_to_bundle[tool_name] = bundle.bundle_name
 
-    def add_tool_to_bundle(self, bundle_name: str, tool: Tool) -> None:
+    def add_tool_to_bundle(self, bundle_name: str, tool: BaseTool) -> None:
         """
         Add a tool to a bundle and update the mapping.
 
@@ -222,7 +222,7 @@ class ToolsBundleManager:
         """
         return list(self._bundles.keys())
 
-    def get_bundle_tools(self, bundle_name: str) -> List[Tool]:
+    def get_bundle_tools(self, bundle_name: str) -> List[BaseTool]:
         """
         Get all tools in a specific bundle.
 
@@ -239,10 +239,10 @@ class ToolsBundleManager:
 
     def expand_tools(
         self,
-        tools: List[Tool],
+        tools: List[BaseTool],
         include_bundles: bool = True,
         bundle_filter: Optional[Callable[["ToolsBundle"], bool]] = None,
-    ) -> List[Tool]:
+    ) -> List[BaseTool]:
         """
         Expand a list of tools to include related bundle tools.
 

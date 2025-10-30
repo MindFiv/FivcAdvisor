@@ -38,7 +38,7 @@ async def main():
 
         # Load MCP tools using ToolsLoader
         print("Loading MCP tools...")
-        loader = ToolsLoader(retriever=retriever)
+        loader = ToolsLoader(tools_retriever=retriever)
         await loader.load_async()
 
         print("Tools loaded successfully!")

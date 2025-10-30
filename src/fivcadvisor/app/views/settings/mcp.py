@@ -556,23 +556,3 @@ class MCPSettingView(ViewBase):
             st.rerun()
         else:
             st.error(self.ERR_INVALID_CONFIG.format(name=server_name))
-
-    def _test_mcp_configuration(self):
-        """Test MCP configuration and display results."""
-        try:
-            # Get MCP client from configuration
-            mcp_client = default_mcp_config.get_mcp_client()
-            errors = default_mcp_config.get_errors()
-
-            if errors:
-                st.warning(self.WARN_CONFIG_ERRORS)
-                for error in errors:
-                    st.write(f"- {error}")
-            elif mcp_client is not None:
-                # Count configured servers
-                server_count = len(default_mcp_config.list())
-                st.success(self.SUCCESS_VALID.format(count=server_count))
-            else:
-                st.info("No MCP servers configured")
-        except Exception as e:
-            st.error(self.ERR_TEST_FAILED.format(error=e))

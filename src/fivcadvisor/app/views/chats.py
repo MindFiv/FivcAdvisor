@@ -18,7 +18,6 @@ system for tracking execution state and persistence.
 import os
 
 import streamlit as st
-import asyncio
 
 from fivcadvisor.app.utils import (
     Chat,
@@ -165,11 +164,9 @@ class ChatView(ViewBase):
             #     ChatMessage(msg_runtime).render(msg_new_placeholder)
             #     return
 
-            asyncio.run(
-                self.chat.ask_async(
-                    user_query,
-                    on_event=lambda rt: ChatMessage(rt).render(msg_new_placeholder),
-                )
+            self.chat.ask(
+                user_query,
+                on_event=lambda rt: ChatMessage(rt).render(msg_new_placeholder),
             )
 
             if is_new_chat:

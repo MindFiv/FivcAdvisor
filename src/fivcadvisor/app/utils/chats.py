@@ -33,6 +33,7 @@ Example:
     >>> history = chat.list_history()
 """
 
+import asyncio
 from datetime import datetime, timezone
 from typing import Optional, Callable, List
 
@@ -432,6 +433,13 @@ class Chat(object):
         finally:
             # Always reset running flag
             self.running = False
+
+    def ask(
+        self,
+        query: str,
+        on_event: Optional[Callable[[AgentsRuntime], None]] = None,
+    ) -> BaseMessage | BaseModel:
+        return asyncio.run(self.ask_async(query, on_event))
 
     def cleanup(self) -> None:
         """

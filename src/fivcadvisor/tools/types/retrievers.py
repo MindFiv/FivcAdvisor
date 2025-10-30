@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Callable
 
 from pydantic import BaseModel, Field
-from langchain_core.tools import Tool, tool as make_tool
+from langchain_core.tools import BaseTool, tool as make_tool
 from fivcadvisor import embeddings
 from fivcadvisor.tools.types.bundles import ToolsBundleManager, ToolsBundle
 
@@ -19,7 +19,7 @@ class ToolsRetriever(object):
     ):
         self.max_num = 10  # top k
         self.min_score = 0.0  # min score
-        self.tools: dict[str, Tool] = {}
+        self.tools: dict[str, BaseTool] = {}
         db = db or embeddings.default_embedding_db
         self.collection = db.get_collection("tools")
         self.collection.clear()  # clean up any old data
@@ -37,7 +37,7 @@ class ToolsRetriever(object):
         self.collection.clear()
         self.bundle_manager.cleanup()
 
-    def add(self, tool: Tool, tool_bundle: str = "", **kwargs):
+    def add(self, tool: BaseTool, tool_bundle: str = "", **kwargs):
         """
         Add a tool to the retriever.
 
@@ -70,18 +70,18 @@ class ToolsRetriever(object):
 
         print(f"Total Docs {self.collection.count()} in ToolsRetriever")
 
-    def add_batch(self, tools: List[Tool], tool_bundle: str = ""):
+    def add_batch(self, tools: List[BaseTool], tool_bundle: str = ""):
         """Add multiple tools, optionally to the same bundle."""
         for tool in tools:
             self.add(tool, tool_bundle=tool_bundle)
 
-    def get(self, name: str) -> Optional[Tool]:
+    def get(self, name: str) -> Optional[BaseTool]:
         return self.tools.get(name)
 
-    def get_batch(self, names: List[str]) -> List[Tool]:
+    def get_batch(self, names: List[str]) -> List[BaseTool]:
         return [self.get(name) for name in names]
 
-    def get_all(self) -> List[Tool]:
+    def get_all(self) -> List[BaseTool]:
         return list(self.tools.values())
 
     @property
@@ -107,7 +107,7 @@ class ToolsRetriever(object):
         bundle_filter: Optional[Callable[[ToolsBundle], bool]] = None,
         *args,
         **kwargs,
-    ) -> List[Tool]:
+    ) -> List[BaseTool]:
         """
         Retrieve tools for a query.
 
