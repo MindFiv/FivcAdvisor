@@ -4,8 +4,6 @@ __all__ = [
     "default_loader",
     "ToolsConfig",
     "ToolsRetriever",
-    "ToolsBundle",
-    "ToolsBundleManager",
     "ToolsLoader",
 ]
 
@@ -15,8 +13,6 @@ from fivcadvisor.utils import create_lazy_value
 from fivcadvisor.tools.types import (
     ToolsRetriever,
     ToolsConfig,
-    ToolsBundle,
-    ToolsBundleManager,
     ToolsLoader,
 )
 from fivcadvisor.tools.clock import clock
@@ -40,7 +36,7 @@ def register_default_tools(tools_retriever: Optional[ToolsRetriever] = None, **k
 
     # Register clock tool
     tools = [clock]
-    tools_retriever.add_batch(tools, tool_bundle="clock")
+    tools_retriever.add_batch(tools)
 
     return tools
 

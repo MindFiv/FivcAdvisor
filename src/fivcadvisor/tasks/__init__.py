@@ -180,8 +180,8 @@ def create_briefing_task(
         kwargs["tools"] = [tools_retriever.to_tool()]
 
     return TaskRunnable(
-        query=f"Summarize the following content and make it brief, "
-        f"so that it can be set as a title: \n"
+        query=f"Summarize the following content and make it brief and short enough, "
+        "say less than 10 words, so that it can be set as a title: \n"
         f"{query}",
         runnable=agents.create_consultant_agent(**kwargs),
     )

@@ -38,13 +38,15 @@ Example:
     >>> print(result)  # Returns string
 """
 
+import asyncio
 from typing import Any, List, Type, Union, Callable
 from uuid import uuid4
 
 from langchain.agents import create_agent
-from langchain_core.messages import HumanMessage, AnyMessage
+from langchain_core.messages import HumanMessage, AnyMessage, BaseMessage
 from langchain_core.tools import BaseTool
 from langchain_core.language_models import BaseChatModel
+from langgraph.errors import GraphRecursionError
 from pydantic import BaseModel
 
 from fivcadvisor.utils import Runnable
@@ -273,37 +275,7 @@ class AgentsRunnable(Runnable):
             >>> print(result.value)
             4
         """
-        inputs = [HumanMessage(content=query)] if isinstance(query, str) else query
-        outputs = {}
-        if self._callback_handler:
-            self._callback_handler("start", None)
-
-        for mode, event in self._agent.stream(
-            self._agent.InputType(messages=inputs),
-            stream_mode=["messages", "values", "updates"],
-        ):
-            if mode == "values":
-                outputs = event
-
-            if self._callback_handler:
-                self._callback_handler(mode, event)
-
-        if self._callback_handler:
-            self._callback_handler("finish", None)
-
-        if "structured_response" in outputs:
-            return outputs["structured_response"]
-
-        if "messages" not in outputs:
-            raise AssertionError("No messages found in outputs")
-
-        output = outputs["messages"][-1]
-        self._messages.append(output)
-
-        # Extract content from BaseMessage if needed
-        if hasattr(output, "content"):
-            return output.content
-        return str(output)
+        return asyncio.run(self.run_async(query, **kwargs))
 
     async def run_async(
         self,
@@ -369,15 +341,24 @@ class AgentsRunnable(Runnable):
         if self._callback_handler:
             self._callback_handler("start", None)
 
-        async for mode, event in self._agent.astream(
-            self._agent.InputType(messages=self._messages),
-            stream_mode=["messages", "values", "updates"],
-        ):
-            if mode == "values":
-                outputs = event
+        try:
+            async for mode, event in self._agent.astream(
+                self._agent.InputType(messages=self._messages),
+                stream_mode=["messages", "values", "updates"],
+            ):
+                if mode == "values":
+                    outputs = event
 
+                if self._callback_handler:
+                    self._callback_handler(mode, event)
+
+        except GraphRecursionError as e:
+            error_msg = f"Kindly notify the error we've encountered now: {str(e)}"
+            outputs = await self._agent.ainvoke(
+                self._agent.InputType(messages=[HumanMessage(content=error_msg)])
+            )
             if self._callback_handler:
-                self._callback_handler(mode, event)
+                self._callback_handler("values", outputs)
 
         if self._callback_handler:
             self._callback_handler("finish", None)
@@ -391,7 +372,4 @@ class AgentsRunnable(Runnable):
         output = outputs["messages"][-1]
         self._messages.append(output)
 
-        # Extract content from BaseMessage if needed
-        if hasattr(output, "content"):
-            return output.content
-        return str(output)
+        return output.text if isinstance(output, BaseMessage) else str(output)

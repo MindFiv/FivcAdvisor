@@ -167,7 +167,12 @@ class ToolsConfig(object):
         self._configs[name] = config
         return True
 
-    def delete(self, name: str):
+    def remove(self, name: str):
+        """Remove a server configuration by name.
+
+        Args:
+            name: Name of the server configuration to remove.
+        """
         self._configs.pop(name, None)
 
     def get_errors(self):
@@ -299,6 +304,11 @@ class ToolsConfig(object):
         import yaml
 
         try:
+            # Ensure parent directory exists
+            import os
+
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+
             # Convert ToolsConfigValue objects to regular dicts for YAML serialization
             configs_to_save = {
                 k: dict(v) if isinstance(v, ToolsConfigValue) else v
@@ -324,6 +334,11 @@ class ToolsConfig(object):
         import json
 
         try:
+            # Ensure parent directory exists
+            import os
+
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+
             # Convert ToolsConfigValue objects to regular dicts for JSON serialization
             with open(filename, "w") as f:
                 json.dump(self._configs, f)

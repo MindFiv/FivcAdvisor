@@ -7,7 +7,6 @@ import pytest
 from unittest.mock import Mock
 
 from fivcadvisor.tools.types.retrievers import ToolsRetriever
-from fivcadvisor.tools.types.bundles import ToolsBundleManager
 
 
 class TestToolsRetriever:
@@ -41,7 +40,6 @@ class TestToolsRetriever:
         assert retriever.min_score == 0.0
         assert isinstance(retriever.tools, dict)
         assert len(retriever.tools) == 0
-        assert isinstance(retriever.bundle_manager, ToolsBundleManager)
         mock_embedding_db.get_collection.assert_called_once_with("tools")
 
     def test_str(self, mock_embedding_db):
@@ -60,7 +58,7 @@ class TestToolsRetriever:
         retriever.cleanup()
 
         assert retriever.max_num == 10
-        assert retriever.min_score == 0.0
+        assert retriever.min_score == 1.0
         assert len(retriever.tools) == 0
         assert retriever.collection.clear.call_count >= 1
 
@@ -290,37 +288,6 @@ class TestToolsRetriever:
         assert results[0]["name"] == "calculator"
         assert results[0]["description"] == "Calculate math"
 
-    def test_add_with_bundle(self, mock_embedding_db, mock_tool):
-        """Test adding a tool with bundle."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
-
-        retriever.add(mock_tool, tool_bundle="test_bundle")
-
-        assert "test_tool" in retriever.tools
-        assert retriever.bundle_manager.get_bundle("test_bundle") is not None
-        bundle = retriever.bundle_manager.get_bundle("test_bundle")
-        assert "test_tool" in bundle.get_tool_names()
-
-    def test_add_batch_with_bundle(self, mock_embedding_db):
-        """Test adding multiple tools to the same bundle."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
-
-        tool1 = Mock()
-        tool1.name = "tool1"
-        tool1.description = "Tool 1"
-
-        tool2 = Mock()
-        tool2.name = "tool2"
-        tool2.description = "Tool 2"
-
-        retriever.add_batch([tool1, tool2], tool_bundle="test_bundle")
-
-        assert len(retriever.tools) == 2
-        bundle = retriever.bundle_manager.get_bundle("test_bundle")
-        assert len(bundle) == 2
-        assert "tool1" in bundle.get_tool_names()
-        assert "tool2" in bundle.get_tool_names()
-
     def test_to_tool(self, mock_embedding_db):
         """Test converting retriever to a tool."""
         retriever = ToolsRetriever(db=mock_embedding_db)
@@ -368,35 +335,6 @@ class TestToolsRetriever:
 
         with pytest.raises(ValueError, match="Tool not found"):
             retriever.remove("nonexistent")
-
-    def test_remove_tool_from_bundle(self, mock_embedding_db):
-        """Test removing a tool that's in a bundle."""
-        retriever = ToolsRetriever(db=mock_embedding_db)
-
-        tool = Mock()
-        tool.name = "test_tool"
-        tool.description = "A test tool"
-
-        retriever.add(tool, tool_bundle="test_bundle")
-
-        # Verify tool is in bundle
-        bundle = retriever.bundle_manager.get_bundle("test_bundle")
-        assert "test_tool" in bundle.get_tool_names()
-
-        # Mock the collection.get() to return documents
-        mock_embedding_db.get_collection.return_value.collection.get = Mock(
-            return_value={
-                "ids": ["id1"],
-                "metadatas": [{"__tool__": "test_tool"}],
-            }
-        )
-
-        retriever.remove("test_tool")
-
-        # Verify tool is removed from bundle
-        assert "test_tool" not in bundle.get_tool_names()
-        # Verify tool_to_bundle mapping is updated
-        assert retriever.bundle_manager.get_bundle_by_tool("test_tool") is None
 
     def test_remove_tool_with_no_embedding_docs(self, mock_embedding_db):
         """Test removing a tool that has no embedding documents."""

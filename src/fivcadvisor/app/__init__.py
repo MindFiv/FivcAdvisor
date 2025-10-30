@@ -10,10 +10,11 @@ __all__ = [
 ]
 
 import streamlit as st
+import nest_asyncio
 
 from fivcadvisor.tools import default_retriever
 from fivcadvisor.agents.types.repositories import FileAgentsRuntimeRepository
-from fivcadvisor.app.utils import ChatManager
+from fivcadvisor.app.utils import ChatManager, default_mcp_loader
 from fivcadvisor.app.views import (
     ViewNavigation,
     ChatView,
@@ -22,10 +23,13 @@ from fivcadvisor.app.views import (
     GeneralSettingView,
 )
 
+# Apply nest_asyncio to allow nested event loops in Streamlit context
+nest_asyncio.apply()
+
 
 def main():
     """Main Streamlit application entry point with custom ViewNavigation"""
-
+    default_mcp_loader.load()
     # Page configuration (must be called first)
     st.set_page_config(
         page_title="FivcAdvisor - Intelligent Agent Assistant",
@@ -33,6 +37,7 @@ def main():
         layout="wide",
         initial_sidebar_state="expanded",
     )
+
     agent_runtime_repo = FileAgentsRuntimeRepository()
     chat_manager = ChatManager(
         agent_runtime_repo=agent_runtime_repo,

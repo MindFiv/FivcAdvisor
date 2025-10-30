@@ -143,32 +143,26 @@ class TestToolsLoaderLoad:
                 "fivcadvisor.tools.types.loaders.MultiServerMCPClient"
             ) as mock_client_class:
                 mock_client = MagicMock()
-                mock_session = AsyncMock()
-                mock_session.__aenter__.return_value = mock_session
-                mock_session.__aexit__.return_value = None
-
                 mock_client.connections = {"test_server": Mock()}
-                mock_client.session.return_value = mock_session
+
+                # Mock get_tools to return the tools
+                async def mock_get_tools(*args, **kwargs):
+                    return [mock_tool1, mock_tool2]
+
+                mock_client.get_tools = mock_get_tools
                 mock_client_class.return_value = mock_client
 
-                with patch(
-                    "fivcadvisor.tools.types.loaders.load_mcp_tools",
-                    new_callable=AsyncMock,
-                ) as mock_load_tools:
-                    mock_load_tools.return_value = [mock_tool1, mock_tool2]
+                await loader.load_async()
 
-                    await loader.load_async()
+                # Verify tools were added
+                mock_retriever.add_batch.assert_called_once()
+                call_args = mock_retriever.add_batch.call_args
+                assert call_args[0][0] == [mock_tool1, mock_tool2]
 
-                    # Verify tools were added
-                    mock_retriever.add_batch.assert_called_once()
-                    call_args = mock_retriever.add_batch.call_args
-                    assert call_args[0][0] == [mock_tool1, mock_tool2]
-                    assert call_args[1]["tool_bundle"] == "test_server"
-
-                    # Verify tools_bundles was updated
-                    assert "test_server" in loader.tools_bundles
-                    assert "tool1" in loader.tools_bundles["test_server"]
-                    assert "tool2" in loader.tools_bundles["test_server"]
+                # Verify tools_bundles was updated
+                assert "test_server" in loader.tools_bundles
+                assert "tool1" in loader.tools_bundles["test_server"]
+                assert "tool2" in loader.tools_bundles["test_server"]
         finally:
             os.unlink(config_path)
 
@@ -222,10 +216,7 @@ class TestToolsLoaderCleanup:
             )
 
             # Simulate tools being loaded in bundles
-            loader.tools_bundles = {
-                "bundle1": {"tool1", "tool2"},
-                "bundle2": {"tool3"}
-            }
+            loader.tools_bundles = {"bundle1": {"tool1", "tool2"}, "bundle2": {"tool3"}}
 
             loader.cleanup()
 
@@ -307,25 +298,20 @@ class TestToolsLoaderIncrementalUpdates:
                 "fivcadvisor.tools.types.loaders.MultiServerMCPClient"
             ) as mock_client_class:
                 mock_client = MagicMock()
-                mock_session = AsyncMock()
-                mock_session.__aenter__.return_value = mock_session
-                mock_session.__aexit__.return_value = None
-
                 mock_client.connections = {"server1": Mock()}
-                mock_client.session.return_value = mock_session
+
+                # Mock get_tools to return the tools
+                async def mock_get_tools(*args, **kwargs):
+                    return [mock_tool1]
+
+                mock_client.get_tools = mock_get_tools
                 mock_client_class.return_value = mock_client
 
-                with patch(
-                    "fivcadvisor.tools.types.loaders.load_mcp_tools",
-                    new_callable=AsyncMock,
-                ) as mock_load_tools:
-                    mock_load_tools.return_value = [mock_tool1]
+                await loader.load_async()
 
-                    await loader.load_async()
-
-                    # Verify bundle was added
-                    assert "server1" in loader.tools_bundles
-                    assert "tool1" in loader.tools_bundles["server1"]
+                # Verify bundle was added
+                assert "server1" in loader.tools_bundles
+                assert "tool1" in loader.tools_bundles["server1"]
         finally:
             os.unlink(config_path)
 
@@ -357,21 +343,122 @@ class TestToolsLoaderIncrementalUpdates:
 
                 # Only server1 is now available
                 mock_client.connections = {"server1": Mock()}
-                mock_client.session.return_value = mock_session
+
+                # Mock get_tools to return empty list
+                async def mock_get_tools(*args, **kwargs):
+                    return []
+
+                mock_client.get_tools = mock_get_tools
                 mock_client_class.return_value = mock_client
 
-                with patch(
-                    "fivcadvisor.tools.types.loaders.load_mcp_tools",
-                    new_callable=AsyncMock,
-                ) as mock_load_tools:
-                    mock_load_tools.return_value = []
+                await loader.load_async()
 
-                    await loader.load_async()
+                # Verify old bundle was removed
+                mock_retriever.remove.assert_called_once_with("old_tool")
+                assert "old_server" not in loader.tools_bundles
+                # server1 won't be in tools_bundles if no tools were loaded
+        finally:
+            os.unlink(config_path)
 
-                    # Verify old bundle was removed
-                    mock_retriever.remove.assert_called_once_with("old_tool")
-                    assert "old_server" not in loader.tools_bundles
-                    # server1 won't be in tools_bundles if no tools were loaded
+
+class TestToolsLoaderPersistentConnections:
+    """Test persistent MCP connections in ToolsLoader."""
+
+    @pytest.mark.asyncio
+    async def test_load_async_uses_async_with(self):
+        """Test that load_async uses async with for proper session lifecycle."""
+        mock_retriever = Mock(spec=ToolsRetriever)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
+            f.flush()
+            config_path = f.name
+
+        try:
+            loader = ToolsLoader(
+                tools_retriever=mock_retriever, config_file=config_path
+            )
+
+            with patch(
+                "fivcadvisor.tools.types.loaders.MultiServerMCPClient"
+            ) as mock_client_class:
+                mock_client = MagicMock()
+                mock_client.connections = {"test_server": MagicMock()}
+
+                # Mock get_tools to return the tool
+                mock_tool = Mock()
+                mock_tool.name = "test_tool"
+
+                async def mock_get_tools(*args, **kwargs):
+                    return [mock_tool]
+
+                mock_client.get_tools = mock_get_tools
+                mock_client_class.return_value = mock_client
+
+                await loader.load_async()
+
+                # Verify client is stored
+                assert loader.client is not None
+                assert loader.client == mock_client
+
+                # Verify tools are loaded and registered
+                assert "test_server" in loader.tools_bundles
+                mock_retriever.add_batch.assert_called_once()
+        finally:
+            os.unlink(config_path)
+
+    @pytest.mark.asyncio
+    async def test_cleanup_async_removes_tools(self):
+        """Test that cleanup_async removes all tools and clears state."""
+        mock_retriever = Mock(spec=ToolsRetriever)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
+            f.flush()
+            config_path = f.name
+
+        try:
+            loader = ToolsLoader(
+                tools_retriever=mock_retriever, config_file=config_path
+            )
+
+            # Set up tools and client
+            loader.tools_bundles = {
+                "server1": {"tool1", "tool2"},
+                "server2": {"tool3"},
+            }
+            loader.client = MagicMock()
+
+            await loader.cleanup_async()
+
+            # Verify tools were removed
+            assert mock_retriever.remove.call_count == 3
+
+            # Verify state was cleared
+            assert loader.tools_bundles == {}
+            assert loader.client is None
+        finally:
+            os.unlink(config_path)
+
+    def test_cleanup_sync_wrapper(self):
+        """Test that cleanup() synchronously calls cleanup_async()."""
+        mock_retriever = Mock(spec=ToolsRetriever)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("test_server:\n  command: python\n  args:\n    - test.py\n")
+            f.flush()
+            config_path = f.name
+
+        try:
+            loader = ToolsLoader(
+                tools_retriever=mock_retriever, config_file=config_path
+            )
+
+            with patch.object(
+                loader, "cleanup_async", new_callable=AsyncMock
+            ) as mock_cleanup_async:
+                loader.cleanup()
+                mock_cleanup_async.assert_called_once()
         finally:
             os.unlink(config_path)
 

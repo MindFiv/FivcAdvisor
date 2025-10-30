@@ -12,7 +12,7 @@ __all__ = [
     "ChatManager",
     "TaskManager",
     "default_running_config",
-    "default_mcp_config",
+    "default_mcp_loader",
 ]
 
 from fivcadvisor import utils, settings, tools
@@ -27,8 +27,11 @@ def _load_running_config():
 
 def _load_mcp_config():
     with utils.OutputDir():
-        return tools.ToolsConfig("mcp.yml")
+        return tools.ToolsLoader(
+            tools_retriever=tools.default_retriever,
+            config_file="mcp.yml",
+        )
 
 
 default_running_config = utils.create_lazy_value(_load_running_config)
-default_mcp_config = utils.create_lazy_value(_load_mcp_config)
+default_mcp_loader = utils.create_lazy_value(_load_mcp_config)

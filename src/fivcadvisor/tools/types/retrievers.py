@@ -1,20 +1,18 @@
-from typing import List, Optional, Dict, Callable
+from typing import List, Optional, Dict
 
 from pydantic import BaseModel, Field
 from langchain_core.tools import BaseTool, tool as make_tool
 from fivcadvisor import embeddings
-from fivcadvisor.tools.types.bundles import ToolsBundleManager, ToolsBundle
 
 
 class ToolsRetriever(object):
     """
-    A retriever for tools with optional bundle expansion support.
+    A retriever for tools.
     """
 
     def __init__(
         self,
         db: Optional[embeddings.EmbeddingDB] = None,
-        bundle_manager: Optional[ToolsBundleManager] = None,
         **kwargs,
     ):
         self.max_num = 10  # top k
@@ -24,27 +22,26 @@ class ToolsRetriever(object):
         self.collection = db.get_collection("tools")
         self.collection.clear()  # clean up any old data
 
-        # Bundle manager for tool expansion
-        self.bundle_manager = bundle_manager or ToolsBundleManager()
-
     def __str__(self):
         return f"ToolsRetriever(num_tools={len(self.tools)})"
 
     def cleanup(self):
         self.max_num = 10  # top k
-        self.min_score = 0.0  # min score
+        self.min_score = 1.0  # min score
         self.tools.clear()
         self.collection.clear()
-        self.bundle_manager.cleanup()
 
-    def add(self, tool: BaseTool, tool_bundle: str = "", **kwargs):
+    def add(self, tool: BaseTool, **kwargs):
         """
         Add a tool to the retriever.
 
         Args:
             tool: The tool to add
-            tool_bundle: Optional bundle name for this tool
         """
+
+        if not tool.handle_tool_error:
+            tool.handle_tool_error = True
+
         tool_name = tool.name
         if tool_name in self.tools:
             raise ValueError(f"Duplicate tool name: {tool_name}")
@@ -59,21 +56,12 @@ class ToolsRetriever(object):
         )
         self.tools[tool_name] = tool
 
-        # Register tool in bundle if bundle is specified
-        if tool_bundle:
-            bundle = self.bundle_manager.get_bundle(tool_bundle)
-            if bundle is None:
-                # Auto-create bundle if it doesn't exist
-                self.bundle_manager.create_bundle(tool_bundle)
-            # Use the manager's method to add tool and update mapping
-            self.bundle_manager.add_tool_to_bundle(tool_bundle, tool)
-
         print(f"Total Docs {self.collection.count()} in ToolsRetriever")
 
-    def add_batch(self, tools: List[BaseTool], tool_bundle: str = ""):
-        """Add multiple tools, optionally to the same bundle."""
+    def add_batch(self, tools: List[BaseTool], **kwargs):
+        """Add multiple tools."""
         for tool in tools:
-            self.add(tool, tool_bundle=tool_bundle)
+            self.add(tool)
 
     def get(self, name: str) -> Optional[BaseTool]:
         return self.tools.get(name)
@@ -91,7 +79,6 @@ class ToolsRetriever(object):
         Removes the tool from:
         - self.tools dictionary
         - embedding collection (by metadata)
-        - bundle manager (if it's in a bundle)
 
         Args:
             name: The name of the tool to remove
@@ -117,13 +104,6 @@ class ToolsRetriever(object):
         if ids_to_delete:
             self.collection.collection.delete(ids=ids_to_delete)
 
-        # Remove from bundle manager if it's in a bundle
-        try:
-            self.bundle_manager.remove_tool_from_bundle(name)
-        except ValueError as e:
-            print(f"Warning: Failed to remove tool from bundle: {e}")
-            # Tool is not in any bundle, which is fine
-
         print(
             f"Removed tool '{name}'. Total Docs {self.collection.count()} in ToolsRetriever"
         )
@@ -147,8 +127,6 @@ class ToolsRetriever(object):
     def retrieve(
         self,
         query: str,
-        include_bundles: bool = False,
-        bundle_filter: Optional[Callable[[ToolsBundle], bool]] = None,
         *args,
         **kwargs,
     ) -> List[BaseTool]:
@@ -157,8 +135,6 @@ class ToolsRetriever(object):
 
         Args:
             query: The query string
-            include_bundles: Whether to expand results to include related bundle tools
-            bundle_filter: Optional filter for bundle expansion
             *args: Additional positional arguments
             **kwargs: Additional keyword arguments
 
@@ -176,12 +152,6 @@ class ToolsRetriever(object):
             if src["score"] >= self.retrieve_min_score
         )
         tools = [self.get(name) for name in tool_names]
-
-        # Expand with bundle tools if requested
-        if include_bundles:
-            tools = self.bundle_manager.expand_tools(
-                tools, include_bundles=True, bundle_filter=bundle_filter
-            )
 
         return tools
 

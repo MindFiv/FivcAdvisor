@@ -10,7 +10,7 @@ allowing users to configure and manage MCP server connections. The view handles:
 - Editing MCP configuration in YAML format
 - Testing MCP server connectivity
 
-The MCP settings view uses the default_mcp_config from app.utils for persistence
+The MCP settings view uses the default_mcp_loader from app.utils for persistence
 and provides both UI-based and direct YAML editing interfaces for flexibility.
 """
 
@@ -18,7 +18,7 @@ import streamlit as st
 import yaml
 
 from fivcadvisor.app.views.base import ViewBase, ViewNavigation
-from fivcadvisor.app.utils import default_mcp_config
+from fivcadvisor.app.utils import default_mcp_loader
 
 
 class MCPSettingView(ViewBase):
@@ -219,7 +219,7 @@ class MCPSettingView(ViewBase):
 
     def _render_manage_servers_tab(self):
         """Render the manage servers tab."""
-        servers = default_mcp_config.list()
+        servers = default_mcp_loader.config.list()
 
         # Display current servers section
         if servers:
@@ -267,7 +267,7 @@ class MCPSettingView(ViewBase):
         Args:
             name (str): Server name
         """
-        settings = default_mcp_config.get(name)
+        settings = default_mcp_loader.config.get(name)
         if not settings:
             return
 
@@ -304,8 +304,9 @@ class MCPSettingView(ViewBase):
                             key=f"confirm_delete_{name}",
                             use_container_width=True,
                         ):
-                            default_mcp_config.delete(name)
-                            default_mcp_config.save()
+                            default_mcp_loader.config.remove(name)
+                            default_mcp_loader.config.save()
+                            print(default_mcp_loader.config.get_errors())
                             st.success(self.ERR_DELETED.format(name=name))
                             st.rerun()
                     with col_confirm2:
@@ -384,8 +385,8 @@ class MCPSettingView(ViewBase):
 
         # Convert current configs to YAML
         current_config = {}
-        for name in default_mcp_config.list():
-            config_value = default_mcp_config.get(name)
+        for name in default_mcp_loader.config.list():
+            config_value = default_mcp_loader.config.get(name)
             # Convert ToolsConfigValue (dict subclass) to regular dict for YAML serialization
             current_config[name] = dict(config_value) if config_value else {}
 
@@ -407,13 +408,28 @@ class MCPSettingView(ViewBase):
                 try:
                     new_config = yaml.safe_load(edited_yaml) or {}
 
-                    # Validate and save each config
+                    # Validate all configs first before making any changes
                     for name, cfg in new_config.items():
-                        if not default_mcp_config.set(name, cfg):
+                        if not isinstance(cfg, dict):
                             st.error(self.ERR_INVALID_CONFIG.format(name=name))
                             return
+                        # Try to create a ToolsConfigValue to validate
+                        from fivcadvisor.tools.types.configs import ToolsConfigValue
 
-                    default_mcp_config.save()
+                        try:
+                            ToolsConfigValue(cfg)
+                        except ValueError as e:
+                            st.error(f"Invalid config for '{name}': {str(e)}")
+                            return
+
+                    # Clear all existing configs and set new ones
+                    # This handles both updates and deletions
+                    default_mcp_loader.config._configs.clear()
+
+                    for name, cfg in new_config.items():
+                        default_mcp_loader.config.set(name, cfg)
+
+                    default_mcp_loader.config.save()
                     st.success(self.SUCCESS_SAVED)
                     st.rerun()
                 except yaml.YAMLError as e:
@@ -503,6 +519,75 @@ class MCPSettingView(ViewBase):
             with col2:
                 st.markdown(self.HELP_CONFIG_STATUS)
 
+    def _test_mcp_configuration(self):
+        """Test MCP configuration and server connectivity.
+
+        Validates all configured MCP servers and checks their connectivity.
+        Displays results with detailed error information if any issues are found.
+        """
+        servers = default_mcp_loader.config.list()
+
+        if not servers:
+            st.warning("No MCP servers configured yet.")
+            return
+
+        st.info(f"Testing {len(servers)} configured server(s)...")
+
+        # Get errors from config loading
+        config_errors = default_mcp_loader.config.get_errors()
+        if config_errors:
+            st.warning(self.WARN_CONFIG_ERRORS)
+            for error in config_errors:
+                st.error(f"  • {error}")
+            return
+
+        # Test each server
+        valid_count = 0
+        for server_name in servers:
+            config_value = default_mcp_loader.config.get(server_name)
+            if not config_value:
+                st.error(f"❌ {server_name}: Failed to load configuration")
+                continue
+
+            # Validate configuration
+            if not config_value.validate():
+                st.error(f"❌ {server_name}: Invalid configuration")
+                continue
+
+            # Check if connection can be created
+            try:
+                connection = config_value.connection
+                if connection is None:
+                    st.error(f"❌ {server_name}: Failed to create connection")
+                    continue
+
+                # Display server info
+                if self.KEY_COMMAND in config_value:
+                    st.success(
+                        f"✅ {server_name}: Command-based server configured correctly"
+                    )
+                elif self.KEY_URL in config_value:
+                    st.success(
+                        f"✅ {server_name}: URL-based server configured correctly"
+                    )
+                else:
+                    st.warning(f"⚠️ {server_name}: Unknown server type")
+                    continue
+
+                valid_count += 1
+            except Exception as e:
+                st.error(f"❌ {server_name}: {str(e)}")
+
+        # Summary
+        st.divider()
+        if valid_count == len(servers):
+            st.success(self.SUCCESS_VALID.format(count=valid_count))
+        else:
+            st.warning(
+                f"⚠️ {valid_count}/{len(servers)} servers are valid. "
+                f"Please fix the errors above."
+            )
+
     def _add_server(self, server_name: str, server_type: str, *args):
         """Add a new server to configuration.
 
@@ -516,7 +601,7 @@ class MCPSettingView(ViewBase):
             st.error(self.ERR_SERVER_NAME_REQUIRED)
             return
 
-        if server_name in default_mcp_config.list():
+        if server_name in default_mcp_loader.config.list():
             st.error(self.ERR_SERVER_EXISTS.format(name=server_name))
             return
 
@@ -550,8 +635,8 @@ class MCPSettingView(ViewBase):
             config = {self.KEY_URL: url}
 
         # Use ToolsConfig.set() which validates automatically
-        if default_mcp_config.set(server_name, config):
-            default_mcp_config.save()
+        if default_mcp_loader.config.set(server_name, config):
+            default_mcp_loader.config.save()
             st.success(self.ERR_ADDED.format(name=server_name))
             st.rerun()
         else:
