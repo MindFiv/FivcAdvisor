@@ -1,5 +1,5 @@
 """
-MCP Settings Page
+MCP Setting Page
 
 Provides configuration interface for Model Context Protocol (MCP) servers.
 
@@ -29,7 +29,7 @@ class MCPSettingView(ViewBase):
     """
 
     # UI Labels and Messages
-    TITLE = "MCP Settings"
+    TITLE = "MCP Setting"
     ICON = "🔗"
     VIEW_ID = "mcp_setting"
 
@@ -198,7 +198,7 @@ class MCPSettingView(ViewBase):
         return self.VIEW_ID
 
     def render(self, nav: "ViewNavigation"):
-        """Render MCP settings page.
+        """Render MCP setting page.
 
         Args:
             nav (ViewNavigation): Navigation instance for page management.

@@ -80,9 +80,9 @@ class TestTaskTrace:
         )
         event.status = TaskStatus.EXECUTING
         event.started_at = datetime(2024, 1, 1, 12, 0, 0)
-        from strands.types.content import Message
+        from langchain_core.messages import HumanMessage
 
-        event.messages.append(Message(role="user", content="test"))
+        event.messages.append(HumanMessage(content="test"))
 
         # Test with messages included (default)
         result = event.model_dump(mode="json")
