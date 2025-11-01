@@ -198,10 +198,14 @@ class TestAgentsMonitorToolEvents:
         event1 = (message1, {})
         monitor("messages", event1)
 
-        # Then add tool result via values mode
+        # Then add tool result via finish mode (since on_values is intentionally removed)
         message2 = AIMessage(content="Result: 4")
-        event2 = {"messages": [message2]}
-        monitor("values", event2)
+        # Create a mock runnable for the finish event
+        mock_runnable = Mock()
+        mock_runnable.id = "test-agent"
+        mock_runnable.name = "TestAgent"
+        event2 = (mock_runnable, message2)
+        monitor("finish", event2)
 
         # Verify runtime was updated
         assert monitor._runtime.reply is not None
@@ -226,10 +230,13 @@ class TestAgentsMonitorToolEvents:
         event1 = (message1, {})
         monitor("messages", event1)
 
-        # Add error message via values mode
+        # Add error message via finish mode (since on_values is intentionally removed)
         message2 = AIMessage(content="Error occurred")
-        event2 = {"messages": [message2]}
-        monitor("values", event2)
+        mock_runnable = Mock()
+        mock_runnable.id = "test-agent"
+        mock_runnable.name = "TestAgent"
+        event2 = (mock_runnable, message2)
+        monitor("finish", event2)
 
         # Verify runtime was updated
         assert monitor._runtime.reply is not None
@@ -291,7 +298,7 @@ class TestAgentsMonitorErrorHandling:
         assert monitor._runtime.streaming_text == "test"
 
     def test_tool_callback_exception_handled(self):
-        """Test that event callback exceptions don't crash monitor during values events."""
+        """Test that event callback exceptions don't crash monitor during finish events."""
         from langchain_core.messages import AIMessage
 
         def failing_callback(runtime):
@@ -300,10 +307,13 @@ class TestAgentsMonitorErrorHandling:
         monitor = AgentsMonitor(on_event=failing_callback)
 
         message = AIMessage(content="test response")
-        event = {"messages": [message]}
+        mock_runnable = Mock()
+        mock_runnable.id = "test-agent"
+        mock_runnable.name = "TestAgent"
+        event = (mock_runnable, message)
 
-        # Should not raise exception
-        monitor("values", event)
+        # Should not raise exception (finish mode is used since on_values is intentionally removed)
+        monitor("finish", event)
 
         # Event should still be captured
         assert monitor._runtime.reply is not None

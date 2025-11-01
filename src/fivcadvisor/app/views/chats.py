@@ -24,10 +24,10 @@ from fivcadvisor.app.utils import (
     # default_running_config,
 )
 from fivcadvisor.app.components import ChatMessage
+from fivcadvisor.agents.types import AgentsRuntime
 
 # from fivcadvisor.tasks import create_assessing_task
 from .base import ViewBase, ViewNavigation
-from ...agents.types import AgentsRuntime
 
 
 class ChatView(ViewBase):

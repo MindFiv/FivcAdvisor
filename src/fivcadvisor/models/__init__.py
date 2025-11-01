@@ -33,7 +33,7 @@ def create_default_model(**kwargs) -> BaseChatModel:
 
     model_provider = default_providers.get(kwargs.get("provider"))
     if not isinstance(model_provider, Callable):
-        raise ValueError(f"Unsupported model provider: {kwargs.get("provider")}")
+        raise ValueError(f"Unsupported model provider: {kwargs.get('provider')}")
 
     return model_provider(**kwargs)
 

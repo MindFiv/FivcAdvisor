@@ -189,10 +189,14 @@ class TestAgentsRunnableStructuredResponse:
 
         # Mock agent returns structured_response in output
         test_response = TestResponse(answer="Test answer", confidence=0.95)
+        response_message = AIMessage(content="Test answer")
 
         # Mock astream to return async generator
         async def mock_astream(*args, **kwargs):
-            yield ("values", {"structured_response": test_response})
+            yield (
+                "values",
+                {"messages": [response_message], "structured_response": test_response},
+            )
 
         mock_agent.astream = mock_astream
         mock_agent.InputType = MagicMock(return_value={"messages": []})
@@ -226,9 +230,13 @@ class TestAgentsRunnableStructuredResponse:
 
         # Mock agent returns structured_response in output
         test_response = TestResponse(answer="Async answer", confidence=0.85)
+        response_message = AIMessage(content="Async answer")
 
         async def mock_astream(*args, **kwargs):
-            yield ("values", {"structured_response": test_response})
+            yield (
+                "values",
+                {"messages": [response_message], "structured_response": test_response},
+            )
 
         mock_agent.astream = mock_astream
         mock_agent.InputType = MagicMock(return_value={"messages": []})
@@ -252,10 +260,10 @@ class TestAgentsRunnableStructuredResponse:
         asyncio.run(test_async())
 
     @patch("fivcadvisor.agents.types.runnables.create_agent")
-    def test_run_falls_back_to_message_text_without_structured_response(
+    def test_run_falls_back_to_message_without_structured_response(
         self, mock_create_agent
     ):
-        """Test that run() falls back to message text when structured_response is not present."""
+        """Test that run() returns BaseMessage when structured_response is not present."""
         mock_model = MagicMock(spec=BaseChatModel)
         mock_agent = MagicMock()
 
@@ -275,8 +283,8 @@ class TestAgentsRunnableStructuredResponse:
 
         result = agent.run("test query")
 
-        assert result == "Plain text response"
-        assert isinstance(result, str)
+        assert isinstance(result, AIMessage)
+        assert result.content == "Plain text response"
 
     @patch("fivcadvisor.agents.types.runnables.create_agent")
     def test_run_with_multiple_messages_returns_last_message(self, mock_create_agent):
@@ -309,7 +317,8 @@ class TestAgentsRunnableStructuredResponse:
 
         result = agent.run("test query")
 
-        assert result == "Final response"
+        assert isinstance(result, AIMessage)
+        assert result.content == "Final response"
 
     @patch("fivcadvisor.agents.types.runnables.create_agent")
     def test_structured_response_takes_precedence_over_messages(
@@ -378,7 +387,8 @@ class TestAgentsRunnableMessageHistory:
 
         result = agent.run("test query")
 
-        assert result == "Response"
+        assert isinstance(result, AIMessage)
+        assert result.content == "Response"
 
     @patch("fivcadvisor.agents.types.runnables.create_agent")
     def test_run_with_message_list(self, mock_create_agent):
@@ -408,7 +418,8 @@ class TestAgentsRunnableMessageHistory:
 
         result = agent.run(messages)
 
-        assert result == "Response to history"
+        assert isinstance(result, AIMessage)
+        assert result.content == "Response to history"
 
     @patch("fivcadvisor.agents.types.runnables.create_agent")
     def test_run_with_empty_message_list(self, mock_create_agent):
@@ -431,7 +442,8 @@ class TestAgentsRunnableMessageHistory:
 
         result = agent.run([])
 
-        assert result == "Default response"
+        assert isinstance(result, AIMessage)
+        assert result.content == "Default response"
 
     @patch("fivcadvisor.agents.types.runnables.create_agent")
     def test_run_with_single_message(self, mock_create_agent):
@@ -458,7 +470,8 @@ class TestAgentsRunnableMessageHistory:
         messages = [HumanMessage(content="Single question")]
         result = agent.run(messages)
 
-        assert result == "Single message response"
+        assert isinstance(result, AIMessage)
+        assert result.content == "Single message response"
 
     @patch("fivcadvisor.agents.types.runnables.create_agent")
     def test_run_async_with_string_query(self, mock_create_agent):
@@ -483,7 +496,8 @@ class TestAgentsRunnableMessageHistory:
 
         async def test_async():
             result = await agent.run_async("test query")
-            assert result == "Async response"
+            assert isinstance(result, AIMessage)
+            assert result.content == "Async response"
 
         asyncio.run(test_async())
 
@@ -518,7 +532,8 @@ class TestAgentsRunnableMessageHistory:
                 HumanMessage(content="Follow-up question"),
             ]
             result = await agent.run_async(messages)
-            assert result == "Async history response"
+            assert isinstance(result, AIMessage)
+            assert result.content == "Async history response"
 
         asyncio.run(test_async())
 
@@ -534,9 +549,13 @@ class TestAgentsRunnableMessageHistory:
         mock_agent = MagicMock()
 
         test_response = TestResponse(answer="Structured answer", confidence=0.9)
+        response_message = AIMessage(content="Structured answer")
 
         async def mock_astream(*args, **kwargs):
-            yield ("values", {"structured_response": test_response})
+            yield (
+                "values",
+                {"messages": [response_message], "structured_response": test_response},
+            )
 
         mock_agent.astream = MagicMock(side_effect=mock_astream)
         mock_agent.InputType = MagicMock(return_value={"messages": []})
@@ -576,9 +595,13 @@ class TestAgentsRunnableMessageHistory:
         mock_agent = MagicMock()
 
         test_response = TestResponse(answer="Async structured answer", confidence=0.85)
+        response_message = AIMessage(content="Async structured answer")
 
         async def mock_astream(*args, **kwargs):
-            yield ("values", {"structured_response": test_response})
+            yield (
+                "values",
+                {"messages": [response_message], "structured_response": test_response},
+            )
 
         mock_agent.astream = mock_astream
         mock_agent.InputType = MagicMock(return_value={"messages": []})
@@ -633,7 +656,8 @@ class TestAgentsRunnableMessageHistory:
 
         result = agent.run(messages)
 
-        assert result == "Mixed response"
+        assert isinstance(result, AIMessage)
+        assert result.content == "Mixed response"
 
 
 class TestAgentsRunnableIntegration:

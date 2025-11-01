@@ -221,9 +221,9 @@ class AgentsRunnable(Runnable):
 
     def run(
         self,
-        query: str | List[AnyMessage] = "",
+        query: str | BaseMessage = "",
         **kwargs: Any,
-    ) -> Union[BaseModel, str]:
+    ) -> Union[BaseModel, BaseMessage]:
         """
         Execute the agent synchronously.
 
@@ -233,7 +233,7 @@ class AgentsRunnable(Runnable):
         The return type depends on whether a response_model was provided during
         initialization:
         - If response_model is set: Returns an instance of that Pydantic model
-        - If response_model is None: Returns the response as a string
+        - If response_model is None: Returns the response as a BaseMessage
 
         Args:
             query: The user query to process. Can be either:
@@ -243,8 +243,8 @@ class AgentsRunnable(Runnable):
             **kwargs: Additional keyword arguments passed to the agent
 
         Returns:
-            Union[BaseModel, str]: The agent's response, either as a Pydantic model
-                                   instance (if response_model was provided) or as a string
+            Union[BaseModel, BaseMessage]: The agent's response, either as a Pydantic model
+                                           instance (if response_model was provided) or as a BaseMessage
 
         Raises:
             AssertionError: If no messages are found in outputs
@@ -279,9 +279,9 @@ class AgentsRunnable(Runnable):
 
     async def run_async(
         self,
-        query: str | List[AnyMessage] = "",
+        query: str | BaseMessage = "",
         **kwargs: Any,
-    ) -> Union[BaseModel, str]:
+    ) -> Union[BaseModel, BaseMessage]:
         """
         Execute the agent asynchronously.
 
@@ -291,7 +291,7 @@ class AgentsRunnable(Runnable):
         The return type depends on whether a response_model was provided during
         initialization:
         - If response_model is set: Returns an instance of that Pydantic model
-        - If response_model is None: Returns the response as a string
+        - If response_model is None: Returns the response as a BaseMessage
 
         Args:
             query: The user query to process. Can be either:
@@ -301,8 +301,8 @@ class AgentsRunnable(Runnable):
             **kwargs: Additional keyword arguments passed to the agent
 
         Returns:
-            Union[BaseModel, str]: The agent's response, either as a Pydantic model
-                                   instance (if response_model was provided) or as a string
+            Union[BaseModel, BaseMessage]: The agent's response, either as a Pydantic model
+                                           instance (if response_model was provided) or as a BaseMessage
 
         Raises:
             AssertionError: If no messages are found in outputs
@@ -334,12 +334,14 @@ class AgentsRunnable(Runnable):
             >>> print(result.value)
             4
         """
-        inputs = [HumanMessage(content=query)] if isinstance(query, str) else query
-        self._messages.extend(inputs)
+
+        if query:
+            query = HumanMessage(content=query) if isinstance(query, str) else query
+            self._messages.append(query)
 
         outputs = {}
         if self._callback_handler:
-            self._callback_handler("start", None)
+            self._callback_handler("start", (self, query))
 
         try:
             async for mode, event in self._agent.astream(
@@ -360,16 +362,25 @@ class AgentsRunnable(Runnable):
             if self._callback_handler:
                 self._callback_handler("values", outputs)
 
-        if self._callback_handler:
-            self._callback_handler("finish", None)
-
-        if "structured_response" in outputs:
-            return outputs["structured_response"]
-
         if "messages" not in outputs:
-            raise AssertionError("No messages found in outputs")
+            raise ValueError(f"Expected messages in outputs, got {outputs}")
 
         output = outputs["messages"][-1]
+        if not isinstance(output, BaseMessage):
+            raise ValueError(
+                f"Expected structured_response to be BaseMessage, got {type(output)}"
+            )
+
         self._messages.append(output)
 
-        return output.text if isinstance(output, BaseMessage) else str(output)
+        if self._callback_handler:
+            self._callback_handler("finish", (self, output))
+
+        if "structured_response" in outputs:
+            output = outputs["structured_response"]
+            if not isinstance(output, BaseModel):
+                raise ValueError(
+                    f"Expected structured_response to be BaseModel, got {type(output)}"
+                )
+
+        return output

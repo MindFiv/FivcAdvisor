@@ -40,9 +40,7 @@ Key Features:
 
 from datetime import datetime
 from typing import Any, Optional, List, Callable, Tuple
-from uuid import uuid4
 
-from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import (
     BaseMessageChunk,
     AIMessageChunk,
@@ -50,18 +48,20 @@ from langchain_core.messages import (
     BaseMessage,
 )
 
-from fivcadvisor import agents, tools
 from fivcadvisor.agents.types.base import (
+    AgentsStatus,
     AgentsRuntime,
     AgentsRuntimeToolCall,
-    AgentsStatus,
+)
+from fivcadvisor.agents.types.runnables import (
+    AgentsRunnable,
 )
 from fivcadvisor.agents.types.repositories import (
     AgentsRuntimeRepository,
 )
 
 
-class AgentsMonitor(BaseCallbackHandler):
+class AgentsMonitor(object):
     """
     Agent execution monitor for tracking single-agent execution.
 
@@ -165,61 +165,63 @@ class AgentsMonitor(BaseCallbackHandler):
         self._on_event = on_event
 
         if not runtime:
-            self._repo.update_agent_runtime(
-                self._runtime.agent_id or "unknown", self._runtime
+            self._update_agent_runtime()
+
+    def _update_agent_runtime(self):
+        if self._runtime.agent_id:
+            self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
+
+    def _update_agent_runtime_tool_call(self, tool_call: AgentsRuntimeToolCall):
+        if self._runtime.agent_id:
+            self._repo.update_agent_runtime_tool_call(
+                self._runtime.agent_id, self._runtime.agent_run_id, tool_call
             )
 
-    def on_start(self):
+    def _fire_event(self):
+        if self._on_event:
+            self._on_event(self._runtime)
+
+    def on_start(self, event: Tuple[AgentsRunnable, BaseMessage]):
+        runnable, query = event
+
+        self._runtime.agent_id = runnable.id
+        self._runtime.agent_name = runnable.name
+        self._runtime.query = query.text
         self._runtime.reply = None
         self._runtime.status = AgentsStatus.EXECUTING
         self._runtime.started_at = datetime.now()
-        self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
 
-        if self._on_event:
-            self._on_event(self._runtime)
+        self._update_agent_runtime()
+        self._fire_event()
 
-    def on_finish(self):
+    def on_finish(self, event: Tuple[AgentsRunnable, BaseMessage]):
+        runnable, reply = event
+        if (
+            self._runtime.agent_id != runnable.id
+            or self._runtime.agent_name != runnable.name
+        ):
+            import warnings
+
+            warnings.warn(
+                f"Agent ID or name mismatch: "
+                f"{self._runtime.agent_id} != {runnable.id} or "
+                f"{self._runtime.agent_name} != {runnable.name}"
+            )
+
         self._runtime.status = AgentsStatus.COMPLETED
+        self._runtime.reply = reply
         self._runtime.completed_at = datetime.now()
-        self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
 
-        if self._on_event:
-            self._on_event(self._runtime)
+        self._update_agent_runtime()
+        self._fire_event()
 
     def on_updates(self, event: dict[str, Any]):
         # print(f"on_updates {event}")
         self._runtime.streaming_text = ""
 
-    def on_values(self, event: dict[str, Any]):
-        if "structured_response" in event:
-            self._runtime.reply = event["structured_response"]
-
-        elif "messages" in event:
-            last_message = event["messages"][-1]
-            # Ensure the message is a BaseMessage instance
-            if isinstance(last_message, BaseMessage):
-                self._runtime.reply = last_message
-            elif isinstance(last_message, dict):
-                # If it's a dict, try to convert it to BaseMessage
-                from langchain_core.messages import messages_from_dict
-
-                try:
-                    messages = messages_from_dict([last_message])
-                    if messages:
-                        self._runtime.reply = messages[0]
-                except Exception as e:
-                    # Log error but don't fail - just skip setting reply
-                    print(
-                        f"Warning: Failed to convert message dict to BaseMessage: {e}"
-                    )
-            else:
-                # Unknown message type, skip
-                print(f"Warning: Unknown message type: {type(last_message)}")
-
-        self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
-
-        if self._on_event:
-            self._on_event(self._runtime)
+    # def on_values(self, event: dict[str, Any]):
+    #     self._update_agent_runtime()
+    #     self._fire_event()
 
     def on_messages(self, event: Tuple[BaseMessageChunk, dict]):
         msg, _ = event
@@ -239,29 +241,27 @@ class AgentsMonitor(BaseCallbackHandler):
             )
             # print(msg.model_dump_json())
             self._runtime.tool_calls[tool_call.tool_use_id] = tool_call
-            self._repo.update_agent_runtime_tool_call(
-                self._runtime.agent_id or "unknown",
-                self._runtime.agent_run_id,
-                tool_call,
-            )
+            self._update_agent_runtime_tool_call(tool_call)
 
         # self._repo.update_agent_runtime(self._runtime.agent_id, self._runtime)
-
-        if self._on_event:
-            self._on_event(self._runtime)
+        self._fire_event()
 
     def __call__(self, mode: str, event: Any) -> None:
         try:
             if mode == "messages":
                 self.on_messages(event)
-            elif mode == "values":
-                self.on_values(event)
+
+            # elif mode == "values":
+            #     self.on_values(event)
+
             elif mode == "updates":
                 self.on_updates(event)
+
             elif mode == "start":
-                self.on_start()
+                self.on_start(event)
+
             elif mode == "finish":
-                self.on_finish()
+                self.on_finish(event)
 
         except Exception as e:
             # Gracefully handle callback exceptions
@@ -308,32 +308,27 @@ class AgentsMonitorManager(object):
 
     AgentsMonitorManager provides a unified interface to:
     - Create agents with automatic monitoring integration
-    - Retrieve tools based on query context
     - Track agent execution status through AgentsMonitor
     - Persist agent execution history through AgentsRuntimeRepository
+    - List and retrieve agent execution monitors
+    - Delete agent execution records
+
+    Note:
+        The current implementation of create_agent_runtime() is incomplete.
+        It only returns an empty AgentsMonitor instance. The full implementation
+        should accept query, agent_id, tools_retriever, and agent_creator parameters
+        to create and monitor agent executions.
 
     Usage:
         >>> from fivcadvisor.agents.types.monitors import AgentsMonitorManager
         >>> from fivcadvisor.agents.types.repositories.files import FileAgentsRuntimeRepository
-        >>> from fivcadvisor.agents.types import agent_creator
-        >>> from fivcadvisor import tools
         >>> from fivcadvisor.utils import OutputDir
         >>>
         >>> # Create manager with file-based persistence
         >>> repo = FileAgentsRuntimeRepository(output_dir=OutputDir("./agents"))
         >>> manager = AgentsMonitorManager(runtime_repo=repo)
         >>>
-        >>> # Create an agent with automatic monitoring
-        >>> agent = manager.create_agent_runtime(
-        ...     query="What is the weather today?",
-        ...     tools_retriever=tools.default_retriever,
-        ...     agent_creator=agent_creator("companion")
-        ... )
-        >>>
-        >>> # Execute agent (monitoring happens automatically)
-        >>> result = await agent.invoke_async("What is the weather today?")
-        >>>
-        >>> # View all agent executions
+        >>> # View all agent executions for a specific agent
         >>> monitors = manager.list_agent_runtimes(agent_id)  # Returns list of AgentsMonitor
         >>>
         >>> # Get specific agent execution monitor
@@ -345,9 +340,7 @@ class AgentsMonitorManager(object):
         >>> manager.delete_agent_runtime(agent_id, agent_run_id)
 
     Note:
-        The runtime_repo parameter is required.
-        Previous agent messages are automatically loaded from the repository and
-        passed to the agent creator for conversation continuity.
+        The runtime_repo parameter is required for all operations.
     """
 
     def __init__(
@@ -379,120 +372,38 @@ class AgentsMonitorManager(object):
 
     def create_agent_runtime(
         self,
-        query: str,
-        tools_retriever: Optional["tools.ToolsRetriever"] = None,
-        agent_id: Optional[str] = None,
-        agent_creator: Optional["agents.AgentsCreatorBase"] = None,
         on_event: Optional[Callable[[AgentsRuntime], None]] = None,
-        **kwargs,
-    ) -> Any:
+    ) -> AgentsMonitor:
         """
-        Create a new agent runtime with automatic monitoring integration.
+        Create an agent runtime monitor.
 
-        This method:
-        1. Retrieves relevant tools based on the query
-        2. Generates a unique agent ID (if not provided)
-        3. Loads previous completed messages from the repository for conversation continuity
-        4. Creates an AgentsRuntime to track execution
-        5. Creates an AgentsMonitor as callback handler
-        6. Creates the agent using the provided agent_creator with:
-           - Previous messages for conversation history
-           - The manager's conversation_manager for conversation management
-           - The monitor as callback_handler for execution tracking
-        7. Persists the initial runtime state
+        Creates a new AgentsMonitor instance for tracking agent execution.
+
+        Note:
+            This implementation is incomplete. The full implementation should:
+            - Accept query, agent_id, tools_retriever, and agent_creator parameters
+            - Retrieve tools based on the query
+            - Generate a unique agent ID if not provided
+            - Load previous agent messages from the repository for conversation continuity
+            - Create an AgentsRuntime instance to track execution
+            - Create an agent using the provided agent_creator
+            - Return the created agent (not just the monitor)
 
         Args:
-            query: The query/task for the agent to execute. Used for tool retrieval
-                  and stored in the AgentsRuntime for reference.
-            tools_retriever: ToolsRetriever to get relevant tools for the query.
-                           Required parameter.
-            agent_id: Optional unique identifier for the agent. If not provided,
-                     a UUID will be auto-generated.
-            agent_creator: AgentsCreatorBase to create the agent instance.
-                          Should be a callable that accepts agent_id, agent_name,
-                          messages, conversation_manager, callback_handler,
-                          tools, and additional kwargs. Required parameter.
-            on_event: Optional callback invoked with AgentsRuntime after each agent event.
-                     Useful for UI updates or logging. The callback receives the complete
-                     runtime state including streaming_text, tool_calls, and status.
-            **kwargs: Additional arguments passed to agent_creator
+            on_event: Optional callback invoked with AgentsRuntime after each agent event
 
         Returns:
-            Agent instance with monitoring already configured
-
-        Raises:
-            AssertionError: If tools_retriever or agent_creator is None
-            ValueError: If agent creation fails
+            AgentsMonitor: A monitor instance for tracking agent execution
 
         Example:
-            >>> from fivcadvisor.agents.types import agent_creator
-            >>> from fivcadvisor import tools
-            >>> from fivcadvisor.agents.types.repositories.files import FileAgentsRuntimeRepository
-            >>> from fivcadvisor.utils import OutputDir
-            >>>
-            >>> # Setup manager
-            >>> repo = FileAgentsRuntimeRepository(output_dir=OutputDir("./agents"))
             >>> manager = AgentsMonitorManager(runtime_repo=repo)
-            >>>
-            >>> # Create agent with custom ID
-            >>> agent = manager.create_agent_runtime(
-            ...     query="What is 2+2?",
-            ...     agent_id="calc-agent-001",
-            ...     tools_retriever=tools.default_retriever,
-            ...     agent_creator=agent_creator("companion")
-            ... )
-            >>> result = await agent.run_async("What is 2+2?")
+            >>> monitor = manager.create_agent_runtime(on_event=my_callback)
         """
-        assert tools_retriever is not None
-        assert agent_creator is not None
-
-        # Retrieve tools according to query
-        agent_tools = tools_retriever.retrieve(query, expand=True)
-        agent_tool_names = [i.name for i in agent_tools]
-        print(f"Agent Tools: {agent_tool_names} for query: {query}")
-
-        # Generate unique agent ID
-        agent_id = agent_id or str(uuid4())
-
-        # Sync runtime to agent
-        agent_runtimes = self._repo.list_agent_runtimes(agent_id)
-        agent_messages = [
-            runtime.reply
-            for runtime in agent_runtimes
-            if (runtime.is_completed and runtime.reply)
-        ]
-
-        # Create runtime to track execution
-        agent_runtime = AgentsRuntime(
-            query=query,
-            agent_id=agent_id,
-            agent_name=agent_creator.name,
-        )
-
-        # Create monitor as callback handler
-        agent_monitor = AgentsMonitor(
+        return AgentsMonitor(
             on_event=on_event,
-            runtime=agent_runtime,
+            runtime=AgentsRuntime(),
             runtime_repo=self._repo,
         )
-
-        # Create agent with monitoring
-        agent = agent_creator(
-            agent_id=agent_id,
-            agent_name=agent_creator.name,
-            messages=agent_messages,
-            callback_handler=agent_monitor,
-            tools=agent_tools,
-            **kwargs,
-        )
-
-        if not agent:
-            raise ValueError("Agent creation failed")
-
-        # Persist initial runtime state
-        self._repo.update_agent_runtime(agent_id, agent_runtime)
-
-        return agent
 
     def list_agent_runtimes(
         self, agent_id: str, status: Optional[List[AgentsStatus]] = None
